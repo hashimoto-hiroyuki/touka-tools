@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>検体PpP値 入力ツール</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%239c27b0'/><path d='M13 6v10l-4 6a2 2 0 001.7 3h10.6a2 2 0 001.7-3l-4-6V6' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M12 6h8' stroke='white' stroke-width='2' stroke-linecap='round'/><ellipse cx='16' cy='22' rx='4' ry='2' fill='white' opacity='0.4'/></svg>">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', 'Yu Gothic UI', 'Meiryo', sans-serif;
+            background: #f5f5f5;
+            padding: 30px 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 22px;
+            color: #333;
+            text-align: center;
+            margin-bottom: 6px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 24px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }
+        .form-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .form-row label {
+            width: 80px;
+            font-size: 14px;
+            color: #555;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .form-row input, .form-row textarea {
+            flex: 1;
+            padding: 10px 12px;
+            font-size: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+        }
+        .form-row input:focus, .form-row textarea:focus, .form-row select:focus {
+            border-color: #667eea;
+        }
+        .form-row .unit {
+            font-size: 13px;
+            color: #888;
+            flex-shrink: 0;
+        }
+        .patient-info {
+            padding: 10px 14px;
+            background: #f0f0ff;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 14px;
+            display: none;
+        }
+        .patient-info.visible { display: block; }
+        .patient-info .label { color: #888; font-size: 12px; }
+        .patient-info .value { font-weight: bold; margin-right: 16px; }
+        .patient-detail-toggle {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 12px;
+            font-size: 12px;
+            color: #667eea;
+            background: #fff;
+            border: 1px solid #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .patient-detail-toggle:hover { background: #f0f0ff; }
+        .patient-detail {
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+        .patient-detail.visible { display: block; }
+        .patient-detail table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .patient-detail th {
+            background: #e0e4f8;
+            color: #4a5299;
+            padding: 6px 10px;
+            text-align: left;
+            font-size: 12px;
+            white-space: nowrap;
+            width: 40%;
+        }
+        .patient-detail td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #e8e8f4;
+            word-break: break-all;
+        }
+        .btn-search {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+            background: #667eea;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .btn-search:hover { background: #5a6fd6; }
+        .btn-submit {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .btn-submit:hover { opacity: 0.9; }
+        .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
+        .result {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+        .result.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .result.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .result.info { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th {
+            background: #667eea;
+            color: #fff;
+            padding: 10px 8px;
+            text-align: left;
+            font-size: 13px;
+        }
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        tr:hover td { background: #f8f8ff; }
+        .empty-msg {
+            text-align: center;
+            color: #aaa;
+            padding: 20px;
+            font-size: 14px;
+        }
+        .btn-refresh {
+            float: right;
+            padding: 4px 12px;
+            font-size: 12px;
+            color: #667eea;
+            background: #fff;
+            border: 1px solid #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .btn-refresh:hover { background: #f0f0ff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>検体PpP値 入力ツール</h1>
+        <p class="subtitle">アンケートNo.に紐づけて検体のPpP値を登録します</p>
+
+        <!-- 患者検索 -->
+        <div class="card">
+            <div class="card-title">患者検索</div>
+            <div class="form-row">
+                <label>No.</label>
+                <input type="number" id="searchNo" min="1" placeholder="アンケートNo.">
+                <button class="btn-search" onclick="searchPatient()">検索</button>
+            </div>
+            <div class="patient-info" id="patientInfo">
+                <span class="label">ID:</span> <span class="value" id="patientId">-</span>
+                <span class="label">名前:</span> <span class="value" id="patientName">-</span>
+                <span class="label">医療機関:</span> <span class="value" id="patientHospital">-</span>
+                <br>
+                <button class="patient-detail-toggle" id="detailToggle" onclick="toggleDetail()">▼ アンケート内容を表示</button>
+                <div class="patient-detail" id="patientDetail"></div>
+            </div>
+        </div>
+
+        <!-- PpP値入力 -->
+        <div class="card">
+            <div class="card-title">PpP値入力</div>
+            <div class="form-row">
+                <label>歯の位置</label>
+                <select id="posLR" style="flex:0 0 70px; padding:10px 6px; font-size:15px; border:2px solid #ddd; border-radius:8px; outline:none;">
+                    <option value="右">右</option>
+                    <option value="左">左</option>
+                </select>
+                <select id="posUD" style="flex:0 0 70px; padding:10px 6px; font-size:15px; border:2px solid #ddd; border-radius:8px; outline:none;">
+                    <option value="上">上</option>
+                    <option value="下">下</option>
+                </select>
+                <select id="posNum" style="flex:0 0 70px; padding:10px 6px; font-size:15px; border:2px solid #ddd; border-radius:8px; outline:none;">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                    <option value="E">E</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label>PpP値</label>
+                <input type="number" id="pppValue" step="0.01" placeholder="例: 0.35">
+            </div>
+            <div class="form-row">
+                <label>分析日</label>
+                <input type="date" id="analysisDate">
+            </div>
+            <div class="form-row">
+                <label>備考</label>
+                <input type="text" id="note" placeholder="特記事項があれば">
+            </div>
+            <button class="btn-submit" id="submitBtn" onclick="submitSpecimen()">登録する</button>
+            <div class="result" id="resultArea"></div>
+        </div>
+
+        <!-- 登録済みデータ -->
+        <div class="card">
+            <div class="card-title">
+                登録済みデータ
+                <button class="btn-refresh" onclick="loadSpecimenList()">更新</button>
+            </div>
+            <div id="specimenTable"></div>
+        </div>
+    </div>
+
+    <script>
+        const APPS_SCRIPT_API_URL = 'https://script.google.com/macros/s/AKfycbzQCrKRX7nJgryTPsP2Aceh4_Ofyef2Ez2iBmHUGBYF3K15XYZk-5Na8XDIlLCqlAGtVQ/exec';
+
+        // 初期化: 分析日にデフォルト値（今日）をセット
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('analysisDate').value = today;
+            loadSpecimenList();
+        });
+
+        // JSONP通信ヘルパー
+        function jsonpRequest(url, callback, timeoutMs) {
+            timeoutMs = timeoutMs || 30000;
+            const callbackName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+            const fullUrl = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName;
+
+            window[callbackName] = function(result) {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                clearTimeout(timeoutId);
+                callback(null, result);
+            };
+
+            var timeoutId = setTimeout(function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                callback('タイムアウトしました（' + (timeoutMs / 1000) + '秒）');
+            }, timeoutMs);
+
+            var script = document.createElement('script');
+            script.src = fullUrl;
+            script.onerror = function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                clearTimeout(timeoutId);
+                callback('通信エラーが発生しました');
+            };
+            document.head.appendChild(script);
+        }
+
+        // アンケート内容表示トグル
+        function toggleDetail() {
+            var detailEl = document.getElementById('patientDetail');
+            var toggleBtn = document.getElementById('detailToggle');
+            if (detailEl.className.indexOf('visible') >= 0) {
+                detailEl.className = 'patient-detail';
+                toggleBtn.textContent = '▼ アンケート内容を表示';
+            } else {
+                detailEl.className = 'patient-detail visible';
+                toggleBtn.textContent = '▲ アンケート内容を隠す';
+            }
+        }
+
+        // アンケートデータ一覧テーブルを生成
+        function buildPatientDetailTable(headers, row) {
+            var html = '<table>';
+            for (var i = 0; i < headers.length; i++) {
+                var val = (row[i] !== undefined && row[i] !== null && row[i] !== '') ? String(row[i]) : '-';
+                html += '<tr><th>' + escapeHtml(headers[i]) + '</th><td>' + escapeHtml(val) + '</td></tr>';
+            }
+            html += '</table>';
+            return html;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // 患者検索
+        function searchPatient() {
+            const no = document.getElementById('searchNo').value;
+            if (!no) {
+                alert('No.を入力してください');
+                return;
+            }
+
+            const infoEl = document.getElementById('patientInfo');
+            infoEl.className = 'patient-info';
+            infoEl.style.display = 'block';
+            document.getElementById('patientId').textContent = '検索中...';
+            document.getElementById('patientName').textContent = '';
+            document.getElementById('patientHospital').textContent = '';
+            document.getElementById('patientDetail').className = 'patient-detail';
+            document.getElementById('patientDetail').innerHTML = '';
+            document.getElementById('detailToggle').textContent = '▼ アンケート内容を表示';
+            document.getElementById('detailToggle').style.display = 'none';
+
+            const url = APPS_SCRIPT_API_URL + '?action=viewData&password=' + encodeURIComponent('touka2026');
+            jsonpRequest(url, function(err, result) {
+                if (err) {
+                    document.getElementById('patientId').textContent = 'エラー: ' + err;
+                    return;
+                }
+                if (!result.success) {
+                    document.getElementById('patientId').textContent = 'エラー: ' + (result.error || '不明');
+                    return;
+                }
+
+                // No.列のインデックスを取得
+                var headers = result.data.headers;
+                var noIdx = headers.indexOf('No.');
+                var idIdx = headers.indexOf('2. ID番号');
+                var nameIdx = headers.indexOf('3. 名前（カタカナ）');
+                var hospIdx = headers.indexOf('1. 受診中の歯科医院を選んでください。');
+
+                var found = false;
+                for (var i = 0; i < result.data.rows.length; i++) {
+                    var row = result.data.rows[i];
+                    if (String(row[noIdx]) === String(no)) {
+                        document.getElementById('patientId').textContent = row[idIdx] || '-';
+                        document.getElementById('patientName').textContent = row[nameIdx] || '-';
+                        document.getElementById('patientHospital').textContent = row[hospIdx] || '-';
+                        infoEl.className = 'patient-info visible';
+                        // アンケートデータ一覧を生成
+                        document.getElementById('patientDetail').innerHTML = buildPatientDetailTable(headers, row);
+                        document.getElementById('detailToggle').style.display = 'inline-block';
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    document.getElementById('patientId').textContent = 'No.' + no + ' が見つかりません';
+                    document.getElementById('patientName').textContent = '';
+                    document.getElementById('patientHospital').textContent = '';
+                    document.getElementById('detailToggle').style.display = 'none';
+                }
+            });
+        }
+
+        // 検体データ登録
+        function submitSpecimen() {
+            var no = document.getElementById('searchNo').value;
+            var position = document.getElementById('posLR').value + document.getElementById('posUD').value + document.getElementById('posNum').value;
+            var pppValue = document.getElementById('pppValue').value;
+            var analysisDate = document.getElementById('analysisDate').value;
+            var note = document.getElementById('note').value;
+            var resultArea = document.getElementById('resultArea');
+            var submitBtn = document.getElementById('submitBtn');
+
+            if (!no) {
+                resultArea.className = 'result error';
+                resultArea.textContent = '先にNo.を入力して患者を検索してください。';
+                resultArea.style.display = 'block';
+                return;
+            }
+            if (!pppValue) {
+                resultArea.className = 'result error';
+                resultArea.textContent = 'PpP値は必須です。';
+                resultArea.style.display = 'block';
+                return;
+            }
+
+            if (!confirm('No.' + no + ' / ' + position + ' / PpP値: ' + pppValue + '\n\n登録しますか？')) {
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = '登録中...';
+            resultArea.className = 'result info';
+            resultArea.textContent = '登録処理中...';
+            resultArea.style.display = 'block';
+
+            var url = APPS_SCRIPT_API_URL
+                + '?action=addSpecimen'
+                + '&no=' + encodeURIComponent(no)
+                + '&position=' + encodeURIComponent(position)
+                + '&pppValue=' + encodeURIComponent(pppValue)
+                + '&analysisDate=' + encodeURIComponent(analysisDate)
+                + '&note=' + encodeURIComponent(note);
+
+            jsonpRequest(url, function(err, result) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '登録する';
+
+                if (err) {
+                    resultArea.className = 'result error';
+                    resultArea.textContent = err;
+                    return;
+                }
+
+                if (result.success && result.data.success !== false) {
+                    resultArea.className = 'result success';
+                    resultArea.innerHTML = '<strong>登録完了:</strong> ' + (result.data.message || '');
+                    // フォームクリア（No.と分析日と歯の位置は残す）
+                    document.getElementById('pppValue').value = '';
+                    document.getElementById('note').value = '';
+                    // 一覧を更新
+                    loadSpecimenList();
+                } else {
+                    resultArea.className = 'result error';
+                    resultArea.textContent = result.data.message || result.error || '登録に失敗しました';
+                }
+            });
+        }
+
+        // 登録済みデータ一覧読み込み
+        function loadSpecimenList() {
+            var container = document.getElementById('specimenTable');
+            container.innerHTML = '<div class="empty-msg">読み込み中...</div>';
+
+            var no = document.getElementById('searchNo').value;
+            var url = APPS_SCRIPT_API_URL + '?action=getSpecimenList' + (no ? '&no=' + encodeURIComponent(no) : '');
+
+            jsonpRequest(url, function(err, result) {
+                if (err) {
+                    container.innerHTML = '<div class="empty-msg">エラー: ' + err + '</div>';
+                    return;
+                }
+                if (!result.success) {
+                    container.innerHTML = '<div class="empty-msg">エラー: ' + (result.error || '不明') + '</div>';
+                    return;
+                }
+
+                var data = result.data;
+                if (data.totalCount === 0) {
+                    container.innerHTML = '<div class="empty-msg">登録データはありません</div>';
+                    return;
+                }
+
+                var html = '<table><tr><th>No.</th><th>歯の位置</th><th>PpP値</th><th>分析日</th><th>備考</th></tr>';
+                for (var i = 0; i < data.rows.length; i++) {
+                    var r = data.rows[i];
+                    html += '<tr>'
+                        + '<td>' + r.no + '</td>'
+                        + '<td>' + (r.position || '') + '</td>'
+                        + '<td>' + (r.pppValue !== '' ? r.pppValue : '') + '</td>'
+                        + '<td>' + (r.analysisDate || '') + '</td>'
+                        + '<td>' + (r.note || '') + '</td>'
+                        + '</tr>';
+                }
+                html += '</table>';
+                container.innerHTML = html;
+            });
+        }
+    </script>
+</body>
+</html>

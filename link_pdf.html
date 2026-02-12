@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF紐づけツール</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23e65100'/><path d='M8 6h10l6 6v14a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2z' fill='white' opacity='0.9'/><path d='M18 6v6h6' fill='none' stroke='%23e65100' stroke-width='1.5'/><path d='M10 18h8M10 22h5' stroke='%23e65100' stroke-width='1.5' stroke-linecap='round'/></svg>">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', 'Yu Gothic UI', sans-serif;
+            background: #f5f5f5;
+            padding: 30px 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            padding: 28px;
+        }
+        h1 {
+            font-size: 20px;
+            color: #333;
+            text-align: center;
+            margin-bottom: 6px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+        .step {
+            margin-bottom: 20px;
+            padding: 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .step-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        .btn-load {
+            padding: 10px 20px;
+            font-size: 14px;
+            color: #fff;
+            background: #2196F3;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .btn-load:hover { background: #1976D2; }
+        .btn-load:disabled { background: #ccc; cursor: not-allowed; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        th {
+            background: #f0f0f0;
+            padding: 8px 6px;
+            text-align: left;
+            border-bottom: 2px solid #ddd;
+        }
+        td {
+            padding: 7px 6px;
+            border-bottom: 1px solid #eee;
+        }
+        tr.selected {
+            background: #bbdefb;
+            font-weight: bold;
+            border-left: 4px solid #1976D2;
+        }
+        tr.has-pdf {
+            color: #999;
+        }
+        tr:hover {
+            background: #f5f5f5;
+            cursor: pointer;
+        }
+        .pdf-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #4CAF50;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .no-pdf-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #ff9800;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .file-select {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .selected-file {
+            font-size: 13px;
+            color: #333;
+            margin-top: 6px;
+        }
+        .btn-load-pdf {
+            padding: 10px 20px;
+            font-size: 14px;
+            color: #fff;
+            background: #ff9800;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .btn-load-pdf:hover { background: #f57c00; }
+        .btn-load-pdf:disabled { background: #ccc; cursor: not-allowed; }
+        .pdf-list-area {
+            margin-top: 10px;
+        }
+        .pdf-list-area table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 6px;
+        }
+        .pdf-list-area th {
+            background: #fff3e0;
+            color: #e65100;
+            padding: 8px 6px;
+            text-align: left;
+            border-bottom: 2px solid #ffcc80;
+            font-size: 12px;
+        }
+        .pdf-list-area td {
+            padding: 7px 6px;
+            border-bottom: 1px solid #fff3e0;
+        }
+        .pdf-list-area tr:hover {
+            background: #fff8e1;
+            cursor: pointer;
+        }
+        .pdf-list-area tr.pdf-selected {
+            background: #ffe0b2;
+            font-weight: bold;
+            border-left: 4px solid #ff9800;
+        }
+        .pdf-count {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .btn-save {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background: #4CAF50;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-save:hover { background: #388E3C; }
+        .btn-save:disabled { background: #ccc; cursor: not-allowed; }
+
+        .result {
+            margin-top: 16px;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+        .result.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .result.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .result.info { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+        .filter-row {
+            margin-bottom: 8px;
+        }
+        .filter-row label {
+            font-size: 13px;
+            margin-right: 8px;
+        }
+        .filter-row input[type="checkbox"] {
+            margin-right: 4px;
+        }
+
+        /* 患者データ一覧 */
+        .patient-detail-panel {
+            margin-top: 12px;
+            padding: 14px;
+            background: #f9fbff;
+            border: 1px solid #d0d8f0;
+            border-radius: 8px;
+            display: none;
+        }
+        .patient-detail-panel.visible { display: block; }
+        .patient-detail-panel .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .patient-detail-panel .panel-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1976D2;
+        }
+        .patient-detail-panel .panel-close {
+            padding: 2px 10px;
+            font-size: 12px;
+            color: #888;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .patient-detail-panel .panel-close:hover { background: #f0f0f0; }
+        .patient-detail-panel .detail-table-wrap {
+            max-height: 280px;
+            overflow-y: auto;
+        }
+        .patient-detail-panel table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 0;
+        }
+        .patient-detail-panel th {
+            background: #e3eaf8;
+            color: #3a5599;
+            padding: 5px 10px;
+            text-align: left;
+            font-size: 12px;
+            white-space: nowrap;
+            width: 40%;
+            border-bottom: 1px solid #d0d8f0;
+        }
+        .patient-detail-panel td {
+            padding: 5px 10px;
+            border-bottom: 1px solid #e8ecf4;
+            word-break: break-all;
+        }
+        .patient-detail-panel .loading-msg {
+            text-align: center;
+            color: #888;
+            padding: 16px;
+            font-size: 13px;
+        }
+
+        /* 比較ビュー（アンケート内容 + PDFプレビュー横並び） */
+        .compare-view {
+            display: none;
+            margin-top: 12px;
+            gap: 12px;
+        }
+        .compare-view.visible {
+            display: flex;
+        }
+        .compare-left {
+            flex: 1;
+            min-width: 0;
+        }
+        .compare-right {
+            flex: 1;
+            min-width: 0;
+        }
+        .compare-panel {
+            border: 1px solid #d0d8f0;
+            border-radius: 8px;
+            background: #f9fbff;
+            overflow: hidden;
+        }
+        .compare-panel .cp-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: #e3eaf8;
+            border-bottom: 1px solid #d0d8f0;
+        }
+        .compare-panel .cp-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1976D2;
+        }
+        .compare-panel .cp-close {
+            padding: 2px 10px;
+            font-size: 12px;
+            color: #888;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .compare-panel .cp-close:hover { background: #f0f0f0; }
+        .compare-panel .cp-body {
+            padding: 0;
+        }
+        .compare-panel .detail-table-wrap-compare {
+            max-height: 600px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .compare-panel .detail-table-wrap-compare table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 0;
+        }
+        .compare-panel .detail-table-wrap-compare th {
+            background: #e3eaf8;
+            color: #3a5599;
+            padding: 5px 10px;
+            text-align: left;
+            font-size: 12px;
+            white-space: nowrap;
+            width: 40%;
+            border-bottom: 1px solid #d0d8f0;
+        }
+        .compare-panel .detail-table-wrap-compare td {
+            padding: 5px 10px;
+            border-bottom: 1px solid #e8ecf4;
+            word-break: break-all;
+        }
+        .pdf-preview-panel {
+            border: 1px solid #ffcc80;
+            border-radius: 8px;
+            background: #fffaf3;
+            overflow: hidden;
+        }
+        .pdf-preview-panel .pp-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: #fff3e0;
+            border-bottom: 1px solid #ffcc80;
+        }
+        .pdf-preview-panel .pp-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #e65100;
+        }
+        .pdf-preview-panel .pp-body {
+            padding: 0;
+        }
+        .pdf-preview-panel iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+        }
+        .pdf-preview-panel .pp-placeholder {
+            text-align: center;
+            color: #aaa;
+            padding: 40px 16px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 900px) {
+            .compare-view.visible {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PDF紐づけツール</h1>
+        <p class="subtitle">フォーム回答にスキャンPDFを紐づけます</p>
+
+        <!-- Step 1: データ一覧読み込み -->
+        <div class="step">
+            <div class="step-title">① データ一覧を読み込み</div>
+            <button class="btn-load" id="loadBtn" onclick="loadNoList()">一覧を読み込む</button>
+
+            <div class="filter-row" id="filterRow" style="display:none; margin-top:10px;">
+                <label><input type="checkbox" id="filterNoPdf" checked onchange="renderTable()"> PDF未紐づけのみ表示</label>
+            </div>
+
+            <div id="tableArea"></div>
+
+        </div>
+
+        <!-- 比較ビュー（アンケート内容 + PDFプレビュー横並び） -->
+        <div class="compare-view" id="compareView">
+            <!-- 左: アンケート内容 -->
+            <div class="compare-left">
+                <div class="compare-panel">
+                    <div class="cp-header">
+                        <span class="cp-title" id="comparePanelTitle">No.? のアンケート内容</span>
+                        <button class="cp-close" onclick="closeCompareView()">✕ 閉じる</button>
+                    </div>
+                    <div class="cp-body">
+                        <div class="detail-table-wrap-compare" id="compareDetailWrap">
+                            <div style="text-align:center; color:#888; padding:16px;">データ行を選択してください</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- 右: PDFプレビュー -->
+            <div class="compare-right">
+                <div class="pdf-preview-panel">
+                    <div class="pp-header">
+                        <span class="pp-title" id="pdfPreviewTitle">PDFプレビュー</span>
+                    </div>
+                    <div class="pp-body" id="pdfPreviewBody">
+                        <div class="pp-placeholder">② でPDFファイルを選択するとここにプレビューが表示されます</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Google DriveからPDF選択 -->
+        <div class="step">
+            <div class="step-title">② Google DriveからPDFを選択</div>
+            <button class="btn-load-pdf" id="loadPdfBtn" onclick="loadDrivePdfList()">Drive PDF一覧を読み込む</button>
+            <div class="pdf-list-area" id="pdfListArea"></div>
+        </div>
+
+        <!-- Step 3: 紐づけ実行 -->
+        <div class="step">
+            <div class="step-title">③ 紐づけ実行</div>
+            <div id="selectionSummary" style="margin-bottom:12px; padding:10px; background:#e3f2fd; border-radius:6px; font-size:14px; display:none;"></div>
+            <button class="btn-save" id="saveBtn" onclick="executeLinkPdf()" disabled>紐づける</button>
+        </div>
+
+        <div class="result" id="resultArea"></div>
+    </div>
+
+    <script>
+        const APPS_SCRIPT_API_URL = 'https://script.google.com/macros/s/AKfycbzQCrKRX7nJgryTPsP2Aceh4_Ofyef2Ez2iBmHUGBYF3K15XYZk-5Na8XDIlLCqlAGtVQ/exec';
+
+        let noListData = [];
+        let selectedNo = null;
+        let selectedRow = null;
+        let drivePdfList = [];
+        let selectedDriveFile = null; // { fileId, fileName }
+
+        // ① データ一覧読み込み
+        function loadNoList() {
+            const loadBtn = document.getElementById('loadBtn');
+            loadBtn.disabled = true;
+            loadBtn.textContent = '読み込み中...';
+
+            const callbackName = 'listCallback_' + Date.now();
+            const url = APPS_SCRIPT_API_URL + '?action=getNoList&callback=' + callbackName;
+
+            window[callbackName] = function(result) {
+                delete window[callbackName];
+                document.head.removeChild(script);
+                clearTimeout(timeoutId);
+                loadBtn.disabled = false;
+                loadBtn.textContent = '一覧を読み込む';
+
+                if (result.success) {
+                    noListData = result.data;
+                    document.getElementById('filterRow').style.display = 'block';
+                    renderTable();
+                } else {
+                    document.getElementById('tableArea').innerHTML = '<p style="color:red;">読み込みエラー: ' + result.error + '</p>';
+                }
+            };
+
+            const timeoutId = setTimeout(function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                loadBtn.disabled = false;
+                loadBtn.textContent = '一覧を読み込む';
+                document.getElementById('tableArea').innerHTML = '<p style="color:red;">タイムアウトしました。</p>';
+            }, 30000);
+
+            const script = document.createElement('script');
+            script.src = url;
+            script.onerror = function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                clearTimeout(timeoutId);
+                loadBtn.disabled = false;
+                loadBtn.textContent = '一覧を読み込む';
+                document.getElementById('tableArea').innerHTML = '<p style="color:red;">通信エラー</p>';
+            };
+            document.head.appendChild(script);
+        }
+
+        function renderTable() {
+            const filterNoPdf = document.getElementById('filterNoPdf').checked;
+            let filtered = noListData;
+            if (filterNoPdf) {
+                filtered = noListData.filter(item => !item.pdfFilename);
+            }
+
+            if (filtered.length === 0) {
+                document.getElementById('tableArea').innerHTML = filterNoPdf
+                    ? '<p style="margin-top:10px; color:#888;">PDF未紐づけのデータはありません。</p>'
+                    : '<p style="margin-top:10px; color:#888;">データがありません。</p>';
+                return;
+            }
+
+            let html = '<table><tr><th>No.</th><th>ID</th><th>医療機関</th><th>PDF</th></tr>';
+            for (const item of filtered) {
+                const isSelected = selectedNo === item.no;
+                const hasPdf = !!item.pdfFilename;
+                let rowClass = '';
+                if (isSelected) rowClass = 'selected';
+                else if (hasPdf) rowClass = 'has-pdf';
+
+                const pdfCell = hasPdf
+                    ? '<span class="pdf-tag">済</span> ' + item.pdfFilename
+                    : '<span class="no-pdf-tag">未</span>';
+
+                html += '<tr class="' + rowClass + '" onclick="selectRow(' + item.no + ', ' + item.row + ')">';
+                html += '<td>' + item.no + '</td>';
+                html += '<td>' + (item.id || '-') + '</td>';
+                html += '<td>' + (item.hospital || '-') + '</td>';
+                html += '<td>' + pdfCell + '</td>';
+                html += '</tr>';
+            }
+            html += '</table>';
+            document.getElementById('tableArea').innerHTML = html;
+        }
+
+        function selectRow(no, row) {
+            selectedNo = no;
+            selectedRow = row;
+            renderTable();
+            updateSaveButton();
+            loadPatientDetail(no);
+        }
+
+        // 選択されたNo.のアンケート全データを取得して比較ビューに表示
+        function loadPatientDetail(no) {
+            var compareView = document.getElementById('compareView');
+            var wrap = document.getElementById('compareDetailWrap');
+            var title = document.getElementById('comparePanelTitle');
+
+            title.textContent = 'No.' + no + ' のアンケート内容';
+            wrap.innerHTML = '<div style="text-align:center; color:#888; padding:16px;">読み込み中...</div>';
+            compareView.className = 'compare-view visible';
+
+            var cbName = 'detailCb_' + Date.now();
+            var url = APPS_SCRIPT_API_URL + '?action=viewData&password=' + encodeURIComponent('touka2026') + '&callback=' + cbName;
+
+            window[cbName] = function(result) {
+                delete window[cbName];
+                if (detailScript.parentNode) document.head.removeChild(detailScript);
+                clearTimeout(detailTimeout);
+
+                if (!result.success) {
+                    wrap.innerHTML = '<div style="text-align:center; color:red; padding:16px;">エラー: ' + (result.error || '不明') + '</div>';
+                    return;
+                }
+
+                var headers = result.data.headers;
+                var noIdx = headers.indexOf('No.');
+                var found = false;
+
+                for (var i = 0; i < result.data.rows.length; i++) {
+                    var row = result.data.rows[i];
+                    if (String(row[noIdx]) === String(no)) {
+                        wrap.innerHTML = buildDetailTable(headers, row);
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    wrap.innerHTML = '<div style="text-align:center; color:#888; padding:16px;">No.' + no + ' のデータが見つかりません</div>';
+                }
+            };
+
+            var detailTimeout = setTimeout(function() {
+                delete window[cbName];
+                if (detailScript.parentNode) document.head.removeChild(detailScript);
+                wrap.innerHTML = '<div style="text-align:center; color:#888; padding:16px;">タイムアウトしました</div>';
+            }, 30000);
+
+            var detailScript = document.createElement('script');
+            detailScript.src = url;
+            detailScript.onerror = function() {
+                delete window[cbName];
+                if (detailScript.parentNode) document.head.removeChild(detailScript);
+                clearTimeout(detailTimeout);
+                wrap.innerHTML = '<div style="text-align:center; color:red; padding:16px;">通信エラー</div>';
+            };
+            document.head.appendChild(detailScript);
+        }
+
+        function buildDetailTable(headers, row) {
+            var html = '<table>';
+            for (var i = 0; i < headers.length; i++) {
+                var val = (row[i] !== undefined && row[i] !== null && row[i] !== '') ? String(row[i]) : '-';
+                html += '<tr><th>' + escapeHtml(headers[i]) + '</th><td>' + escapeHtml(val) + '</td></tr>';
+            }
+            html += '</table>';
+            return html;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function closeCompareView() {
+            document.getElementById('compareView').className = 'compare-view';
+        }
+
+        // PDFプレビューを表示
+        function showPdfPreview(fileId, fileName) {
+            var body = document.getElementById('pdfPreviewBody');
+            var title = document.getElementById('pdfPreviewTitle');
+            title.textContent = fileName;
+            body.innerHTML = '<iframe src="https://drive.google.com/file/d/' + fileId + '/preview" allow="autoplay"></iframe>';
+
+            // 比較ビューを表示
+            var compareView = document.getElementById('compareView');
+            compareView.className = 'compare-view visible';
+        }
+
+        // PDFプレビューをクリア
+        function clearPdfPreview() {
+            var body = document.getElementById('pdfPreviewBody');
+            var title = document.getElementById('pdfPreviewTitle');
+            title.textContent = 'PDFプレビュー';
+            body.innerHTML = '<div class="pp-placeholder">② でPDFファイルを選択するとここにプレビューが表示されます</div>';
+        }
+
+        // ② Google DriveからPDF一覧を読み込み
+        function loadDrivePdfList() {
+            var btn = document.getElementById('loadPdfBtn');
+            var area = document.getElementById('pdfListArea');
+            btn.disabled = true;
+            btn.textContent = '読み込み中...';
+            area.innerHTML = '<div style="color:#888; padding:10px;">読み込み中...</div>';
+
+            var cbName = 'pdfListCb_' + Date.now();
+            var url = APPS_SCRIPT_API_URL + '?action=getDrivePdfList&callback=' + cbName;
+
+            window[cbName] = function(result) {
+                delete window[cbName];
+                if (pdfScript.parentNode) document.head.removeChild(pdfScript);
+                clearTimeout(pdfTimeout);
+                btn.disabled = false;
+                btn.textContent = 'Drive PDF一覧を読み込む';
+
+                if (!result.success) {
+                    area.innerHTML = '<div style="color:red;">エラー: ' + (result.error || '不明') + '</div>';
+                    return;
+                }
+
+                drivePdfList = result.data || [];
+                renderPdfList();
+            };
+
+            var pdfTimeout = setTimeout(function() {
+                delete window[cbName];
+                if (pdfScript.parentNode) document.head.removeChild(pdfScript);
+                btn.disabled = false;
+                btn.textContent = 'Drive PDF一覧を読み込む';
+                area.innerHTML = '<div style="color:red;">タイムアウトしました</div>';
+            }, 30000);
+
+            var pdfScript = document.createElement('script');
+            pdfScript.src = url;
+            pdfScript.onerror = function() {
+                delete window[cbName];
+                if (pdfScript.parentNode) document.head.removeChild(pdfScript);
+                clearTimeout(pdfTimeout);
+                btn.disabled = false;
+                btn.textContent = 'Drive PDF一覧を読み込む';
+                area.innerHTML = '<div style="color:red;">通信エラー</div>';
+            };
+            document.head.appendChild(pdfScript);
+        }
+
+        function renderPdfList() {
+            var area = document.getElementById('pdfListArea');
+            if (drivePdfList.length === 0) {
+                area.innerHTML = '<div style="color:#888; padding:10px;">フォルダ内にPDFファイルはありません。</div>';
+                return;
+            }
+
+            var html = '<div class="pdf-count">' + drivePdfList.length + ' 件のPDFファイル</div>';
+            html += '<table><tr><th>ファイル名</th><th>サイズ</th><th>更新日時</th></tr>';
+            for (var i = 0; i < drivePdfList.length; i++) {
+                var pdf = drivePdfList[i];
+                var isSelected = selectedDriveFile && selectedDriveFile.fileId === pdf.fileId;
+                var rowClass = isSelected ? 'pdf-selected' : '';
+                var sizeKB = (pdf.fileSize / 1024).toFixed(1);
+                html += '<tr class="' + rowClass + '" onclick="selectDrivePdf(' + i + ')">';
+                html += '<td>' + escapeHtml(pdf.fileName) + '</td>';
+                html += '<td>' + sizeKB + ' KB</td>';
+                html += '<td>' + escapeHtml(pdf.lastUpdated || '') + '</td>';
+                html += '</tr>';
+            }
+            html += '</table>';
+            area.innerHTML = html;
+        }
+
+        function selectDrivePdf(index) {
+            var pdf = drivePdfList[index];
+            selectedDriveFile = { fileId: pdf.fileId, fileName: pdf.fileName };
+            renderPdfList();
+            updateSaveButton();
+            // PDFプレビューを表示
+            showPdfPreview(pdf.fileId, pdf.fileName);
+        }
+
+        function updateSaveButton() {
+            const btn = document.getElementById('saveBtn');
+            btn.disabled = !(selectedNo && selectedDriveFile);
+
+            // 選択サマリーを更新
+            const summary = document.getElementById('selectionSummary');
+            if (selectedNo || selectedDriveFile) {
+                let html = '';
+                if (selectedNo) {
+                    const item = noListData.find(d => d.no === selectedNo);
+                    html += '<strong>対象:</strong> No.' + selectedNo;
+                    if (item && item.id) html += '　ID: ' + item.id;
+                    if (item && item.hospital) html += '　' + item.hospital;
+                }
+                if (selectedDriveFile) {
+                    html += '<br><strong>PDF:</strong> ' + escapeHtml(selectedDriveFile.fileName) + '（Google Drive）';
+                }
+                summary.innerHTML = html;
+                summary.style.display = 'block';
+            } else {
+                summary.style.display = 'none';
+            }
+        }
+
+        // ③ 紐づけ実行（Google Drive経由）
+        async function executeLinkPdf() {
+            if (!selectedNo || !selectedDriveFile) return;
+
+            const resultArea = document.getElementById('resultArea');
+            const saveBtn = document.getElementById('saveBtn');
+
+            const msg = 'No.' + selectedNo + ' に「' + selectedDriveFile.fileName + '」を紐づけます。\n（紐づけ後、PDFは完了フォルダへ移動されます）\n\nよろしいですか？';
+            if (!confirm(msg)) return;
+
+            saveBtn.disabled = true;
+            saveBtn.textContent = '処理中...';
+            resultArea.className = 'result info';
+            resultArea.textContent = '紐づけ処理中...（スプレッドシート更新 → PDF移動）';
+            resultArea.style.display = 'block';
+
+            try {
+                const result = await jsonpRequest('linkPdfFromDrive', {
+                    no: selectedNo,
+                    row: selectedRow,
+                    fileId: selectedDriveFile.fileId,
+                    fileName: encodeURIComponent(selectedDriveFile.fileName)
+                });
+
+                if (result.success && result.data && result.data.success) {
+                    resultArea.className = 'result success';
+                    resultArea.innerHTML = '<strong>完了:</strong> ' + escapeHtml(result.data.message || '紐づけが完了しました');
+
+                    // 選択状態をリセット
+                    selectedDriveFile = null;
+
+                    // PDFプレビューをクリア
+                    clearPdfPreview();
+
+                    // 一覧を再読み込み
+                    loadNoList();
+                    // PDF一覧も再読み込み（移動されたファイルが消える）
+                    loadDrivePdfList();
+                } else {
+                    resultArea.className = 'result error';
+                    resultArea.textContent = 'エラー: ' + ((result.data && result.data.message) || result.error || '不明なエラー');
+                }
+
+            } catch (err) {
+                resultArea.className = 'result error';
+                resultArea.textContent = 'エラー: ' + err.message;
+            }
+
+            saveBtn.disabled = false;
+            saveBtn.textContent = '紐づける';
+        }
+
+        // JSONP リクエスト
+        function jsonpRequest(action, params) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'cb_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                let url = APPS_SCRIPT_API_URL + '?action=' + action + '&callback=' + callbackName;
+                for (const key in params) {
+                    url += '&' + key + '=' + params[key];
+                }
+
+                window[callbackName] = function(result) {
+                    delete window[callbackName];
+                    document.head.removeChild(script);
+                    clearTimeout(timeoutId);
+                    resolve(result);
+                };
+
+                const timeoutId = setTimeout(function() {
+                    delete window[callbackName];
+                    if (script.parentNode) document.head.removeChild(script);
+                    reject(new Error('タイムアウト'));
+                }, 30000);
+
+                const script = document.createElement('script');
+                script.src = url;
+                script.onerror = function() {
+                    delete window[callbackName];
+                    if (script.parentNode) document.head.removeChild(script);
+                    clearTimeout(timeoutId);
+                    reject(new Error('通信エラー'));
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>糖化アンケート管理システム</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2343a047'/><path d='M8 10h16M8 16h16M8 22h10' stroke='white' stroke-width='2.5' stroke-linecap='round'/><circle cx='24' cy='22' r='3' fill='%23ffeb3b'/></svg>">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', 'Yu Gothic UI', 'Meiryo', sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ヘッダー帯 */
+        .header-bar {
+            background: linear-gradient(135deg, #a8e6cf 0%, #88d8a8 100%);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            flex-shrink: 0;
+        }
+        .header-bar .header-icon {
+            width: 36px; height: 36px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .header-bar .header-icon svg {
+            width: 20px; height: 20px; stroke: #2e7d32;
+        }
+        .header-bar h1 {
+            font-size: 18px;
+            color: #2e7d32;
+            font-weight: 700;
+        }
+        .header-bar .subtitle {
+            font-size: 11px;
+            color: #4a7c59;
+        }
+
+        /* メインレイアウト */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* === 左サイドバー === */
+        .sidebar {
+            width: 260px;
+            background: #fff;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .sidebar .tree-group {
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .sidebar .tree-group:last-child { border-bottom: none; }
+
+        .sidebar .tree-category {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 10px 14px 6px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: default;
+            user-select: none;
+        }
+        .sidebar .tree-category svg {
+            width: 14px; height: 14px; flex-shrink: 0;
+        }
+
+        .sidebar .tree-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 14px 7px 28px;
+            font-size: 12.5px;
+            color: #555;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.12s;
+            text-decoration: none;
+        }
+        .sidebar .tree-item:hover {
+            background: #f5f8ff;
+            color: #333;
+        }
+        .sidebar .tree-item.active {
+            background: #e8f0fe;
+            color: #1565c0;
+            border-left-color: #1565c0;
+            font-weight: 600;
+        }
+        .sidebar .tree-item .item-icon {
+            width: 22px; height: 22px;
+            border-radius: 5px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .sidebar .tree-item .item-icon svg {
+            width: 13px; height: 13px;
+        }
+        .sidebar .tree-item .item-label {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* タグ */
+        .tag {
+            display: inline-block;
+            padding: 0 4px;
+            border-radius: 3px;
+            font-size: 9px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .tag-web { background: #e3f2fd; color: #1565c0; }
+        .tag-local { background: #fce4ec; color: #c62828; }
+        .tag-ext { background: #f3e5f5; color: #7b1fa2; }
+        .tag-gh { background: #f0f0f0; color: #555; }
+
+        /* アイコン背景色 */
+        .ic-green { background: #e8f5e9; }
+        .ic-green svg { stroke: #2e7d32; }
+        .ic-blue { background: #e3f2fd; }
+        .ic-blue svg { stroke: #1565c0; }
+        .ic-orange { background: #fff3e0; }
+        .ic-orange svg { stroke: #e65100; }
+        .ic-purple { background: #f3e5f5; }
+        .ic-purple svg { stroke: #7b1fa2; }
+        .ic-red { background: #fce4ec; }
+        .ic-red svg { stroke: #c62828; }
+        .ic-teal { background: #e0f2f1; }
+        .ic-teal svg { stroke: #00695c; }
+        .ic-gray { background: #f0f0f0; }
+        .ic-gray svg { fill: #555; stroke: none; }
+
+        /* === 右メインパネル === */
+        .main-panel {
+            flex: 1;
+            padding: 32px 40px;
+            overflow-y: auto;
+            min-width: 0;
+        }
+
+        /* ウェルカム画面 */
+        .welcome {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            color: #aaa;
+        }
+        .welcome svg {
+            width: 64px; height: 64px; stroke: #ccc; margin-bottom: 16px;
+        }
+        .welcome .welcome-title {
+            font-size: 18px; color: #888; margin-bottom: 6px;
+        }
+        .welcome .welcome-sub {
+            font-size: 13px;
+        }
+
+        /* 詳細表示 */
+        .detail { display: none; }
+        .detail.visible { display: block; }
+
+        .detail .detail-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .detail .detail-icon {
+            width: 48px; height: 48px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .detail .detail-icon svg {
+            width: 26px; height: 26px;
+        }
+        .detail .detail-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+        .detail .detail-subtitle {
+            font-size: 12px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        .detail .detail-section {
+            margin-bottom: 20px;
+        }
+        .detail .detail-section h3 {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #eee;
+        }
+        .detail .detail-section p {
+            font-size: 13.5px;
+            color: #555;
+            line-height: 1.7;
+        }
+        .detail .detail-section ul {
+            list-style: none;
+            padding: 0;
+        }
+        .detail .detail-section ul li {
+            font-size: 13px;
+            color: #555;
+            padding: 4px 0;
+            padding-left: 16px;
+            position: relative;
+        }
+        .detail .detail-section ul li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: #bbb;
+        }
+
+        .detail .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+        .detail .info-table th {
+            text-align: left;
+            color: #888;
+            font-weight: 600;
+            padding: 6px 12px 6px 0;
+            white-space: nowrap;
+            width: 100px;
+            vertical-align: top;
+        }
+        .detail .info-table td {
+            color: #555;
+            padding: 6px 0;
+        }
+        .detail .info-table code {
+            background: #f5f5f5;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #d32f2f;
+        }
+
+        .btn-open {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            background: #667eea;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            margin-top: 8px;
+            transition: opacity 0.15s;
+        }
+        .btn-open:hover { opacity: 0.85; }
+        .btn-open svg { width: 16px; height: 16px; stroke: #fff; }
+
+        .btn-open.btn-local {
+            background: #e57373;
+        }
+        .btn-open.btn-github {
+            background: #555;
+        }
+        .btn-open.btn-vercel {
+            background: #43a047;
+        }
+
+        .local-warning {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 12px;
+            padding: 8px 14px;
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            border-radius: 6px;
+            font-size: 11.5px;
+            color: #795548;
+        }
+
+        /* フッター */
+        .footer {
+            text-align: center;
+            padding: 10px;
+            color: #ccc;
+            font-size: 10px;
+            background: #fff;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 700px) {
+            .main-layout { flex-direction: column; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #e0e0e0; max-height: 250px; }
+            .main-panel { padding: 20px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar">
+        <div class="header-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z"/></svg>
+        </div>
+        <div>
+            <h1>糖化アンケート管理システム</h1>
+            <div class="subtitle">アンケート作成・OCR処理・データ管理を一元管理</div>
+        </div>
+    </div>
+
+    <div class="main-layout">
+
+        <!-- 左サイドバー -->
+        <nav class="sidebar">
+
+            <!-- アンケート作成・開発 -->
+            <div class="tree-group">
+                <div class="tree-category">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#888"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                    アンケート作成・開発
+                </div>
+                <div class="tree-item" data-detail="survey-tool" onclick="showDetail('survey-tool')">
+                    <div class="item-icon ic-green"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18.25 7.234l-.001.006"/></svg></div>
+                    <span class="item-label">アンケート作成ツール</span>
+                    <span class="tag tag-ext">Vercel</span>
+                </div>
+                <div class="tree-item" data-detail="github" onclick="showDetail('github')">
+                    <div class="item-icon ic-gray"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12Z"/></svg></div>
+                    <span class="item-label">touka-survey</span>
+                    <span class="tag tag-gh">GitHub</span>
+                </div>
+            </div>
+
+            <!-- OCR読み取り・照合 -->
+            <div class="tree-group">
+                <div class="tree-category">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#888"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+                    OCR読み取り・照合
+                </div>
+                <div class="tree-item" data-detail="ocr" onclick="showDetail('ocr')">
+                    <div class="item-icon ic-blue"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg></div>
+                    <span class="item-label">OCR読み取り＋照合</span>
+                    <span class="tag tag-local">ローカル</span>
+                </div>
+                <div class="tree-item" data-detail="pdf-status" onclick="showDetail('pdf-status')">
+                    <div class="item-icon ic-teal"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg></div>
+                    <span class="item-label">PDF処理状況チェック</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
+            </div>
+
+            <!-- データ管理 -->
+            <div class="tree-group">
+                <div class="tree-category">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#888"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
+                    データ管理
+                </div>
+                <div class="tree-item" data-detail="view-data" onclick="showDetail('view-data')">
+                    <div class="item-icon ic-orange"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"/></svg></div>
+                    <span class="item-label">データ閲覧</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
+                <div class="tree-item" data-detail="link-pdf" onclick="showDetail('link-pdf')">
+                    <div class="item-icon ic-blue"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m9.86-2.54a4.5 4.5 0 0 0-1.242-7.244l-4.5-4.5a4.5 4.5 0 0 0-6.364 6.364L5.25 9.11" transform="translate(2,2) scale(0.85)"/></svg></div>
+                    <span class="item-label">PDF紐づけ</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
+                <div class="tree-item" data-detail="delete-data" onclick="showDetail('delete-data')">
+                    <div class="item-icon ic-red"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg></div>
+                    <span class="item-label">テストデータ削除</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
+            </div>
+
+            <!-- 検査値入力 -->
+            <div class="tree-group">
+                <div class="tree-category">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#888"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
+                    検査値入力
+                </div>
+                <div class="tree-item" data-detail="hba1c" onclick="showDetail('hba1c')">
+                    <div class="item-icon ic-purple"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"/></svg></div>
+                    <span class="item-label">HbA1c追跡データ入力</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
+                <div class="tree-item" data-detail="ppp" onclick="showDetail('ppp')">
+                    <div class="item-icon ic-teal"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M19 14.5l-2.47 7.411a2.25 2.25 0 0 1-2.134 1.539h-4.792a2.25 2.25 0 0 1-2.134-1.539L5 14.5m14 0H5"/></svg></div>
+                    <span class="item-label">検体PpP値入力</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
+            </div>
+
+        </nav>
+
+        <!-- 右メインパネル -->
+        <main class="main-panel">
+
+            <!-- ウェルカム画面 -->
+            <div class="welcome" id="welcomeView">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z"/></svg>
+                <div class="welcome-title">左のメニューからアプリを選択</div>
+                <div class="welcome-sub">各ツールの説明を確認し、起動できます</div>
+            </div>
+
+            <!-- アンケート作成ツール -->
+            <div class="detail" id="detail-survey-tool">
+                <div class="detail-header">
+                    <div class="detail-icon ic-green"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18.25 7.234l-.001.006"/></svg></div>
+                    <div>
+                        <div class="detail-title">アンケート作成ツール</div>
+                        <div class="detail-subtitle">Vercelにデプロイされたウェブアプリ</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>医療機関を選択し、QRコード付きのA4サイズ糖化アンケート用紙を作成・印刷するツールです。React + Viteで構築され、Vercel上で稼働しています。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>主な機能</h3>
+                    <ul>
+                        <li>医療機関の選択（登録済みリストから）</li>
+                        <li>患者IDに基づくQRコードの自動生成</li>
+                        <li>A4サイズに最適化されたアンケート用紙レイアウト</li>
+                        <li>ブラウザから直接印刷</li>
+                    </ul>
+                </div>
+                <a class="btn-open btn-vercel" href="https://touka-survey.vercel.app" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
+            </div>
+
+            <!-- GitHub -->
+            <div class="detail" id="detail-github">
+                <div class="detail-header">
+                    <div class="detail-icon ic-gray"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12Z"/></svg></div>
+                    <div>
+                        <div class="detail-title">touka-survey</div>
+                        <div class="detail-subtitle">GitHubリポジトリ</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>アンケート作成ツールのソースコードを管理するGitHubリポジトリです。React + Viteで構築されています。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>技術スタック</h3>
+                    <ul>
+                        <li>React + Vite（フロントエンド）</li>
+                        <li>Vercel（ホスティング）</li>
+                        <li>QRコード生成ライブラリ</li>
+                    </ul>
+                </div>
+                <a class="btn-open btn-github" href="https://github.com/hashimoto-hiroyuki/touka-survey" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    GitHubを開く
+                </a>
+            </div>
+
+            <!-- OCR読み取り＋照合 -->
+            <div class="detail" id="detail-ocr">
+                <div class="detail-header">
+                    <div class="detail-icon ic-blue"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg></div>
+                    <div>
+                        <div class="detail-title">OCR読み取り＋照合</div>
+                        <div class="detail-subtitle">ローカルPC上で実行するプログラム</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>スキャンしたアンケートPDFをClaude API / Gemini APIでOCR処理し、読み取り結果を人間が照合・確認するためのツールです。Scan Dataフォルダ内のPDFを選択して処理します。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>処理フロー</h3>
+                    <ul>
+                        <li>PDF選択 → 傾斜補正 → 基準点検出</li>
+                        <li>質問領域の自動切り出し</li>
+                        <li>Claude / Gemini APIによるOCR読み取り</li>
+                        <li>ブラウザで照合画面を表示、修正・確認</li>
+                        <li>JSON形式で保存</li>
+                    </ul>
+                </div>
+                <div class="detail-section">
+                    <h3>起動方法</h3>
+                    <table class="info-table">
+                        <tr><th>実行ファイル</th><td><code>start_verification.bat</code></td></tr>
+                        <tr><th>場所</th><td>test-OCR フォルダ直下</td></tr>
+                        <tr><th>操作</th><td>バッチファイルをダブルクリック</td></tr>
+                    </table>
+                </div>
+                <div class="local-warning">&#9888; ローカルPC上で実行します。上記のバッチファイルをダブルクリックしてください。</div>
+            </div>
+
+            <!-- PDF処理状況チェック -->
+            <div class="detail" id="detail-pdf-status">
+                <div class="detail-header">
+                    <div class="detail-icon ic-teal"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"/></svg></div>
+                    <div>
+                        <div class="detail-title">PDF処理状況チェック</div>
+                        <div class="detail-subtitle">Google Driveフォルダの処理状況を確認</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>Google Drive上のスキャンPDFフォルダと入力済みPDFフォルダを確認し、OCR処理済み／未処理のステータスを一覧表示するダッシュボードです。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>確認内容</h3>
+                    <ul>
+                        <li>未処理: スキャンPDFフォルダ内のPDFファイル</li>
+                        <li>処理済み: 入力済みPDFフォルダ内のPDFファイル</li>
+                        <li>ファイル名・作成日時・サイズを一覧表示</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="check_pdf_status.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
+            </div>
+
+            <!-- データ閲覧 -->
+            <div class="detail" id="detail-view-data">
+                <div class="detail-header">
+                    <div class="detail-icon ic-orange"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"/></svg></div>
+                    <div>
+                        <div class="detail-title">データ閲覧</div>
+                        <div class="detail-subtitle">回答データの一覧表示・検索</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>Googleスプレッドシートに保存されたアンケート回答データを一覧表示するビューアです。患者番号・医療機関名での検索やフィルタリングが可能です。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>主な機能</h3>
+                    <ul>
+                        <li>全回答データの一覧表示（テーブル形式）</li>
+                        <li>患者No.・医療機関名による検索</li>
+                        <li>重複データのハイライト表示</li>
+                        <li>各患者の詳細データ展開表示</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="view_data.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
+            </div>
+
+            <!-- PDF紐づけ -->
+            <div class="detail" id="detail-link-pdf">
+                <div class="detail-header">
+                    <div class="detail-icon ic-blue"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m9.86-2.54a4.5 4.5 0 0 0-1.242-7.244l-4.5-4.5a4.5 4.5 0 0 0-6.364 6.364L5.25 9.11" transform="translate(2,2) scale(0.85)"/></svg></div>
+                    <div>
+                        <div class="detail-title">PDF紐づけ</div>
+                        <div class="detail-subtitle">フォーム回答とスキャンPDFの紐づけ</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>Googleスプレッドシート上のフォーム回答データに、Google Drive上のスキャンPDFファイルを紐づけるツールです。紐づけ後、PDFは自動的に入力済みフォルダへ移動されます。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>処理フロー</h3>
+                    <ul>
+                        <li>① データ一覧を読み込み、紐づけ対象を選択</li>
+                        <li>② Google DriveからPDFファイルを選択（プレビュー確認可能）</li>
+                        <li>③ 紐づけ実行 → PDFが入力済みフォルダへ自動移動</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="link_pdf.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
+            </div>
+
+            <!-- テストデータ削除 -->
+            <div class="detail" id="detail-delete-data">
+                <div class="detail-header">
+                    <div class="detail-icon ic-red"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/></svg></div>
+                    <div>
+                        <div class="detail-title">テストデータ削除</div>
+                        <div class="detail-subtitle">テスト用データの番号指定削除</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>開発・テスト時に登録したテストデータを、患者番号を指定して削除するツールです。スプレッドシートの該当行と関連ファイルを削除します。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>注意事項</h3>
+                    <ul>
+                        <li>削除は取り消せません（慎重に操作してください）</li>
+                        <li>本番データの削除には使用しないでください</li>
+                        <li>パスワード認証で保護されています</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="delete_test_data.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
+            </div>
+
+            <!-- HbA1c追跡データ入力 -->
+            <div class="detail" id="detail-hba1c">
+                <div class="detail-header">
+                    <div class="detail-icon ic-purple"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"/></svg></div>
+                    <div>
+                        <div class="detail-title">HbA1c追跡データ入力</div>
+                        <div class="detail-subtitle">患者ごとのHbA1c等追跡値を入力</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>患者番号を指定して、HbA1cなどの追跡検査値を入力するツールです。入力されたデータはGoogleスプレッドシートの専用シートに保存されます。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>入力項目</h3>
+                    <ul>
+                        <li>患者No.（既存データから選択）</li>
+                        <li>HbA1c値</li>
+                        <li>その他の追跡検査値</li>
+                        <li>測定日</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="HbA1c_tracking_input.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
+            </div>
+
+            <!-- 検体PpP値入力 -->
+            <div class="detail" id="detail-ppp">
+                <div class="detail-header">
+                    <div class="detail-icon ic-teal"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M19 14.5l-2.47 7.411a2.25 2.25 0 0 1-2.134 1.539h-4.792a2.25 2.25 0 0 1-2.134-1.539L5 14.5m14 0H5"/></svg></div>
+                    <div>
+                        <div class="detail-title">検体PpP値入力</div>
+                        <div class="detail-subtitle">患者ごとの検体PpP値を入力</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>患者番号を指定して、検体PpP（ペントシジン）値を入力するツールです。入力されたデータはGoogleスプレッドシートの専用シートに保存されます。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>入力項目</h3>
+                    <ul>
+                        <li>患者No.（既存データから選択）</li>
+                        <li>検体PpP値</li>
+                        <li>測定日</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="PpP_input.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
+            </div>
+
+        </main>
+    </div>
+
+    <div class="footer">
+        糖化アンケートOCR照合システム &copy; 2026
+    </div>
+
+    <script>
+        function showDetail(id) {
+            // ウェルカム非表示
+            document.getElementById('welcomeView').style.display = 'none';
+
+            // 全detail非表示
+            var details = document.querySelectorAll('.detail');
+            for (var i = 0; i < details.length; i++) {
+                details[i].classList.remove('visible');
+            }
+
+            // 対象を表示
+            var target = document.getElementById('detail-' + id);
+            if (target) target.classList.add('visible');
+
+            // サイドバーのactive
+            var items = document.querySelectorAll('.sidebar .tree-item');
+            for (var i = 0; i < items.length; i++) {
+                items[i].classList.remove('active');
+                if (items[i].getAttribute('data-detail') === id) {
+                    items[i].classList.add('active');
+                }
+            }
+        }
+    </script>
+
+</body>
+</html>

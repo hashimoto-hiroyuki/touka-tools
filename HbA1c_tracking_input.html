@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HbA1c他 追跡データ入力ツール</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232196f3'/><path d='M6 22l5-8 4 5 5-10 6 13' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', 'Yu Gothic UI', 'Meiryo', sans-serif;
+            background: #f5f5f5;
+            padding: 30px 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 22px;
+            color: #333;
+            text-align: center;
+            margin-bottom: 6px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 24px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: #e67e22;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e67e22;
+        }
+        .form-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .form-row label {
+            width: 80px;
+            font-size: 14px;
+            color: #555;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .form-row input, .form-row textarea {
+            flex: 1;
+            padding: 10px 12px;
+            font-size: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+        }
+        .form-row input:focus, .form-row textarea:focus {
+            border-color: #e67e22;
+        }
+        .form-row .unit {
+            font-size: 13px;
+            color: #888;
+            flex-shrink: 0;
+            width: 45px;
+        }
+        .patient-info {
+            padding: 10px 14px;
+            background: #fef5e7;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 14px;
+            display: none;
+        }
+        .patient-info.visible { display: block; }
+        .patient-info .label { color: #888; font-size: 12px; }
+        .patient-info .value { font-weight: bold; margin-right: 16px; }
+        .patient-detail-toggle {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 12px;
+            font-size: 12px;
+            color: #e67e22;
+            background: #fff;
+            border: 1px solid #e67e22;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .patient-detail-toggle:hover { background: #fef5e7; }
+        .patient-detail {
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+        .patient-detail.visible { display: block; }
+        .patient-detail table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .patient-detail th {
+            background: #f5e6d0;
+            color: #8b5e3c;
+            padding: 6px 10px;
+            text-align: left;
+            font-size: 12px;
+            white-space: nowrap;
+            width: 40%;
+        }
+        .patient-detail td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #f0e6d8;
+            word-break: break-all;
+        }
+        .btn-search {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+            background: #e67e22;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .btn-search:hover { background: #cf6d17; }
+        .btn-submit {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .btn-submit:hover { opacity: 0.9; }
+        .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-add-column {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #e67e22;
+            background: #fff;
+            border: 2px dashed #e67e22;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+        .btn-add-column:hover { background: #fef5e7; }
+        .result {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+        .result.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .result.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .result.info { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th {
+            background: #e67e22;
+            color: #fff;
+            padding: 10px 8px;
+            text-align: left;
+            font-size: 13px;
+        }
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        tr:hover td { background: #fef9f0; }
+        .empty-msg {
+            text-align: center;
+            color: #aaa;
+            padding: 20px;
+            font-size: 14px;
+        }
+        .btn-refresh {
+            float: right;
+            padding: 4px 12px;
+            font-size: 12px;
+            color: #e67e22;
+            background: #fff;
+            border: 1px solid #e67e22;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .btn-refresh:hover { background: #fef5e7; }
+
+        /* モーダル */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #fff;
+            border-radius: 12px;
+            padding: 28px;
+            width: 360px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .modal h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 18px;
+        }
+        .modal .form-row { margin-bottom: 12px; }
+        .modal .form-row label { width: 60px; font-size: 13px; }
+        .modal .form-row input { font-size: 14px; padding: 8px 10px; }
+        .modal .hint {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .modal-buttons button {
+            padding: 8px 20px;
+            font-size: 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-cancel {
+            background: #eee;
+            color: #666;
+            border: none;
+        }
+        .btn-confirm {
+            background: #e67e22;
+            color: #fff;
+            border: none;
+        }
+        .btn-confirm:hover { background: #cf6d17; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HbA1c他 追跡データ入力ツール</h1>
+        <p class="subtitle">アンケートNo.に紐づけてHbA1c等の追跡データを登録します</p>
+
+        <!-- 患者検索 -->
+        <div class="card">
+            <div class="card-title">患者検索</div>
+            <div class="form-row">
+                <label>No.</label>
+                <input type="number" id="searchNo" min="1" placeholder="アンケートNo.">
+                <button class="btn-search" onclick="searchPatient()">検索</button>
+            </div>
+            <div class="patient-info" id="patientInfo">
+                <span class="label">ID:</span> <span class="value" id="patientId">-</span>
+                <span class="label">名前:</span> <span class="value" id="patientName">-</span>
+                <span class="label">医療機関:</span> <span class="value" id="patientHospital">-</span>
+                <br>
+                <button class="patient-detail-toggle" id="detailToggle" onclick="toggleDetail()">▼ アンケート内容を表示</button>
+                <div class="patient-detail" id="patientDetail"></div>
+            </div>
+        </div>
+
+        <!-- 追跡データ入力 -->
+        <div class="card">
+            <div class="card-title">追跡データ入力</div>
+            <div class="form-row">
+                <label>測定日</label>
+                <input type="date" id="measureDate">
+            </div>
+            <!-- 動的項目はここに挿入される -->
+            <div id="dynamicFields"></div>
+            <div class="form-row">
+                <label>備考</label>
+                <input type="text" id="note" placeholder="特記事項があれば">
+            </div>
+            <button class="btn-submit" id="submitBtn" onclick="submitTracking()">登録する</button>
+            <div class="result" id="resultArea"></div>
+            <button class="btn-add-column" onclick="openAddColumnDialog()">＋ 記録項目を追加</button>
+        </div>
+
+        <!-- 登録済みデータ -->
+        <div class="card">
+            <div class="card-title">
+                登録済みデータ
+                <button class="btn-refresh" onclick="loadTrackingList()">更新</button>
+            </div>
+            <div id="trackingTable"></div>
+        </div>
+    </div>
+
+    <!-- 項目追加モーダル -->
+    <div class="modal-overlay" id="addColumnModal">
+        <div class="modal">
+            <h3>記録項目を追加</h3>
+            <div class="form-row">
+                <label>項目名</label>
+                <input type="text" id="newColumnName" placeholder="例: 収縮期血圧">
+            </div>
+            <div class="form-row">
+                <label>単位</label>
+                <input type="text" id="newColumnUnit" placeholder="例: mmHg">
+            </div>
+            <div class="hint">
+                ※ 追加した項目はスプレッドシートに列として追加されます。<br>
+                ※ 単位が不要な場合は空欄のままでOKです。
+            </div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeAddColumnDialog()">キャンセル</button>
+                <button class="btn-confirm" onclick="addColumn()">追加する</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const APPS_SCRIPT_API_URL = 'https://script.google.com/macros/s/AKfycbzQCrKRX7nJgryTPsP2Aceh4_Ofyef2Ez2iBmHUGBYF3K15XYZk-5Na8XDIlLCqlAGtVQ/exec';
+
+        // 固定列（フォーム生成から除外する列）
+        var FIXED_COLUMNS = ['No.', '測定日', '備考'];
+
+        // 現在のヘッダー情報（APIから取得）
+        var currentHeaders = [];
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            var today = new Date().toISOString().split('T')[0];
+            document.getElementById('measureDate').value = today;
+            loadTrackingList();
+        });
+
+        // JSONP通信ヘルパー
+        function jsonpRequest(url, callback, timeoutMs) {
+            timeoutMs = timeoutMs || 30000;
+            var callbackName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+            var fullUrl = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName;
+
+            window[callbackName] = function(result) {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                clearTimeout(timeoutId);
+                callback(null, result);
+            };
+
+            var timeoutId = setTimeout(function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                callback('タイムアウトしました（' + (timeoutMs / 1000) + '秒）');
+            }, timeoutMs);
+
+            var script = document.createElement('script');
+            script.src = fullUrl;
+            script.onerror = function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                clearTimeout(timeoutId);
+                callback('通信エラーが発生しました');
+            };
+            document.head.appendChild(script);
+        }
+
+        // ヘッダー名から項目名と単位を分離
+        // 例: "HbA1c(%)" → { name: "HbA1c", unit: "%" }
+        // 例: "体重(kg)" → { name: "体重", unit: "kg" }
+        // 例: "備考"     → { name: "備考", unit: "" }
+        function parseHeader(header) {
+            var match = header.match(/^(.+?)\((.+)\)$/);
+            if (match) {
+                return { name: match[1], unit: match[2] };
+            }
+            return { name: header, unit: '' };
+        }
+
+        // 動的フォーム欄を生成
+        function buildDynamicFields(headers) {
+            currentHeaders = headers;
+            var container = document.getElementById('dynamicFields');
+            container.innerHTML = '';
+
+            for (var i = 0; i < headers.length; i++) {
+                var h = headers[i];
+                if (FIXED_COLUMNS.indexOf(h) >= 0) continue;
+
+                var parsed = parseHeader(h);
+                var row = document.createElement('div');
+                row.className = 'form-row';
+
+                var label = document.createElement('label');
+                label.textContent = parsed.name;
+                row.appendChild(label);
+
+                var input = document.createElement('input');
+                input.type = 'number';
+                input.step = 'any';
+                input.placeholder = '';
+                input.setAttribute('data-header', h);
+                input.className = 'dynamic-input';
+                row.appendChild(input);
+
+                if (parsed.unit) {
+                    var unitSpan = document.createElement('span');
+                    unitSpan.className = 'unit';
+                    unitSpan.textContent = parsed.unit;
+                    row.appendChild(unitSpan);
+                }
+
+                container.appendChild(row);
+            }
+        }
+
+        // アンケート内容表示トグル
+        function toggleDetail() {
+            var detailEl = document.getElementById('patientDetail');
+            var toggleBtn = document.getElementById('detailToggle');
+            if (detailEl.className.indexOf('visible') >= 0) {
+                detailEl.className = 'patient-detail';
+                toggleBtn.textContent = '▼ アンケート内容を表示';
+            } else {
+                detailEl.className = 'patient-detail visible';
+                toggleBtn.textContent = '▲ アンケート内容を隠す';
+            }
+        }
+
+        // アンケートデータ一覧テーブルを生成
+        function buildPatientDetailTable(headers, row) {
+            var html = '<table>';
+            for (var i = 0; i < headers.length; i++) {
+                var val = (row[i] !== undefined && row[i] !== null && row[i] !== '') ? String(row[i]) : '-';
+                html += '<tr><th>' + escapeHtml(headers[i]) + '</th><td>' + escapeHtml(val) + '</td></tr>';
+            }
+            html += '</table>';
+            return html;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // 患者検索
+        function searchPatient() {
+            var no = document.getElementById('searchNo').value;
+            if (!no) {
+                alert('No.を入力してください');
+                return;
+            }
+
+            var infoEl = document.getElementById('patientInfo');
+            infoEl.className = 'patient-info';
+            infoEl.style.display = 'block';
+            document.getElementById('patientId').textContent = '検索中...';
+            document.getElementById('patientName').textContent = '';
+            document.getElementById('patientHospital').textContent = '';
+            document.getElementById('patientDetail').className = 'patient-detail';
+            document.getElementById('patientDetail').innerHTML = '';
+            document.getElementById('detailToggle').textContent = '▼ アンケート内容を表示';
+            document.getElementById('detailToggle').style.display = 'none';
+
+            var url = APPS_SCRIPT_API_URL + '?action=viewData&password=' + encodeURIComponent('touka2026');
+            jsonpRequest(url, function(err, result) {
+                if (err) {
+                    document.getElementById('patientId').textContent = 'エラー: ' + err;
+                    return;
+                }
+                if (!result.success) {
+                    document.getElementById('patientId').textContent = 'エラー: ' + (result.error || '不明');
+                    return;
+                }
+
+                var headers = result.data.headers;
+                var noIdx = headers.indexOf('No.');
+                var idIdx = headers.indexOf('2. ID番号');
+                var nameIdx = headers.indexOf('3. 名前（カタカナ）');
+                var hospIdx = headers.indexOf('1. 受診中の歯科医院を選んでください。');
+
+                var found = false;
+                for (var i = 0; i < result.data.rows.length; i++) {
+                    var row = result.data.rows[i];
+                    if (String(row[noIdx]) === String(no)) {
+                        document.getElementById('patientId').textContent = row[idIdx] || '-';
+                        document.getElementById('patientName').textContent = row[nameIdx] || '-';
+                        document.getElementById('patientHospital').textContent = row[hospIdx] || '-';
+                        infoEl.className = 'patient-info visible';
+                        // アンケートデータ一覧を生成
+                        document.getElementById('patientDetail').innerHTML = buildPatientDetailTable(headers, row);
+                        document.getElementById('detailToggle').style.display = 'inline-block';
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    document.getElementById('patientId').textContent = 'No.' + no + ' が見つかりません';
+                    document.getElementById('patientName').textContent = '';
+                    document.getElementById('patientHospital').textContent = '';
+                    document.getElementById('detailToggle').style.display = 'none';
+                }
+            });
+        }
+
+        // 追跡データ登録
+        function submitTracking() {
+            var no = document.getElementById('searchNo').value;
+            var measureDate = document.getElementById('measureDate').value;
+            var note = document.getElementById('note').value;
+            var resultArea = document.getElementById('resultArea');
+            var submitBtn = document.getElementById('submitBtn');
+
+            if (!no) {
+                resultArea.className = 'result error';
+                resultArea.textContent = '先にNo.を入力して患者を検索してください。';
+                resultArea.style.display = 'block';
+                return;
+            }
+
+            // 動的項目の値を収集
+            var dynamicInputs = document.querySelectorAll('.dynamic-input');
+            var hasValue = false;
+            var params = {};
+            for (var i = 0; i < dynamicInputs.length; i++) {
+                var headerName = dynamicInputs[i].getAttribute('data-header');
+                var val = dynamicInputs[i].value;
+                params[headerName] = val;
+                if (val) hasValue = true;
+            }
+
+            if (!hasValue) {
+                resultArea.className = 'result error';
+                resultArea.textContent = 'いずれかの項目に値を入力してください。';
+                resultArea.style.display = 'block';
+                return;
+            }
+
+            // 確認メッセージ
+            var confirmMsg = 'No.' + no + ' / ' + measureDate;
+            for (var key in params) {
+                if (params[key]) {
+                    var parsed = parseHeader(key);
+                    confirmMsg += ' / ' + parsed.name + ': ' + params[key];
+                    if (parsed.unit) confirmMsg += parsed.unit;
+                }
+            }
+            confirmMsg += '\n\n登録しますか？';
+
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = '登録中...';
+            resultArea.className = 'result info';
+            resultArea.textContent = '登録処理中...';
+            resultArea.style.display = 'block';
+
+            // URL組み立て
+            var url = APPS_SCRIPT_API_URL
+                + '?action=addTracking'
+                + '&no=' + encodeURIComponent(no)
+                + '&date=' + encodeURIComponent(measureDate)
+                + '&note=' + encodeURIComponent(note);
+
+            // 動的項目をURLパラメータに追加
+            for (var key in params) {
+                url += '&' + encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+            }
+
+            jsonpRequest(url, function(err, result) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '登録する';
+
+                if (err) {
+                    resultArea.className = 'result error';
+                    resultArea.textContent = err;
+                    return;
+                }
+
+                if (result.success && result.data.success !== false) {
+                    resultArea.className = 'result success';
+                    resultArea.innerHTML = '<strong>登録完了:</strong> ' + (result.data.message || '');
+                    // フォームクリア（No.と測定日は残す）
+                    var inputs = document.querySelectorAll('.dynamic-input');
+                    for (var j = 0; j < inputs.length; j++) {
+                        inputs[j].value = '';
+                    }
+                    document.getElementById('note').value = '';
+                    // 一覧を更新
+                    loadTrackingList();
+                } else {
+                    resultArea.className = 'result error';
+                    resultArea.textContent = result.data.message || result.error || '登録に失敗しました';
+                }
+            });
+        }
+
+        // 登録済みデータ一覧読み込み（ヘッダー駆動で動的テーブル生成）
+        function loadTrackingList() {
+            var container = document.getElementById('trackingTable');
+            container.innerHTML = '<div class="empty-msg">読み込み中...</div>';
+
+            var no = document.getElementById('searchNo').value;
+            var url = APPS_SCRIPT_API_URL + '?action=getTrackingList' + (no ? '&no=' + encodeURIComponent(no) : '');
+
+            jsonpRequest(url, function(err, result) {
+                if (err) {
+                    container.innerHTML = '<div class="empty-msg">エラー: ' + err + '</div>';
+                    return;
+                }
+                if (!result.success) {
+                    container.innerHTML = '<div class="empty-msg">エラー: ' + (result.error || '不明') + '</div>';
+                    return;
+                }
+
+                var data = result.data;
+                var headers = data.headers || [];
+
+                // ヘッダーからフォーム欄を動的生成
+                if (headers.length > 0) {
+                    buildDynamicFields(headers);
+                }
+
+                if (data.totalCount === 0) {
+                    container.innerHTML = '<div class="empty-msg">登録データはありません</div>';
+                    return;
+                }
+
+                // テーブルヘッダー生成
+                var html = '<table><tr>';
+                for (var h = 0; h < headers.length; h++) {
+                    var parsed = parseHeader(headers[h]);
+                    var thText = parsed.name;
+                    if (parsed.unit) thText += '(' + parsed.unit + ')';
+                    html += '<th>' + thText + '</th>';
+                }
+                html += '</tr>';
+
+                // テーブルデータ行生成
+                for (var i = 0; i < data.rows.length; i++) {
+                    var row = data.rows[i];
+                    html += '<tr>';
+                    for (var c = 0; c < headers.length; c++) {
+                        var val = (row[c] !== undefined && row[c] !== null && row[c] !== '') ? row[c] : '';
+                        html += '<td>' + val + '</td>';
+                    }
+                    html += '</tr>';
+                }
+                html += '</table>';
+                container.innerHTML = html;
+            });
+        }
+
+        // === 項目追加モーダル ===
+        function openAddColumnDialog() {
+            document.getElementById('newColumnName').value = '';
+            document.getElementById('newColumnUnit').value = '';
+            document.getElementById('addColumnModal').className = 'modal-overlay active';
+        }
+
+        function closeAddColumnDialog() {
+            document.getElementById('addColumnModal').className = 'modal-overlay';
+        }
+
+        function addColumn() {
+            var name = document.getElementById('newColumnName').value.trim();
+            var unit = document.getElementById('newColumnUnit').value.trim();
+
+            if (!name) {
+                alert('項目名を入力してください。');
+                return;
+            }
+
+            // ヘッダー名を組み立て: 単位があれば "項目名(単位)" 形式
+            var columnName = unit ? name + '(' + unit + ')' : name;
+
+            if (!confirm('「' + columnName + '」を追加しますか？')) {
+                return;
+            }
+
+            closeAddColumnDialog();
+
+            var resultArea = document.getElementById('resultArea');
+            resultArea.className = 'result info';
+            resultArea.textContent = '項目を追加中...';
+            resultArea.style.display = 'block';
+
+            var url = APPS_SCRIPT_API_URL
+                + '?action=addTrackingColumn'
+                + '&columnName=' + encodeURIComponent(columnName);
+
+            jsonpRequest(url, function(err, result) {
+                if (err) {
+                    resultArea.className = 'result error';
+                    resultArea.textContent = err;
+                    return;
+                }
+
+                if (result.success && result.data.success !== false) {
+                    resultArea.className = 'result success';
+                    resultArea.textContent = result.data.message || '項目を追加しました';
+                    // フォームとテーブルを再読み込みして新項目を反映
+                    loadTrackingList();
+                } else {
+                    resultArea.className = 'result error';
+                    resultArea.textContent = result.data.message || result.error || '項目の追加に失敗しました';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

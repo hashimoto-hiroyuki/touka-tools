@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>糖化アンケート データ閲覧</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231976d2'/><rect x='6' y='7' width='20' height='18' rx='2' fill='white' opacity='0.9'/><path d='M10 12h12M10 16h12M10 20h8' stroke='%231976d2' stroke-width='1.5' stroke-linecap='round'/></svg>">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', 'Yu Gothic UI', 'Meiryo', sans-serif;
+            background: #f5f5f5;
+        }
+
+        /* --- ログイン画面 --- */
+        .login-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .login-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 40px;
+            width: 360px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .login-box h1 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 6px;
+        }
+        .login-box .subtitle {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 28px;
+        }
+        .login-box input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .login-box input[type="password"]:focus {
+            border-color: #667eea;
+        }
+        .login-box .btn-login {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .login-box .btn-login:hover {
+            opacity: 0.9;
+        }
+        .login-box .btn-login:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .login-error {
+            color: #e74c3c;
+            font-size: 13px;
+            margin-top: 12px;
+        }
+
+        /* --- データ画面 --- */
+        .data-screen {
+            display: none;
+            padding: 20px;
+        }
+        .header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        .header-bar h1 {
+            font-size: 18px;
+            color: #333;
+        }
+        .header-bar .info {
+            font-size: 13px;
+            color: #888;
+        }
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .search-bar input {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            outline: none;
+        }
+        .search-bar input:focus {
+            border-color: #667eea;
+        }
+
+        /* --- テーブル --- */
+        .table-container {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            overflow: auto;
+            max-height: calc(100vh - 160px);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        thead th {
+            position: sticky;
+            top: 0;
+            background: #f8f9fa;
+            padding: 10px 8px;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+            font-size: 11px;
+            color: #555;
+            z-index: 10;
+        }
+        tbody td {
+            padding: 8px 8px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        tbody tr:hover {
+            background: #f5f8ff;
+        }
+        tbody tr:nth-child(even) {
+            background: #fafafa;
+        }
+        tbody tr:nth-child(even):hover {
+            background: #f5f8ff;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+            font-size: 16px;
+        }
+        .warning-bar {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 10px 16px;
+            margin-bottom: 12px;
+            color: #856404;
+            font-size: 13px;
+            display: none;
+        }
+        .warning-bar strong {
+            color: #d63384;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ログイン画面 -->
+    <div class="login-overlay" id="loginScreen">
+        <div class="login-box">
+            <h1>糖化アンケート</h1>
+            <p class="subtitle">データ閲覧システム</p>
+            <input type="password" id="passwordInput" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter') login()">
+            <button class="btn-login" id="loginBtn" onclick="login()">ログイン</button>
+            <div class="login-error" id="loginError"></div>
+        </div>
+    </div>
+
+    <!-- データ画面 -->
+    <div class="data-screen" id="dataScreen">
+        <div class="header-bar">
+            <h1>糖化アンケート データ一覧</h1>
+            <div class="info" id="dataInfo"></div>
+        </div>
+
+        <div class="warning-bar" id="warningBar"></div>
+
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="検索（No. / ID / 名前 / 医療機関名 ...）" oninput="filterTable()">
+        </div>
+
+        <div class="table-container" id="tableContainer">
+            <div class="loading" id="loadingMsg">データを読み込み中...</div>
+        </div>
+    </div>
+
+    <script>
+        const APPS_SCRIPT_API_URL = 'https://script.google.com/macros/s/AKfycbzQCrKRX7nJgryTPsP2Aceh4_Ofyef2Ez2iBmHUGBYF3K15XYZk-5Na8XDIlLCqlAGtVQ/exec';
+
+        let allHeaders = [];
+        let allRows = [];
+
+        function login() {
+            const password = document.getElementById('passwordInput').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const errorEl = document.getElementById('loginError');
+
+            if (!password) {
+                errorEl.textContent = 'パスワードを入力してください';
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = '認証中...';
+            errorEl.textContent = '';
+
+            // JSONP でパスワード検証 + データ取得
+            const callbackName = 'viewCb_' + Date.now();
+            const url = APPS_SCRIPT_API_URL
+                + '?action=viewData'
+                + '&password=' + encodeURIComponent(password)
+                + '&callback=' + callbackName;
+
+            window[callbackName] = function(result) {
+                delete window[callbackName];
+                document.head.removeChild(script);
+                clearTimeout(timeoutId);
+
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'ログイン';
+
+                if (result.success) {
+                    // ログイン成功 → データ画面表示
+                    allHeaders = result.data.headers;
+                    allRows = result.data.rows;
+
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('dataScreen').style.display = 'block';
+                    document.getElementById('dataInfo').textContent = '全 ' + result.data.totalCount + ' 件';
+
+                    // 重複No.警告
+                    if (result.data.duplicateNos && result.data.duplicateNos.length > 0) {
+                        var warningEl = document.getElementById('warningBar');
+                        warningEl.innerHTML = '⚠ 重複No.が検出されました: <strong>No.' + result.data.duplicateNos.join(', No.') + '</strong>（複数シートに同じNo.が存在します）';
+                        warningEl.style.display = 'block';
+                    }
+
+                    renderTable(allHeaders, allRows);
+                } else {
+                    errorEl.textContent = result.error || '認証に失敗しました';
+                }
+            };
+
+            const timeoutId = setTimeout(function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'ログイン';
+                errorEl.textContent = '通信がタイムアウトしました';
+            }, 30000);
+
+            const script = document.createElement('script');
+            script.src = url;
+            script.onerror = function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                clearTimeout(timeoutId);
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'ログイン';
+                errorEl.textContent = '通信エラーが発生しました';
+            };
+            document.head.appendChild(script);
+        }
+
+        function renderTable(headers, rows) {
+            let html = '<table><thead><tr>';
+            for (const h of headers) {
+                html += '<th>' + escapeHtml(String(h)) + '</th>';
+            }
+            html += '</tr></thead><tbody>';
+
+            if (rows.length === 0) {
+                html += '<tr><td colspan="' + headers.length + '" style="text-align:center; padding:20px; color:#888;">データがありません</td></tr>';
+            } else {
+                for (const row of rows) {
+                    html += '<tr>';
+                    for (const cell of row) {
+                        const val = cell !== null && cell !== undefined ? String(cell) : '';
+                        html += '<td>' + escapeHtml(val) + '</td>';
+                    }
+                    html += '</tr>';
+                }
+            }
+
+            html += '</tbody></table>';
+            document.getElementById('tableContainer').innerHTML = html;
+        }
+
+        function filterTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            if (!query) {
+                renderTable(allHeaders, allRows);
+                document.getElementById('dataInfo').textContent = '全 ' + allRows.length + ' 件';
+                return;
+            }
+
+            const filtered = allRows.filter(row => {
+                return row.some(cell => {
+                    const val = cell !== null && cell !== undefined ? String(cell).toLowerCase() : '';
+                    return val.includes(query);
+                });
+            });
+
+            renderTable(allHeaders, filtered);
+            document.getElementById('dataInfo').textContent = filtered.length + ' / ' + allRows.length + ' 件';
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        // Enter キーでログイン
+        document.getElementById('passwordInput').focus();
+    </script>
+</body>
+</html>
