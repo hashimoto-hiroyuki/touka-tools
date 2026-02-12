@@ -759,13 +759,15 @@
                     loadFileList();
                     return;
                 }
-                // 詳細取得
-                return gasCall('getOcrResultDetail', { fileId: fileId });
+                // テキストデータ取得（画像除外・軽量版）
+                return gasCall('getOcrResultText', { fileId: fileId });
             }).then(function(ocrData) {
                 if (!ocrData) return;
                 currentOcrData = ocrData;
                 renderQuestions(ocrData);
                 loadFileList(); // サイドバー更新
+                // 画像をバックグラウンドで1枚ずつ取得
+                loadImagesSequentially(fileId, ocrData._imageKeys || []);
             }).catch(function(err) {
                 document.getElementById('questionsArea').innerHTML =
                     '<div class="error-msg">エラー: ' + escapeHtml(err.message) + '</div>';
@@ -778,13 +780,13 @@
             questionStates = {};
             var answData = ocrData['回答データ'] || {};
             var checkItems = ocrData['要確認項目一覧'] || [];
-            var verifyImages = ocrData['verification_images'] || {};
+            var imageKeys = ocrData._imageKeys || [];
 
             for (var idx = 0; idx < QUESTION_ORDER.length; idx++) {
                 var key = QUESTION_ORDER[idx];
                 var label = QUESTION_LABELS[key] || key;
                 var displayVal = getDisplayValue(key, ocrData);
-                var imageData = verifyImages[key] || '';
+                var hasImage = imageKeys.indexOf(key) >= 0;
                 var needsCheck = checkItems.indexOf(key) >= 0;
                 var confidence = getConfidence(key, ocrData);
 
@@ -792,10 +794,14 @@
 
                 html += '<div class="question-block' + (needsCheck ? ' needs-check' : '') + '" id="qblock_' + idx + '" data-name="' + escapeHtml(key) + '">';
 
-                // 画像
-                if (imageData) {
-                    html += '<div class="q-image"><img src="' + imageData + '" alt="' + escapeHtml(label) + '" onclick="showOverlay(this.src)"></div>';
+                // 画像プレースホルダー（後からバックグラウンドでロード）
+                html += '<div class="q-image" id="qimg_' + idx + '">';
+                if (hasImage) {
+                    html += '<div style="padding:20px;text-align:center;color:#aaa;font-size:12px;border:1px dashed #ddd;border-radius:6px;">画像読込中...</div>';
+                } else {
+                    html += '<div style="padding:12px;text-align:center;color:#ccc;font-size:11px;">画像なし</div>';
                 }
+                html += '</div>';
 
                 // コンテンツ
                 html += '<div class="q-content">';
@@ -832,7 +838,47 @@
             updateProgress();
         }
 
+        // ========== 画像をバックグラウンドで1枚ずつ取得 ==========
+        function loadImagesSequentially(fileId, imageKeys) {
+            if (!imageKeys || imageKeys.length === 0) return;
+            var queue = imageKeys.slice(); // コピー
+
+            function loadNext() {
+                if (queue.length === 0) return;
+                if (currentFileId !== fileId) return; // 別ファイルに切り替わったら中止
+
+                var key = queue.shift();
+                var idx = QUESTION_ORDER.indexOf(key);
+                if (idx < 0) { loadNext(); return; }
+
+                gasCall('getOcrResultImage', { fileId: fileId, questionKey: key }).then(function(result) {
+                    if (currentFileId !== fileId) return;
+                    if (result && result.imageData) {
+                        var imgDiv = document.getElementById('qimg_' + idx);
+                        if (imgDiv) {
+                            imgDiv.innerHTML = '<img src="' + result.imageData + '" alt="' + escapeHtml(key) + '" onclick="showOverlay(this.src)" style="width:100%;border:1px solid #ddd;border-radius:6px;cursor:zoom-in;">';
+                        }
+                    }
+                    loadNext();
+                }).catch(function() {
+                    var imgDiv = document.getElementById('qimg_' + idx);
+                    if (imgDiv) {
+                        imgDiv.innerHTML = '<div style="padding:12px;text-align:center;color:#e53935;font-size:11px;">画像取得エラー</div>';
+                    }
+                    loadNext();
+                });
+            }
+
+            loadNext();
+        }
+
         // ========== OCRデータから表示値を取得 ==========
+        // 除外するメタデータキー
+        var META_KEYS = ['信頼度','confidence','候補','candidates','要確認','備考',
+            '氏_文字数','名_文字数','文字数','マーク種別',
+            '年_信頼度','年_候補','月_信頼度','月_候補','日_信頼度','日_候補',
+            '身長_信頼度','身長_候補','体重_信頼度','体重_候補'];
+
         function getDisplayValue(key, ocrData) {
             var answData = ocrData['回答データ'] || {};
 
@@ -847,29 +893,116 @@
                 if (idData && typeof idData === 'object') {
                     return idData['値'] || idData['value'] || '';
                 }
-                return idData || '';
+                return String(idData || '');
             }
 
             // 回答データ内
             var val = answData[key];
             if (val === undefined || val === null) return '';
 
-            // 構造化データの場合
+            // 文字列の場合はそのまま
+            if (typeof val === 'string') return val;
+            if (typeof val === 'number') return String(val);
+
+            // 構造化データの場合: 質問ごとの専用フォーマット
             if (typeof val === 'object' && !Array.isArray(val)) {
-                // 値 or value フィールドがあれば
+                // 質問1: 名前 → "氏: xxx / 名: xxx"
+                if (key === '質問1_名前') {
+                    var sei = val['氏'] || '';
+                    var mei = val['名'] || '';
+                    return sei && mei ? '氏: ' + sei + ' / 名: ' + mei : (sei || mei || '');
+                }
+
+                // 質問2: 生年月日 → "昭和61年3月25日"
+                if (key === '質問2_生年月日') {
+                    var nengo = val['年号'] || '';
+                    var y = val['年'] != null ? val['年'] : '';
+                    var m = val['月'] != null ? val['月'] : '';
+                    var d = val['日'] != null ? val['日'] : '';
+                    if (nengo && y) {
+                        return nengo + y + '年' + (m ? m + '月' : '') + (d ? d + '日' : '');
+                    }
+                    return '';
+                }
+
+                // 質問5: 身体情報 → "身長: 164cm / 体重: 51kg"
+                if (key === '質問5_身体情報') {
+                    var h = val['身長_cm'] != null ? val['身長_cm'] : '';
+                    var w = val['体重_kg'] != null ? val['体重_kg'] : '';
+                    return '身長: ' + h + 'cm / 体重: ' + w + 'kg';
+                }
+
+                // 質問6-12: チェック選択式 → "回答" フィールド
+                if (val['回答'] !== undefined) {
+                    return String(val['回答']);
+                }
+
+                // 質問13: 飲酒習慣 → 複合データ
+                if (key === '質問13_飲酒習慣') {
+                    return formatAlcohol(val);
+                }
+
+                // 質問14: 歯の抜去位置
+                if (key === '質問14_歯の抜去位置') {
+                    return formatTooth(val);
+                }
+
+                // 質問15: コメント
+                if (key === '質問15_コメント') {
+                    if (val['内容'] !== undefined) return String(val['内容']);
+                    if (val['コメント'] !== undefined) return String(val['コメント']);
+                }
+
+                // 汎用: 値/value フィールドがあれば
                 if (val['値'] !== undefined) return String(val['値']);
                 if (val['value'] !== undefined) return String(val['value']);
 
-                // 複合データの場合はキーバリューで表示
+                // メタデータを除外した残りのキーバリューで表示
                 var parts = [];
                 for (var k in val) {
-                    if (k === '信頼度' || k === 'confidence' || k === '候補' || k === 'candidates') continue;
-                    parts.push(k + ': ' + val[k]);
+                    if (META_KEYS.indexOf(k) >= 0) continue;
+                    var v = val[k];
+                    if (v === null || v === undefined || v === '') continue;
+                    if (typeof v === 'object') v = JSON.stringify(v);
+                    parts.push(k + ': ' + v);
                 }
                 return parts.join('\n');
             }
 
             return String(val);
+        }
+
+        // 飲酒習慣のフォーマット
+        function formatAlcohol(val) {
+            var sel = val['選択'] || '';
+            if (!sel || sel === '未回答') return '未回答';
+            if (sel.indexOf('飲まない') >= 0 || sel === 'いいえ') return '飲まない';
+
+            var lines = [sel.indexOf('飲む') >= 0 ? '飲む' : sel];
+            for (var i = 1; i <= 3; i++) {
+                var block = val['回答' + i];
+                if (!block) continue;
+                var parts = [];
+                if (block['酒の種類']) parts.push('酒類: ' + block['酒の種類']);
+                if (block['頻度_週回']) parts.push('週' + block['頻度_週回'] + '回');
+                if (block['サイズ']) parts.push('サイズ: ' + block['サイズ']);
+                if (block['数量']) parts.push('数量: ' + block['数量']);
+                if (parts.length > 0) {
+                    lines.push('回答' + i + ': ' + parts.join(' / '));
+                }
+            }
+            return lines.join('\n');
+        }
+
+        // 歯の抜去位置のフォーマット
+        function formatTooth(val) {
+            var parts = [];
+            if (val['左右']) parts.push(val['左右']);
+            if (val['上下']) parts.push(val['上下']);
+            if (val['番号']) parts.push('番号: ' + val['番号']);
+            if (val['位置']) parts.push(val['位置']);
+            if (val['内容']) return String(val['内容']);
+            return parts.length > 0 ? parts.join(' / ') : '';
         }
 
         // 信頼度取得
