@@ -62,26 +62,55 @@
         }
 
         .sidebar .tree-group {
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid #e8e8e8;
         }
         .sidebar .tree-group:last-child { border-bottom: none; }
 
         .sidebar .tree-category {
             display: flex;
             align-items: center;
-            gap: 7px;
-            padding: 10px 14px 6px;
-            font-size: 11px;
+            gap: 8px;
+            padding: 11px 14px 7px;
+            font-size: 12.5px;
             font-weight: 700;
-            color: #888;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
             cursor: default;
             user-select: none;
+            border-left: 4px solid transparent;
+            margin-top: 2px;
         }
         .sidebar .tree-category svg {
-            width: 14px; height: 14px; flex-shrink: 0;
+            width: 16px; height: 16px; flex-shrink: 0;
         }
+
+        /* ── カテゴリ別カラー ── */
+        .sidebar .tree-group.cat-create .tree-category {
+            color: #2e7d32;
+            border-left-color: #43a047;
+            background: linear-gradient(90deg, #e8f5e9 0%, transparent 100%);
+        }
+        .sidebar .tree-group.cat-create .tree-category svg { stroke: #2e7d32; }
+
+        .sidebar .tree-group.cat-ocr .tree-category {
+            color: #1565c0;
+            border-left-color: #1e88e5;
+            background: linear-gradient(90deg, #e3f2fd 0%, transparent 100%);
+        }
+        .sidebar .tree-group.cat-ocr .tree-category svg { stroke: #1565c0; }
+
+        .sidebar .tree-group.cat-data .tree-category {
+            color: #e65100;
+            border-left-color: #fb8c00;
+            background: linear-gradient(90deg, #fff3e0 0%, transparent 100%);
+        }
+        .sidebar .tree-group.cat-data .tree-category svg { stroke: #e65100; }
+
+        .sidebar .tree-group.cat-lab .tree-category {
+            color: #7b1fa2;
+            border-left-color: #ab47bc;
+            background: linear-gradient(90deg, #f3e5f5 0%, transparent 100%);
+        }
+        .sidebar .tree-group.cat-lab .tree-category svg { stroke: #7b1fa2; }
 
         .sidebar .tree-item {
             display: flex;
@@ -346,9 +375,9 @@
         <nav class="sidebar">
 
             <!-- アンケート作成・開発 -->
-            <div class="tree-group">
+            <div class="tree-group cat-create">
                 <div class="tree-category">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#888"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
                     アンケート作成・開発
                 </div>
                 <div class="tree-item" data-detail="survey-tool" onclick="showDetail('survey-tool')">
@@ -374,9 +403,9 @@
             </div>
 
             <!-- OCR読み取り・照合 -->
-            <div class="tree-group">
+            <div class="tree-group cat-ocr">
                 <div class="tree-category">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#888"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
                     OCR読み取り・照合
                 </div>
                 <div class="tree-item" data-detail="ocr" onclick="showDetail('ocr')">
@@ -397,9 +426,9 @@
             </div>
 
             <!-- データ管理 -->
-            <div class="tree-group">
+            <div class="tree-group cat-data">
                 <div class="tree-category">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#888"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
                     データ管理
                 </div>
                 <div class="tree-item" data-detail="view-data" onclick="showDetail('view-data')">
@@ -420,9 +449,9 @@
             </div>
 
             <!-- 検査値入力 -->
-            <div class="tree-group">
+            <div class="tree-group cat-lab">
                 <div class="tree-category">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="#888"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
                     検査値入力
                 </div>
                 <div class="tree-item" data-detail="hba1c" onclick="showDetail('hba1c')">
