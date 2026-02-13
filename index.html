@@ -112,17 +112,50 @@
         }
         .sidebar .tree-group.cat-lab .tree-category svg { stroke: #7b1fa2; }
 
+        /* ── カテゴリ別ツリー線カラー ── */
+        .sidebar .tree-group.cat-create .tree-item::before,
+        .sidebar .tree-group.cat-create .tree-item::after { border-color: #a5d6a7; }
+        .sidebar .tree-group.cat-ocr .tree-item::before,
+        .sidebar .tree-group.cat-ocr .tree-item::after { border-color: #90caf9; }
+        .sidebar .tree-group.cat-data .tree-item::before,
+        .sidebar .tree-group.cat-data .tree-item::after { border-color: #ffcc80; }
+        .sidebar .tree-group.cat-lab .tree-item::before,
+        .sidebar .tree-group.cat-lab .tree-item::after { border-color: #ce93d8; }
+
         .sidebar .tree-item {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 7px 14px 7px 28px;
+            padding: 7px 14px 7px 36px;
             font-size: 12.5px;
             color: #555;
             cursor: pointer;
-            border-left: 3px solid transparent;
             transition: all 0.12s;
             text-decoration: none;
+            position: relative;
+        }
+        /* ツリー接続線: 縦線 + 横枝 */
+        .sidebar .tree-item::before {
+            content: '';
+            position: absolute;
+            left: 18px;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            border-left: 1px solid #ccc;
+        }
+        .sidebar .tree-item::after {
+            content: '';
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            width: 10px;
+            height: 0;
+            border-top: 1px solid #ccc;
+        }
+        /* 最後のアイテム: 縦線を途中で止める（L字型） */
+        .sidebar .tree-item:last-child::before {
+            bottom: 50%;
         }
         .sidebar .tree-item:hover {
             background: #f5f8ff;
@@ -131,7 +164,6 @@
         .sidebar .tree-item.active {
             background: #e8f0fe;
             color: #1565c0;
-            border-left-color: #1565c0;
             font-weight: 600;
         }
         .sidebar .tree-item .item-icon {
