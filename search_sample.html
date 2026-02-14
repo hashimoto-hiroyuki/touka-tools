@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>検体番号検索</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23fb8c00'/><circle cx='14' cy='14' r='7' fill='none' stroke='white' stroke-width='2.5'/><line x1='19' y1='19' x2='25' y2='25' stroke='white' stroke-width='2.5' stroke-linecap='round'/></svg>">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', 'Yu Gothic UI', 'Meiryo', sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        /* --- ログイン画面 --- */
+        .login-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #fb8c00 0%, #e65100 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .login-overlay.hidden { display: none; }
+        .login-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 40px;
+            width: 360px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .login-box h1 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 6px;
+        }
+        .login-box .subtitle {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 28px;
+        }
+        .login-box input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            margin-bottom: 16px;
+        }
+        .login-box input[type="password"]:focus {
+            border-color: #fb8c00;
+        }
+        .login-box .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: #fb8c00;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .login-box .btn-login:hover { background: #f57c00; }
+        .login-box .btn-login:disabled { background: #ccc; cursor: not-allowed; }
+        .login-error {
+            color: #c62828;
+            font-size: 13px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* --- メイン画面 --- */
+        .main-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 24px 16px;
+            display: none;
+        }
+        .main-container.visible { display: block; }
+
+        /* ヘッダー */
+        .app-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .app-header h1 {
+            font-size: 22px;
+            color: #e65100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .app-header h1 svg { width: 28px; height: 28px; }
+        .app-header .desc {
+            color: #888;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        /* 検索カード */
+        .search-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        .search-card h2 {
+            font-size: 15px;
+            color: #555;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #fff3e0;
+        }
+
+        .form-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+        .form-row label {
+            width: 120px;
+            font-size: 14px;
+            color: #555;
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+        .form-row input[type="text"],
+        .form-row input[type="number"] {
+            padding: 10px 12px;
+            font-size: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            outline: none;
+        }
+        .form-row input:focus {
+            border-color: #fb8c00;
+        }
+        .form-row .name-input {
+            flex: 1;
+            min-width: 200px;
+        }
+        .form-row select {
+            padding: 10px 12px;
+            font-size: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            outline: none;
+            background: #fff;
+        }
+        .form-row select:focus { border-color: #fb8c00; }
+        .form-row .num-input {
+            width: 70px;
+            text-align: center;
+        }
+        .form-row .unit {
+            font-size: 14px;
+            color: #777;
+        }
+
+        .btn-search {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 12px 32px;
+            background: #fb8c00;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+        .btn-search:hover { background: #f57c00; }
+        .btn-search:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-search svg { width: 18px; height: 18px; }
+
+        .btn-clear {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 10px 20px;
+            background: #eee;
+            color: #555;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 4px;
+            margin-left: 8px;
+        }
+        .btn-clear:hover { background: #ddd; }
+
+        /* 結果カード */
+        .result-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: none;
+        }
+        .result-card.visible { display: block; }
+        .result-card h2 {
+            font-size: 15px;
+            color: #555;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .result-count {
+            background: #fb8c00;
+            color: #fff;
+            font-size: 12px;
+            padding: 2px 10px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        /* 結果テーブル */
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        .result-table th {
+            background: #fff3e0;
+            color: #e65100;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #ffe0b2;
+            white-space: nowrap;
+        }
+        .result-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .result-table tr:hover td {
+            background: #fff8e1;
+        }
+        .no-cell {
+            font-weight: 700;
+            color: #e65100;
+            font-size: 16px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .no-cell:hover {
+            background: #fb8c00;
+            color: #fff;
+            border-radius: 4px;
+        }
+        .copy-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 999;
+            pointer-events: none;
+        }
+        .copy-toast.show { opacity: 1; }
+
+        .no-result {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .search-status {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+            font-size: 14px;
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 600px) {
+            .form-row { flex-direction: column; align-items: flex-start; }
+            .form-row label { width: auto; }
+            .form-row .name-input { width: 100%; }
+            .birth-fields { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ログイン画面 -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <h1>検体番号検索</h1>
+            <div class="subtitle">氏名・生年月日から検体No.を検索します</div>
+            <input type="password" id="loginPassword" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter')doLogin()">
+            <button class="btn-login" id="btnLogin" onclick="doLogin()">ログイン</button>
+            <div class="login-error" id="loginError">パスワードが正しくありません</div>
+        </div>
+    </div>
+
+    <!-- メイン画面 -->
+    <div class="main-container" id="mainContainer">
+        <div class="app-header">
+            <h1>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+                </svg>
+                検体番号検索
+            </h1>
+            <div class="desc">検体サンプルの氏名・生年月日からスプレッドシートのNo.を検索します</div>
+        </div>
+
+        <!-- 検索フォーム -->
+        <div class="search-card">
+            <h2>検索条件</h2>
+            <div class="form-row">
+                <label>氏名（カタカナ）</label>
+                <input type="text" class="name-input" id="searchName" placeholder="例: タナカ" onkeydown="if(event.key==='Enter')doSearch()">
+            </div>
+            <div class="form-row">
+                <label>生年月日</label>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;" class="birth-fields">
+                    <select id="searchNengo">
+                        <option value="">--</option>
+                        <option value="昭和">昭和</option>
+                        <option value="平成">平成</option>
+                        <option value="令和">令和</option>
+                    </select>
+                    <input type="number" class="num-input" id="searchYear" placeholder="年" min="1" max="99" onkeydown="if(event.key==='Enter')doSearch()">
+                    <span class="unit">年</span>
+                    <input type="number" class="num-input" id="searchMonth" placeholder="月" min="1" max="12" onkeydown="if(event.key==='Enter')doSearch()">
+                    <span class="unit">月</span>
+                    <input type="number" class="num-input" id="searchDay" placeholder="日" min="1" max="31" onkeydown="if(event.key==='Enter')doSearch()">
+                    <span class="unit">日</span>
+                </div>
+            </div>
+            <div style="text-align:center;margin-top:8px;">
+                <button class="btn-search" id="btnSearch" onclick="doSearch()">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
+                    </svg>
+                    検索
+                </button>
+                <button class="btn-clear" onclick="clearForm()">クリア</button>
+            </div>
+        </div>
+
+        <!-- 検索結果 -->
+        <div class="result-card" id="resultCard">
+            <h2>検索結果 <span class="result-count" id="resultCount">0件</span></h2>
+            <div id="resultBody"></div>
+        </div>
+    </div>
+
+    <!-- コピー通知 -->
+    <div class="copy-toast" id="copyToast">No. をコピーしました</div>
+
+    <script>
+    var GAS_URL = 'https://script.google.com/macros/s/AKfycbzQCrKRX7nJgryTPsP2Aceh4_Ofyef2Ez2iBmHUGBYF3K15XYZk-5Na8XDIlLCqlAGtVQ/exec';
+    var savedPassword = '';
+
+    // =============================================
+    // JSONP通信ヘルパー（PpP_input.htmlと同パターン）
+    // =============================================
+    function jsonpRequest(url, callback, timeoutMs) {
+        timeoutMs = timeoutMs || 30000;
+        var callbackName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+        var fullUrl = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName;
+
+        window[callbackName] = function(result) {
+            delete window[callbackName];
+            if (script.parentNode) document.head.removeChild(script);
+            clearTimeout(timeoutId);
+            callback(null, result);
+        };
+
+        var timeoutId = setTimeout(function() {
+            delete window[callbackName];
+            if (script.parentNode) document.head.removeChild(script);
+            callback('タイムアウトしました（' + (timeoutMs / 1000) + '秒）');
+        }, timeoutMs);
+
+        var script = document.createElement('script');
+        script.src = fullUrl;
+        script.onerror = function() {
+            delete window[callbackName];
+            if (script.parentNode) document.head.removeChild(script);
+            clearTimeout(timeoutId);
+            callback('通信エラーが発生しました');
+        };
+        document.head.appendChild(script);
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // =============================================
+    // ログイン
+    // =============================================
+    function doLogin() {
+        var pw = document.getElementById('loginPassword').value;
+        if (!pw) return;
+
+        var btn = document.getElementById('btnLogin');
+        btn.disabled = true;
+        btn.textContent = '認証中...';
+        document.getElementById('loginError').style.display = 'none';
+
+        // パスワード検証: 空検索を送信してsuccess/failureで判定
+        var url = GAS_URL + '?action=searchByNameBirthdate&password=' + encodeURIComponent(pw)
+                  + '&name=__VERIFY__';
+        jsonpRequest(url, function(err, result) {
+            btn.disabled = false;
+            btn.textContent = 'ログイン';
+            if (err) {
+                document.getElementById('loginError').textContent = '通信エラー: ' + err;
+                document.getElementById('loginError').style.display = 'block';
+                return;
+            }
+            if (result && result.success) {
+                savedPassword = pw;
+                document.getElementById('loginOverlay').classList.add('hidden');
+                document.getElementById('mainContainer').classList.add('visible');
+                document.getElementById('searchName').focus();
+            } else {
+                document.getElementById('loginError').textContent = result.error || 'パスワードが正しくありません';
+                document.getElementById('loginError').style.display = 'block';
+            }
+        });
+    }
+
+    // =============================================
+    // 検索実行
+    // =============================================
+    function doSearch() {
+        var name = document.getElementById('searchName').value.trim();
+        var nengo = document.getElementById('searchNengo').value;
+        var year = document.getElementById('searchYear').value.trim();
+        var month = document.getElementById('searchMonth').value.trim();
+        var day = document.getElementById('searchDay').value.trim();
+
+        if (!name && !nengo && !year && !month && !day) {
+            alert('氏名または生年月日を入力してください');
+            return;
+        }
+
+        var btn = document.getElementById('btnSearch');
+        btn.disabled = true;
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:18px;height:18px;animation:spin 1s linear infinite"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182"/></svg> 検索中...';
+
+        var resultCard = document.getElementById('resultCard');
+        resultCard.classList.add('visible');
+        document.getElementById('resultBody').innerHTML = '<div class="search-status">検索中...</div>';
+
+        var params = 'action=searchByNameBirthdate&password=' + encodeURIComponent(savedPassword);
+        if (name) params += '&name=' + encodeURIComponent(name);
+        if (nengo) params += '&nengo=' + encodeURIComponent(nengo);
+        if (year) params += '&year=' + encodeURIComponent(year);
+        if (month) params += '&month=' + encodeURIComponent(month);
+        if (day) params += '&day=' + encodeURIComponent(day);
+
+        var url = GAS_URL + '?' + params;
+
+        jsonpRequest(url, function(err, result) {
+            btn.disabled = false;
+            btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg> 検索';
+
+            if (err) {
+                document.getElementById('resultBody').innerHTML = '<div class="no-result">通信エラー: ' + escapeHtml(err) + '</div>';
+                document.getElementById('resultCount').textContent = 'エラー';
+                return;
+            }
+            if (!result || !result.success) {
+                document.getElementById('resultBody').innerHTML = '<div class="no-result">' + escapeHtml(result.error || 'エラーが発生しました') + '</div>';
+                document.getElementById('resultCount').textContent = 'エラー';
+                return;
+            }
+
+            var data = result.data;
+            var count = data.count || 0;
+            document.getElementById('resultCount').textContent = count + '件';
+
+            if (count === 0) {
+                var msg = data.message || '該当するデータが見つかりませんでした';
+                document.getElementById('resultBody').innerHTML = '<div class="no-result">' + escapeHtml(msg) + '</div>';
+                return;
+            }
+
+            var html = '<table class="result-table"><thead><tr>';
+            html += '<th>No.</th><th>氏名</th><th>生年月日</th><th>ID</th><th>医療機関</th>';
+            html += '</tr></thead><tbody>';
+
+            for (var i = 0; i < data.results.length; i++) {
+                var r = data.results[i];
+                var birthStr = '';
+                if (r.nengo) {
+                    birthStr = r.nengo + (r.year ? r.year + '年' : '');
+                    if (r.month) birthStr += r.month + '月';
+                    if (r.day) birthStr += r.day + '日';
+                }
+                html += '<tr>';
+                html += '<td class="no-cell" onclick="copyNo(\'' + escapeHtml(String(r.no)) + '\')" title="クリックでコピー">' + escapeHtml(String(r.no)) + '</td>';
+                html += '<td>' + escapeHtml(String(r.name || '')) + '</td>';
+                html += '<td>' + escapeHtml(birthStr) + '</td>';
+                html += '<td>' + escapeHtml(String(r.id || '')) + '</td>';
+                html += '<td>' + escapeHtml(String(r.hospital || '')) + '</td>';
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            document.getElementById('resultBody').innerHTML = html;
+        });
+    }
+
+    // =============================================
+    // No.コピー
+    // =============================================
+    function copyNo(no) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(no);
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = no;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        }
+        var toast = document.getElementById('copyToast');
+        toast.textContent = 'No. ' + no + ' をコピーしました';
+        toast.classList.add('show');
+        setTimeout(function() { toast.classList.remove('show'); }, 1500);
+    }
+
+    // =============================================
+    // フォームクリア
+    // =============================================
+    function clearForm() {
+        document.getElementById('searchName').value = '';
+        document.getElementById('searchNengo').value = '';
+        document.getElementById('searchYear').value = '';
+        document.getElementById('searchMonth').value = '';
+        document.getElementById('searchDay').value = '';
+        document.getElementById('resultCard').classList.remove('visible');
+        document.getElementById('searchName').focus();
+    }
+
+    // =============================================
+    // 初期化
+    // =============================================
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('loginPassword').focus();
+    });
+    </script>
+</body>
+</html>
