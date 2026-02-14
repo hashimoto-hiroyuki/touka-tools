@@ -32,270 +32,176 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.2);
             text-align: center;
         }
-        .login-box h1 {
-            font-size: 20px;
-            color: #333;
-            margin-bottom: 6px;
-        }
-        .login-box .subtitle {
-            color: #888;
-            font-size: 13px;
-            margin-bottom: 28px;
-        }
+        .login-box h1 { font-size: 20px; color: #333; margin-bottom: 6px; }
+        .login-box .subtitle { color: #888; font-size: 13px; margin-bottom: 28px; }
         .login-box input[type="password"] {
-            width: 100%;
-            padding: 12px 16px;
-            font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            outline: none;
-            margin-bottom: 16px;
+            width: 100%; padding: 12px 16px; font-size: 16px;
+            border: 2px solid #ddd; border-radius: 8px; outline: none; margin-bottom: 16px;
         }
-        .login-box input[type="password"]:focus {
-            border-color: #fb8c00;
-        }
+        .login-box input[type="password"]:focus { border-color: #fb8c00; }
         .login-box .btn-login {
-            width: 100%;
-            padding: 12px;
-            background: #fb8c00;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
+            width: 100%; padding: 12px; background: #fb8c00; color: #fff;
+            border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;
         }
         .login-box .btn-login:hover { background: #f57c00; }
         .login-box .btn-login:disabled { background: #ccc; cursor: not-allowed; }
-        .login-error {
-            color: #c62828;
-            font-size: 13px;
-            margin-top: 10px;
-            display: none;
-        }
+        .login-error { color: #c62828; font-size: 13px; margin-top: 10px; display: none; }
+        .login-status { color: #888; font-size: 12px; margin-top: 8px; }
 
         /* --- メイン画面 --- */
         .main-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 24px 16px;
-            display: none;
+            max-width: 800px; margin: 0 auto; padding: 24px 16px; display: none;
         }
         .main-container.visible { display: block; }
 
-        /* ヘッダー */
-        .app-header {
-            text-align: center;
-            margin-bottom: 24px;
-        }
+        .app-header { text-align: center; margin-bottom: 24px; }
         .app-header h1 {
-            font-size: 22px;
-            color: #e65100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            font-size: 22px; color: #e65100;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
         }
         .app-header h1 svg { width: 28px; height: 28px; }
-        .app-header .desc {
-            color: #888;
-            font-size: 13px;
-            margin-top: 4px;
-        }
+        .app-header .desc { color: #888; font-size: 13px; margin-top: 4px; }
 
         /* 検索カード */
         .search-card {
-            background: #fff;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            margin-bottom: 20px;
+            background: #fff; border-radius: 12px; padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px;
         }
         .search-card h2 {
-            font-size: 15px;
-            color: #555;
-            margin-bottom: 16px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #fff3e0;
+            font-size: 15px; color: #555; margin-bottom: 16px;
+            padding-bottom: 8px; border-bottom: 2px solid #fff3e0;
+        }
+        .search-hint {
+            font-size: 12px; color: #999; margin-top: 4px;
         }
 
         .form-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 14px;
-            flex-wrap: wrap;
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 14px; flex-wrap: wrap;
         }
         .form-row label {
-            width: 120px;
-            font-size: 14px;
-            color: #555;
-            font-weight: 500;
-            flex-shrink: 0;
+            width: 120px; font-size: 14px; color: #555; font-weight: 500; flex-shrink: 0;
         }
-        .form-row input[type="text"],
-        .form-row input[type="number"] {
-            padding: 10px 12px;
-            font-size: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            outline: none;
+        .name-input-wrap {
+            flex: 1; min-width: 200px; position: relative;
         }
-        .form-row input:focus {
-            border-color: #fb8c00;
+        .name-input-wrap input {
+            width: 100%; padding: 10px 12px; font-size: 15px;
+            border: 2px solid #e0e0e0; border-radius: 8px; outline: none;
         }
-        .form-row .name-input {
-            flex: 1;
-            min-width: 200px;
+        .name-input-wrap input:focus { border-color: #fb8c00; }
+
+        /* サジェストドロップダウン */
+        .suggest-list {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: #fff; border: 2px solid #fb8c00; border-top: none;
+            border-radius: 0 0 8px 8px; max-height: 280px; overflow-y: auto;
+            z-index: 100; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
-        .form-row select {
-            padding: 10px 12px;
-            font-size: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            outline: none;
-            background: #fff;
+        .suggest-list.visible { display: block; }
+        .suggest-item {
+            padding: 10px 14px; cursor: pointer; display: flex;
+            justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #f5f5f5; font-size: 14px;
         }
-        .form-row select:focus { border-color: #fb8c00; }
-        .form-row .num-input {
-            width: 70px;
-            text-align: center;
+        .suggest-item:last-child { border-bottom: none; }
+        .suggest-item:hover, .suggest-item.active {
+            background: #fff3e0;
         }
-        .form-row .unit {
-            font-size: 14px;
-            color: #777;
+        .suggest-name {
+            font-weight: 600; color: #333;
+        }
+        .suggest-name mark {
+            background: #ffe082; color: #e65100; padding: 0 1px; border-radius: 2px;
+        }
+        .suggest-birth {
+            font-size: 12px; color: #888; white-space: nowrap; margin-left: 12px;
+        }
+        .suggest-id {
+            font-size: 11px; color: #aaa; margin-left: 8px;
+        }
+        .suggest-info {
+            display: flex; align-items: center; gap: 4px;
+        }
+        .suggest-no {
+            background: #fb8c00; color: #fff; font-size: 11px; font-weight: 700;
+            padding: 1px 6px; border-radius: 8px; white-space: nowrap;
+        }
+        .suggest-count {
+            padding: 8px 14px; font-size: 12px; color: #999; text-align: center;
         }
 
+        .form-row select {
+            padding: 10px 12px; font-size: 15px;
+            border: 2px solid #e0e0e0; border-radius: 8px; outline: none; background: #fff;
+        }
+        .form-row select:focus { border-color: #fb8c00; }
+        .form-row .num-input { width: 70px; text-align: center;
+            padding: 10px 12px; font-size: 15px;
+            border: 2px solid #e0e0e0; border-radius: 8px; outline: none;
+        }
+        .form-row .num-input:focus { border-color: #fb8c00; }
+        .form-row .unit { font-size: 14px; color: #777; }
+
+        .btn-row { text-align: center; margin-top: 8px; }
         .btn-search {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 12px 32px;
-            background: #fb8c00;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 4px;
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 12px 32px; background: #fb8c00; color: #fff; border: none;
+            border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer;
         }
         .btn-search:hover { background: #f57c00; }
         .btn-search:disabled { background: #ccc; cursor: not-allowed; }
         .btn-search svg { width: 18px; height: 18px; }
-
         .btn-clear {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 10px 20px;
-            background: #eee;
-            color: #555;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            margin-top: 4px;
-            margin-left: 8px;
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 10px 20px; background: #eee; color: #555; border: none;
+            border-radius: 8px; font-size: 14px; cursor: pointer; margin-left: 8px;
         }
         .btn-clear:hover { background: #ddd; }
 
         /* 結果カード */
         .result-card {
-            background: #fff;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            display: none;
+            background: #fff; border-radius: 12px; padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); display: none;
         }
         .result-card.visible { display: block; }
         .result-card h2 {
-            font-size: 15px;
-            color: #555;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            font-size: 15px; color: #555; margin-bottom: 12px;
+            display: flex; align-items: center; gap: 8px;
         }
         .result-count {
-            background: #fb8c00;
-            color: #fff;
-            font-size: 12px;
-            padding: 2px 10px;
-            border-radius: 10px;
-            font-weight: 600;
+            background: #fb8c00; color: #fff; font-size: 12px;
+            padding: 2px 10px; border-radius: 10px; font-weight: 600;
         }
-
-        /* 結果テーブル */
         .result-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
+            width: 100%; border-collapse: collapse; font-size: 14px;
         }
         .result-table th {
-            background: #fff3e0;
-            color: #e65100;
-            padding: 10px 12px;
-            text-align: left;
-            font-weight: 600;
-            border-bottom: 2px solid #ffe0b2;
-            white-space: nowrap;
+            background: #fff3e0; color: #e65100; padding: 10px 12px;
+            text-align: left; font-weight: 600; border-bottom: 2px solid #ffe0b2; white-space: nowrap;
         }
         .result-table td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 10px 12px; border-bottom: 1px solid #f0f0f0;
         }
-        .result-table tr:hover td {
-            background: #fff8e1;
-        }
+        .result-table tr:hover td { background: #fff8e1; }
         .no-cell {
-            font-weight: 700;
-            color: #e65100;
-            font-size: 16px;
-            cursor: pointer;
-            user-select: none;
+            font-weight: 700; color: #e65100; font-size: 16px;
+            cursor: pointer; user-select: none;
         }
-        .no-cell:hover {
-            background: #fb8c00;
-            color: #fff;
-            border-radius: 4px;
-        }
+        .no-cell:hover { background: #fb8c00; color: #fff; border-radius: 4px; }
         .copy-toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #333;
-            color: #fff;
-            padding: 10px 24px;
-            border-radius: 8px;
-            font-size: 14px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: 999;
-            pointer-events: none;
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #333; color: #fff; padding: 10px 24px; border-radius: 8px;
+            font-size: 14px; opacity: 0; transition: opacity 0.3s; z-index: 999; pointer-events: none;
         }
         .copy-toast.show { opacity: 1; }
+        .no-result { text-align: center; padding: 30px; color: #999; font-size: 14px; }
+        .search-status { text-align: center; padding: 20px; color: #888; font-size: 14px; }
 
-        .no-result {
-            text-align: center;
-            padding: 30px;
-            color: #999;
-            font-size: 14px;
-        }
-
-        .search-status {
-            text-align: center;
-            padding: 20px;
-            color: #888;
-            font-size: 14px;
-        }
-
-        /* レスポンシブ */
         @media (max-width: 600px) {
             .form-row { flex-direction: column; align-items: flex-start; }
             .form-row label { width: auto; }
-            .form-row .name-input { width: 100%; }
+            .name-input-wrap { width: 100%; }
             .birth-fields { flex-wrap: wrap; }
         }
     </style>
@@ -309,6 +215,7 @@
             <input type="password" id="loginPassword" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter')doLogin()">
             <button class="btn-login" id="btnLogin" onclick="doLogin()">ログイン</button>
             <div class="login-error" id="loginError">パスワードが正しくありません</div>
+            <div class="login-status" id="loginStatus"></div>
         </div>
     </div>
 
@@ -321,16 +228,25 @@
                 </svg>
                 検体番号検索
             </h1>
-            <div class="desc">検体サンプルの氏名・生年月日からスプレッドシートのNo.を検索します</div>
+            <div class="desc">検体サンプルの氏名から検体No.を検索します（<span id="dataCount">-</span>件のデータ）</div>
         </div>
 
         <!-- 検索フォーム -->
         <div class="search-card">
-            <h2>検索条件</h2>
+            <h2>氏名で検索</h2>
             <div class="form-row">
                 <label>氏名（カタカナ）</label>
-                <input type="text" class="name-input" id="searchName" placeholder="例: タナカ" onkeydown="if(event.key==='Enter')doSearch()">
+                <div class="name-input-wrap" id="nameWrap">
+                    <input type="text" id="searchName" placeholder="例: タナカ（1文字から候補表示）" autocomplete="off">
+                    <div class="suggest-list" id="suggestList"></div>
+                </div>
             </div>
+            <div class="search-hint">入力するとリアルタイムで候補が表示されます。候補をクリックするとNo.をコピーします。</div>
+        </div>
+
+        <!-- 絞り込み検索 -->
+        <div class="search-card">
+            <h2>生年月日で絞り込み</h2>
             <div class="form-row">
                 <label>生年月日</label>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;" class="birth-fields">
@@ -340,20 +256,20 @@
                         <option value="平成">平成</option>
                         <option value="令和">令和</option>
                     </select>
-                    <input type="number" class="num-input" id="searchYear" placeholder="年" min="1" max="99" onkeydown="if(event.key==='Enter')doSearch()">
+                    <input type="number" class="num-input" id="searchYear" placeholder="年" min="1" max="99">
                     <span class="unit">年</span>
-                    <input type="number" class="num-input" id="searchMonth" placeholder="月" min="1" max="12" onkeydown="if(event.key==='Enter')doSearch()">
+                    <input type="number" class="num-input" id="searchMonth" placeholder="月" min="1" max="12">
                     <span class="unit">月</span>
-                    <input type="number" class="num-input" id="searchDay" placeholder="日" min="1" max="31" onkeydown="if(event.key==='Enter')doSearch()">
+                    <input type="number" class="num-input" id="searchDay" placeholder="日" min="1" max="31">
                     <span class="unit">日</span>
                 </div>
             </div>
-            <div style="text-align:center;margin-top:8px;">
+            <div class="btn-row">
                 <button class="btn-search" id="btnSearch" onclick="doSearch()">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>
                     </svg>
-                    検索
+                    絞り込み検索
                 </button>
                 <button class="btn-clear" onclick="clearForm()">クリア</button>
             </div>
@@ -372,28 +288,27 @@
     <script>
     var GAS_URL = 'https://script.google.com/macros/s/AKfycbzQCrKRX7nJgryTPsP2Aceh4_Ofyef2Ez2iBmHUGBYF3K15XYZk-5Na8XDIlLCqlAGtVQ/exec';
     var savedPassword = '';
+    var allData = [];       // 全データキャッシュ
+    var suggestIdx = -1;    // サジェスト選択インデックス
 
     // =============================================
-    // JSONP通信ヘルパー（PpP_input.htmlと同パターン）
+    // JSONP通信ヘルパー
     // =============================================
     function jsonpRequest(url, callback, timeoutMs) {
         timeoutMs = timeoutMs || 30000;
         var callbackName = 'cb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
         var fullUrl = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + callbackName;
-
         window[callbackName] = function(result) {
             delete window[callbackName];
             if (script.parentNode) document.head.removeChild(script);
             clearTimeout(timeoutId);
             callback(null, result);
         };
-
         var timeoutId = setTimeout(function() {
             delete window[callbackName];
             if (script.parentNode) document.head.removeChild(script);
             callback('タイムアウトしました（' + (timeoutMs / 1000) + '秒）');
         }, timeoutMs);
-
         var script = document.createElement('script');
         script.src = fullUrl;
         script.onerror = function() {
@@ -410,7 +325,81 @@
     }
 
     // =============================================
-    // ログイン
+    // カタカナあいまい検索
+    // =============================================
+    // 似た文字のグループ（入力ミス・聞き間違い考慮）
+    var SIMILAR_CHARS = [
+        'アカガ', 'イキギ', 'ウクグ', 'エケゲ', 'オコゴ',
+        'サザ', 'シジ', 'スズ', 'セゼ', 'ソゾ',
+        'タダ', 'チヂ', 'ツヅッ', 'テデ', 'トド',
+        'ハバパ', 'ヒビピ', 'フブプ', 'ヘベペ', 'ホボポ',
+        'ヤャ', 'ユュ', 'ヨョ',
+        'ワヮ',
+        'オウ', 'エイ',   // 長音の揺れ
+        'ヅズ', 'ヂジ',   // 四つ仮名
+    ];
+
+    function normalizeKana(str) {
+        // 全角→半角、スペース除去
+        return String(str).replace(/\s+/g, '').replace(/[ァ-ヶ]/g, function(c) {
+            return c; // そのまま（全角カタカナ統一）
+        });
+    }
+
+    // あいまいマッチ: 名前が検索文字列を含むか（濁点・半濁点の揺れ考慮）
+    function fuzzyMatch(name, query) {
+        var n = normalizeKana(name);
+        var q = normalizeKana(query);
+        if (!q) return false;
+
+        // 完全部分一致
+        if (n.indexOf(q) >= 0) return { match: true, exact: true };
+
+        // 1文字ずつあいまい比較
+        for (var start = 0; start <= n.length - q.length; start++) {
+            var ok = true;
+            var diffCount = 0;
+            for (var i = 0; i < q.length; i++) {
+                if (n[start + i] === q[i]) continue;
+                // 似た文字チェック
+                if (isSimilar(n[start + i], q[i])) {
+                    diffCount++;
+                    if (diffCount > 1) { ok = false; break; } // 2文字以上違えば不一致
+                    continue;
+                }
+                ok = false;
+                break;
+            }
+            if (ok) return { match: true, exact: false };
+        }
+        return { match: false, exact: false };
+    }
+
+    function isSimilar(a, b) {
+        for (var i = 0; i < SIMILAR_CHARS.length; i++) {
+            if (SIMILAR_CHARS[i].indexOf(a) >= 0 && SIMILAR_CHARS[i].indexOf(b) >= 0) return true;
+        }
+        return false;
+    }
+
+    // マッチ部分をハイライト
+    function highlightMatch(name, query) {
+        var n = normalizeKana(name);
+        var q = normalizeKana(query);
+        if (!q) return escapeHtml(name);
+
+        var idx = n.indexOf(q);
+        if (idx >= 0) {
+            var before = name.substring(0, idx);
+            var matched = name.substring(idx, idx + q.length);
+            var after = name.substring(idx + q.length);
+            return escapeHtml(before) + '<mark>' + escapeHtml(matched) + '</mark>' + escapeHtml(after);
+        }
+        return escapeHtml(name);
+    }
+
+    // =============================================
+    // ログイン＋データ一括取得
     // =============================================
     function doLogin() {
         var pw = document.getElementById('loginPassword').value;
@@ -420,32 +409,238 @@
         btn.disabled = true;
         btn.textContent = '認証中...';
         document.getElementById('loginError').style.display = 'none';
+        document.getElementById('loginStatus').textContent = 'パスワードを確認しています...';
 
-        // パスワード検証: 空検索を送信してsuccess/failureで判定
-        var url = GAS_URL + '?action=searchByNameBirthdate&password=' + encodeURIComponent(pw)
-                  + '&name=__VERIFY__';
+        // パスワード検証（viewData で全データ取得＝認証＋データキャッシュを兼ねる）
+        var url = GAS_URL + '?action=viewData&password=' + encodeURIComponent(pw);
         jsonpRequest(url, function(err, result) {
             btn.disabled = false;
             btn.textContent = 'ログイン';
+            document.getElementById('loginStatus').textContent = '';
+
             if (err) {
                 document.getElementById('loginError').textContent = '通信エラー: ' + err;
                 document.getElementById('loginError').style.display = 'block';
                 return;
             }
-            if (result && result.success) {
-                savedPassword = pw;
-                document.getElementById('loginOverlay').classList.add('hidden');
-                document.getElementById('mainContainer').classList.add('visible');
-                document.getElementById('searchName').focus();
-            } else {
+            if (!result || !result.success) {
                 document.getElementById('loginError').textContent = result.error || 'パスワードが正しくありません';
                 document.getElementById('loginError').style.display = 'block';
+                return;
             }
-        });
+
+            savedPassword = pw;
+            // データをパースしてキャッシュ
+            parseAndCacheData(result.data);
+            document.getElementById('loginOverlay').classList.add('hidden');
+            document.getElementById('mainContainer').classList.add('visible');
+            document.getElementById('dataCount').textContent = allData.length;
+            document.getElementById('searchName').focus();
+        }, 60000);
+    }
+
+    function parseAndCacheData(viewData) {
+        allData = [];
+        var headers = viewData.headers || [];
+        var rows = viewData.rows || [];
+
+        // ヘッダーからカラムインデックスを取得
+        var noIdx = -1, nameIdx = -1, nengoIdx = -1, yearIdx = -1, monthIdx = -1, dayIdx = -1, idIdx = -1, hospIdx = -1;
+        for (var h = 0; h < headers.length; h++) {
+            var hdr = headers[h];
+            if (hdr === 'No.') noIdx = h;
+            else if (hdr === '3. 名前（カタカナ）') nameIdx = h;
+            else if (hdr === '4. 生年月日 - 年号') nengoIdx = h;
+            else if (hdr === '5. - 年（半角数字）') yearIdx = h;
+            else if (hdr === '6. - 月（半角数字）') monthIdx = h;
+            else if (hdr === '7. - 日（半角数字）') dayIdx = h;
+            else if (hdr === '2. ID番号') idIdx = h;
+            else if (hdr === '1. 受診中の歯科医院を選んでください。') hospIdx = h;
+        }
+
+        for (var i = 0; i < rows.length; i++) {
+            var r = rows[i];
+            var no = noIdx >= 0 ? r[noIdx] : '';
+            if (!no) continue;
+            allData.push({
+                no: String(no),
+                name: nameIdx >= 0 ? String(r[nameIdx] || '') : '',
+                nengo: nengoIdx >= 0 ? String(r[nengoIdx] || '') : '',
+                year: yearIdx >= 0 ? String(r[yearIdx] || '') : '',
+                month: monthIdx >= 0 ? String(r[monthIdx] || '') : '',
+                day: dayIdx >= 0 ? String(r[dayIdx] || '') : '',
+                id: idIdx >= 0 ? String(r[idIdx] || '') : '',
+                hospital: hospIdx >= 0 ? String(r[hospIdx] || '') : ''
+            });
+        }
+        // No.昇順ソート
+        allData.sort(function(a, b) { return (Number(a.no) || 0) - (Number(b.no) || 0); });
     }
 
     // =============================================
-    // 検索実行
+    // リアルタイムサジェスト
+    // =============================================
+    function setupSuggest() {
+        var input = document.getElementById('searchName');
+        var list = document.getElementById('suggestList');
+
+        input.addEventListener('input', function() {
+            suggestIdx = -1;
+            updateSuggest();
+        });
+
+        input.addEventListener('keydown', function(e) {
+            var items = list.querySelectorAll('.suggest-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                suggestIdx = Math.min(suggestIdx + 1, items.length - 1);
+                updateSuggestHighlight(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                suggestIdx = Math.max(suggestIdx - 1, -1);
+                updateSuggestHighlight(items);
+            } else if (e.key === 'Enter') {
+                if (suggestIdx >= 0 && items[suggestIdx]) {
+                    items[suggestIdx].click();
+                    e.preventDefault();
+                } else {
+                    doSearch();
+                }
+            } else if (e.key === 'Escape') {
+                hideSuggest();
+            }
+        });
+
+        // クリック外で閉じる
+        document.addEventListener('click', function(e) {
+            if (!document.getElementById('nameWrap').contains(e.target)) {
+                hideSuggest();
+            }
+        });
+
+        input.addEventListener('focus', function() {
+            if (input.value.trim()) updateSuggest();
+        });
+    }
+
+    function updateSuggest() {
+        var query = document.getElementById('searchName').value.trim();
+        var list = document.getElementById('suggestList');
+
+        if (!query) {
+            hideSuggest();
+            return;
+        }
+
+        var matches = [];
+        for (var i = 0; i < allData.length; i++) {
+            var d = allData[i];
+            if (!d.name) continue;
+            var result = fuzzyMatch(d.name, query);
+            if (result.match) {
+                matches.push({ data: d, exact: result.exact });
+            }
+        }
+
+        // 完全一致を先に、あいまい一致を後に
+        matches.sort(function(a, b) {
+            if (a.exact !== b.exact) return a.exact ? -1 : 1;
+            return (Number(a.data.no) || 0) - (Number(b.data.no) || 0);
+        });
+
+        if (matches.length === 0) {
+            list.innerHTML = '<div class="suggest-count">該当なし</div>';
+            list.classList.add('visible');
+            return;
+        }
+
+        var html = '';
+        var limit = Math.min(matches.length, 20);
+        for (var i = 0; i < limit; i++) {
+            var d = matches[i].data;
+            var isExact = matches[i].exact;
+            var birthStr = '';
+            if (d.nengo) {
+                birthStr = d.nengo + (d.year ? d.year + '年' : '');
+                if (d.month) birthStr += d.month + '月';
+                if (d.day) birthStr += d.day + '日';
+            }
+            var nameHtml = highlightMatch(d.name, query);
+            if (!isExact) nameHtml += ' <span style="color:#f57c00;font-size:11px">≈</span>';
+
+            html += '<div class="suggest-item" data-idx="' + i + '" onclick="selectSuggest(' + i + ')">';
+            html += '<div><span class="suggest-name">' + nameHtml + '</span>';
+            html += ' <span class="suggest-birth">' + escapeHtml(birthStr) + '</span>';
+            html += ' <span class="suggest-id">' + escapeHtml(d.id) + '</span></div>';
+            html += '<div class="suggest-info"><span class="suggest-no">No.' + escapeHtml(d.no) + '</span></div>';
+            html += '</div>';
+        }
+        if (matches.length > 20) {
+            html += '<div class="suggest-count">他 ' + (matches.length - 20) + ' 件（絞り込みで表示）</div>';
+        } else {
+            html += '<div class="suggest-count">' + matches.length + ' 件</div>';
+        }
+
+        list.innerHTML = html;
+        list.classList.add('visible');
+
+        // マッチデータを一時保存（selectSuggestで使う）
+        list._matches = matches;
+    }
+
+    function updateSuggestHighlight(items) {
+        for (var i = 0; i < items.length; i++) {
+            items[i].classList.toggle('active', i === suggestIdx);
+        }
+        if (suggestIdx >= 0 && items[suggestIdx]) {
+            items[suggestIdx].scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    function selectSuggest(idx) {
+        var list = document.getElementById('suggestList');
+        var matches = list._matches;
+        if (!matches || !matches[idx]) return;
+
+        var d = matches[idx].data;
+        // No.をクリップボードにコピー
+        copyNo(d.no);
+
+        // 結果テーブルにも表示
+        showSingleResult(d);
+        hideSuggest();
+    }
+
+    function showSingleResult(d) {
+        var birthStr = '';
+        if (d.nengo) {
+            birthStr = d.nengo + (d.year ? d.year + '年' : '');
+            if (d.month) birthStr += d.month + '月';
+            if (d.day) birthStr += d.day + '日';
+        }
+        var html = '<table class="result-table"><thead><tr>';
+        html += '<th>No.</th><th>氏名</th><th>生年月日</th><th>ID</th><th>医療機関</th>';
+        html += '</tr></thead><tbody>';
+        html += '<tr>';
+        html += '<td class="no-cell" onclick="copyNo(\'' + escapeHtml(d.no) + '\')" title="クリックでコピー">' + escapeHtml(d.no) + '</td>';
+        html += '<td>' + escapeHtml(d.name) + '</td>';
+        html += '<td>' + escapeHtml(birthStr) + '</td>';
+        html += '<td>' + escapeHtml(d.id) + '</td>';
+        html += '<td>' + escapeHtml(d.hospital) + '</td>';
+        html += '</tr></tbody></table>';
+
+        document.getElementById('resultBody').innerHTML = html;
+        document.getElementById('resultCount').textContent = '1件';
+        document.getElementById('resultCard').classList.add('visible');
+    }
+
+    function hideSuggest() {
+        document.getElementById('suggestList').classList.remove('visible');
+        suggestIdx = -1;
+    }
+
+    // =============================================
+    // 絞り込み検索（生年月日付き）
     // =============================================
     function doSearch() {
         var name = document.getElementById('searchName').value.trim();
@@ -459,71 +654,58 @@
             return;
         }
 
-        var btn = document.getElementById('btnSearch');
-        btn.disabled = true;
-        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:18px;height:18px;animation:spin 1s linear infinite"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182"/></svg> 検索中...';
+        hideSuggest();
+
+        var results = [];
+        for (var i = 0; i < allData.length; i++) {
+            var d = allData[i];
+
+            // 名前フィルタ
+            if (name) {
+                var r = fuzzyMatch(d.name, name);
+                if (!r.match) continue;
+            }
+
+            // 生年月日フィルタ
+            if (nengo && d.nengo !== nengo) continue;
+            if (year && d.year !== year) continue;
+            if (month && d.month !== month) continue;
+            if (day && d.day !== day) continue;
+
+            results.push(d);
+        }
 
         var resultCard = document.getElementById('resultCard');
         resultCard.classList.add('visible');
-        document.getElementById('resultBody').innerHTML = '<div class="search-status">検索中...</div>';
+        document.getElementById('resultCount').textContent = results.length + '件';
 
-        var params = 'action=searchByNameBirthdate&password=' + encodeURIComponent(savedPassword);
-        if (name) params += '&name=' + encodeURIComponent(name);
-        if (nengo) params += '&nengo=' + encodeURIComponent(nengo);
-        if (year) params += '&year=' + encodeURIComponent(year);
-        if (month) params += '&month=' + encodeURIComponent(month);
-        if (day) params += '&day=' + encodeURIComponent(day);
+        if (results.length === 0) {
+            document.getElementById('resultBody').innerHTML = '<div class="no-result">該当するデータが見つかりませんでした</div>';
+            return;
+        }
 
-        var url = GAS_URL + '?' + params;
+        var html = '<table class="result-table"><thead><tr>';
+        html += '<th>No.</th><th>氏名</th><th>生年月日</th><th>ID</th><th>医療機関</th>';
+        html += '</tr></thead><tbody>';
 
-        jsonpRequest(url, function(err, result) {
-            btn.disabled = false;
-            btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:18px;height:18px"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg> 検索';
-
-            if (err) {
-                document.getElementById('resultBody').innerHTML = '<div class="no-result">通信エラー: ' + escapeHtml(err) + '</div>';
-                document.getElementById('resultCount').textContent = 'エラー';
-                return;
+        for (var i = 0; i < results.length; i++) {
+            var d = results[i];
+            var birthStr = '';
+            if (d.nengo) {
+                birthStr = d.nengo + (d.year ? d.year + '年' : '');
+                if (d.month) birthStr += d.month + '月';
+                if (d.day) birthStr += d.day + '日';
             }
-            if (!result || !result.success) {
-                document.getElementById('resultBody').innerHTML = '<div class="no-result">' + escapeHtml(result.error || 'エラーが発生しました') + '</div>';
-                document.getElementById('resultCount').textContent = 'エラー';
-                return;
-            }
-
-            var data = result.data;
-            var count = data.count || 0;
-            document.getElementById('resultCount').textContent = count + '件';
-
-            if (count === 0) {
-                var msg = data.message || '該当するデータが見つかりませんでした';
-                document.getElementById('resultBody').innerHTML = '<div class="no-result">' + escapeHtml(msg) + '</div>';
-                return;
-            }
-
-            var html = '<table class="result-table"><thead><tr>';
-            html += '<th>No.</th><th>氏名</th><th>生年月日</th><th>ID</th><th>医療機関</th>';
-            html += '</tr></thead><tbody>';
-
-            for (var i = 0; i < data.results.length; i++) {
-                var r = data.results[i];
-                var birthStr = '';
-                if (r.nengo) {
-                    birthStr = r.nengo + (r.year ? r.year + '年' : '');
-                    if (r.month) birthStr += r.month + '月';
-                    if (r.day) birthStr += r.day + '日';
-                }
-                html += '<tr>';
-                html += '<td class="no-cell" onclick="copyNo(\'' + escapeHtml(String(r.no)) + '\')" title="クリックでコピー">' + escapeHtml(String(r.no)) + '</td>';
-                html += '<td>' + escapeHtml(String(r.name || '')) + '</td>';
-                html += '<td>' + escapeHtml(birthStr) + '</td>';
-                html += '<td>' + escapeHtml(String(r.id || '')) + '</td>';
-                html += '<td>' + escapeHtml(String(r.hospital || '')) + '</td>';
-                html += '</tr>';
-            }
-            html += '</tbody></table>';
-            document.getElementById('resultBody').innerHTML = html;
-        });
+            html += '<tr>';
+            html += '<td class="no-cell" onclick="copyNo(\'' + escapeHtml(d.no) + '\')" title="クリックでコピー">' + escapeHtml(d.no) + '</td>';
+            html += '<td>' + escapeHtml(d.name) + '</td>';
+            html += '<td>' + escapeHtml(birthStr) + '</td>';
+            html += '<td>' + escapeHtml(d.id) + '</td>';
+            html += '<td>' + escapeHtml(d.hospital) + '</td>';
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        document.getElementById('resultBody').innerHTML = html;
     }
 
     // =============================================
@@ -556,6 +738,7 @@
         document.getElementById('searchMonth').value = '';
         document.getElementById('searchDay').value = '';
         document.getElementById('resultCard').classList.remove('visible');
+        hideSuggest();
         document.getElementById('searchName').focus();
     }
 
@@ -564,6 +747,7 @@
     // =============================================
     document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('loginPassword').focus();
+        setupSuggest();
     });
     </script>
 </body>
