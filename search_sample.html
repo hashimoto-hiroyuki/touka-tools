@@ -459,9 +459,9 @@
 
     // データ件数表示を更新
     function updateDataCountDisplay() {
-        var text = allData.length + '件';
+        var text = String(allData.length);
         if (pdfDataLoaded && pdfData.length > 0) {
-            text += ' + PDF ' + pdfData.length + '件';
+            text += ' + PDF ' + pdfData.length;
         } else if (!pdfDataLoaded) {
             text += ' <span class="pdf-loading-status">(PDF読込中...)</span>';
         }
