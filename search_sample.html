@@ -198,6 +198,19 @@
         .no-result { text-align: center; padding: 30px; color: #999; font-size: 14px; }
         .search-status { text-align: center; padding: 20px; color: #888; font-size: 14px; }
 
+        /* ソースバッジ（QR / PDF） */
+        .source-badge-qr {
+            background: #2196f3; color: #fff; font-size: 10px; font-weight: 600;
+            padding: 1px 5px; border-radius: 4px; margin-left: 4px; white-space: nowrap;
+        }
+        .source-badge-pdf {
+            background: #4caf50; color: #fff; font-size: 10px; font-weight: 600;
+            padding: 1px 5px; border-radius: 4px; margin-left: 4px; white-space: nowrap;
+        }
+        .pdf-loading-status {
+            font-size: 11px; color: #999; margin-left: 6px;
+        }
+
         @media (max-width: 600px) {
             .form-row { flex-direction: column; align-items: flex-start; }
             .form-row label { width: auto; }
@@ -288,7 +301,9 @@
     <script>
     var GAS_URL = 'https://script.google.com/macros/s/AKfycbzQCrKRX7nJgryTPsP2Aceh4_Ofyef2Ez2iBmHUGBYF3K15XYZk-5Na8XDIlLCqlAGtVQ/exec';
     var savedPassword = '';
-    var allData = [];       // 全データキャッシュ
+    var allData = [];       // 全データキャッシュ（viewDataソース）
+    var pdfData = [];       // PDFインデックスデータキャッシュ
+    var pdfDataLoaded = false;  // PDFインデックス読み込み完了フラグ
     var suggestIdx = -1;    // サジェスト選択インデックス
 
     // =============================================
@@ -434,9 +449,92 @@
             parseAndCacheData(result.data);
             document.getElementById('loginOverlay').classList.add('hidden');
             document.getElementById('mainContainer').classList.add('visible');
-            document.getElementById('dataCount').textContent = allData.length;
+            updateDataCountDisplay();
             document.getElementById('searchName').focus();
+
+            // バックグラウンドでPDFインデックスを読み込み
+            loadDonePdfIndex();
         }, 60000);
+    }
+
+    // データ件数表示を更新
+    function updateDataCountDisplay() {
+        var text = allData.length + '件';
+        if (pdfDataLoaded && pdfData.length > 0) {
+            text += ' + PDF ' + pdfData.length + '件';
+        } else if (!pdfDataLoaded) {
+            text += ' <span class="pdf-loading-status">(PDF読込中...)</span>';
+        }
+        document.getElementById('dataCount').innerHTML = text;
+    }
+
+    // 入力済みPDFフォルダのインデックスデータを読み込み
+    function loadDonePdfIndex() {
+        var url = GAS_URL + '?action=getDonePdfIndex';
+        jsonpRequest(url, function(err, result) {
+            if (err) {
+                console.warn('PDFインデックス読み込みエラー:', err);
+                pdfDataLoaded = true;
+                updateDataCountDisplay();
+                return;
+            }
+            if (!result || !result.success) {
+                console.warn('PDFインデックス取得失敗:', result ? result.error : 'unknown');
+                pdfDataLoaded = true;
+                updateDataCountDisplay();
+                return;
+            }
+            parsePdfIndexData(result.data || []);
+            pdfDataLoaded = true;
+            updateDataCountDisplay();
+        }, 60000);
+    }
+
+    // PDFインデックスデータをパースしてpdfData[]にキャッシュ
+    function parsePdfIndexData(data) {
+        pdfData = [];
+        // 既にNo.を持つallDataのセット（重複排除用）
+        var existingNos = {};
+        for (var i = 0; i < allData.length; i++) {
+            existingNos[allData[i].no] = true;
+        }
+
+        for (var j = 0; j < data.length; j++) {
+            var item = data[j];
+            if (!item.no) continue;  // No.がないものはスキップ
+            if (existingNos[String(item.no)]) continue;  // viewDataに同じNo.があればスキップ
+
+            var bd = parseBirthdateString(item.birthdate || '');
+            pdfData.push({
+                no: String(item.no),
+                name: String(item.patientName || ''),
+                nengo: bd.nengo,
+                year: bd.year,
+                month: bd.month,
+                day: bd.day,
+                id: String(item.patientId || ''),
+                hospital: String(item.hospital || ''),
+                source: 'pdf',
+                fileName: String(item.fileName || '')
+            });
+        }
+        // No.昇順ソート
+        pdfData.sort(function(a, b) { return (Number(a.no) || 0) - (Number(b.no) || 0); });
+    }
+
+    // 生年月日文字列をパース（"昭和49年11月4日" or "S49.11.4" → {nengo, year, month, day}）
+    function parseBirthdateString(str) {
+        var s = String(str || '');
+        // "昭和49年11月4日" 形式
+        var m = s.match(/(昭和|平成|令和|大正|明治)(\d+)年(\d+)月(\d+)日/);
+        if (m) return { nengo: m[1], year: m[2], month: m[3], day: m[4] };
+        // "S49.11.4" 形式
+        var m2 = s.match(/([STHRM])(\d+)[\.\/\-](\d+)[\.\/\-](\d+)/i);
+        if (m2) {
+            var eraMap = { S:'昭和', T:'大正', H:'平成', R:'令和', M:'明治' };
+            return { nengo: eraMap[m2[1].toUpperCase()] || '', year: m2[2], month: m2[3], day: m2[4] };
+        }
+        return { nengo: '', year: '', month: '', day: '' };
     }
 
     function parseAndCacheData(viewData) {
@@ -533,12 +631,28 @@
         }
 
         var matches = [];
+        var seenNos = {};
+
+        // viewDataソースから検索
         for (var i = 0; i < allData.length; i++) {
             var d = allData[i];
             if (!d.name) continue;
             var result = fuzzyMatch(d.name, query);
             if (result.match) {
-                matches.push({ data: d, exact: result.exact });
+                matches.push({ data: d, exact: result.exact, source: 'qr' });
+                seenNos[d.no] = true;
+            }
+        }
+
+        // PDFインデックスソースから検索（重複No.はスキップ）
+        for (var j = 0; j < pdfData.length; j++) {
+            var p = pdfData[j];
+            if (!p.name) continue;
+            if (seenNos[p.no]) continue;
+            var result2 = fuzzyMatch(p.name, query);
+            if (result2.match) {
+                matches.push({ data: p, exact: result2.exact, source: 'pdf' });
+                seenNos[p.no] = true;
             }
         }
 
@@ -559,6 +673,7 @@
         for (var i = 0; i < limit; i++) {
             var d = matches[i].data;
             var isExact = matches[i].exact;
+            var src = matches[i].source;
             var birthStr = '';
             if (d.nengo) {
                 birthStr = d.nengo + (d.year ? d.year + '年' : '');
@@ -566,12 +681,16 @@
                 if (d.day) birthStr += d.day + '日';
             }
             var nameHtml = highlightMatch(d.name, query);
-            if (!isExact) nameHtml += ' <span style="color:#f57c00;font-size:11px">≈</span>';
+            if (!isExact) nameHtml += ' <span style="color:#f57c00;font-size:11px">\u2248</span>';
+
+            var sourceBadge = src === 'pdf'
+                ? '<span class="source-badge-pdf">PDF</span>'
+                : '';
 
             html += '<div class="suggest-item" data-idx="' + i + '" onclick="selectSuggest(' + i + ')">';
             html += '<div><span class="suggest-name">' + nameHtml + '</span>';
             html += ' <span class="suggest-birth">' + escapeHtml(birthStr) + '</span>';
-            html += ' <span class="suggest-id">' + escapeHtml(d.id) + '</span></div>';
+            html += ' <span class="suggest-id">' + escapeHtml(d.id) + '</span>' + sourceBadge + '</div>';
             html += '<div class="suggest-info"><span class="suggest-no">No.' + escapeHtml(d.no) + '</span></div>';
             html += '</div>';
         }
@@ -603,23 +722,29 @@
         if (!matches || !matches[idx]) return;
 
         var d = matches[idx].data;
+        var src = matches[idx].source || d.source || 'qr';
         // No.をクリップボードにコピー
         copyNo(d.no);
 
         // 結果テーブルにも表示
-        showSingleResult(d);
+        showSingleResult(d, src);
         hideSuggest();
     }
 
-    function showSingleResult(d) {
+    function showSingleResult(d, source) {
         var birthStr = '';
         if (d.nengo) {
             birthStr = d.nengo + (d.year ? d.year + '年' : '');
             if (d.month) birthStr += d.month + '月';
             if (d.day) birthStr += d.day + '日';
         }
+        var src = source || d.source || 'qr';
+        var srcHtml = src === 'pdf'
+            ? '<span class="source-badge-pdf">PDF</span>'
+            : '<span class="source-badge-qr">QR</span>';
+
         var html = '<table class="result-table"><thead><tr>';
-        html += '<th>No.</th><th>氏名</th><th>生年月日</th><th>ID</th><th>医療機関</th>';
+        html += '<th>No.</th><th>氏名</th><th>生年月日</th><th>ID</th><th>医療機関</th><th>種別</th>';
         html += '</tr></thead><tbody>';
         html += '<tr>';
         html += '<td class="no-cell" onclick="copyNo(\'' + escapeHtml(d.no) + '\')" title="クリックでコピー">' + escapeHtml(d.no) + '</td>';
@@ -627,6 +752,7 @@
         html += '<td>' + escapeHtml(birthStr) + '</td>';
         html += '<td>' + escapeHtml(d.id) + '</td>';
         html += '<td>' + escapeHtml(d.hospital) + '</td>';
+        html += '<td>' + srcHtml + '</td>';
         html += '</tr></tbody></table>';
 
         document.getElementById('resultBody').innerHTML = html;
@@ -657,6 +783,9 @@
         hideSuggest();
 
         var results = [];
+        var seenNos = {};
+
+        // viewDataソースから検索
         for (var i = 0; i < allData.length; i++) {
             var d = allData[i];
 
@@ -672,7 +801,29 @@
             if (month && d.month !== month) continue;
             if (day && d.day !== day) continue;
 
-            results.push(d);
+            results.push({ data: d, source: 'qr' });
+            seenNos[d.no] = true;
+        }
+
+        // PDFインデックスソースから検索（重複No.はスキップ）
+        for (var j = 0; j < pdfData.length; j++) {
+            var p = pdfData[j];
+            if (seenNos[p.no]) continue;
+
+            // 名前フィルタ
+            if (name) {
+                var r2 = fuzzyMatch(p.name, name);
+                if (!r2.match) continue;
+            }
+
+            // 生年月日フィルタ
+            if (nengo && p.nengo !== nengo) continue;
+            if (year && p.year !== year) continue;
+            if (month && p.month !== month) continue;
+            if (day && p.day !== day) continue;
+
+            results.push({ data: p, source: 'pdf' });
+            seenNos[p.no] = true;
         }
 
         var resultCard = document.getElementById('resultCard');
@@ -684,24 +835,33 @@
             return;
         }
 
+        // No.昇順ソート
+        results.sort(function(a, b) { return (Number(a.data.no) || 0) - (Number(b.data.no) || 0); });
+
         var html = '<table class="result-table"><thead><tr>';
-        html += '<th>No.</th><th>氏名</th><th>生年月日</th><th>ID</th><th>医療機関</th>';
+        html += '<th>No.</th><th>氏名</th><th>生年月日</th><th>ID</th><th>医療機関</th><th>種別</th>';
         html += '</tr></thead><tbody>';
 
         for (var i = 0; i < results.length; i++) {
-            var d = results[i];
+            var d = results[i].data;
+            var src = results[i].source;
             var birthStr = '';
             if (d.nengo) {
                 birthStr = d.nengo + (d.year ? d.year + '年' : '');
                 if (d.month) birthStr += d.month + '月';
                 if (d.day) birthStr += d.day + '日';
             }
+            var srcHtml = src === 'pdf'
+                ? '<span class="source-badge-pdf">PDF</span>'
+                : '<span class="source-badge-qr">QR</span>';
+
             html += '<tr>';
             html += '<td class="no-cell" onclick="copyNo(\'' + escapeHtml(d.no) + '\')" title="クリックでコピー">' + escapeHtml(d.no) + '</td>';
             html += '<td>' + escapeHtml(d.name) + '</td>';
             html += '<td>' + escapeHtml(birthStr) + '</td>';
             html += '<td>' + escapeHtml(d.id) + '</td>';
             html += '<td>' + escapeHtml(d.hospital) + '</td>';
+            html += '<td>' + srcHtml + '</td>';
             html += '</tr>';
         }
         html += '</tbody></table>';

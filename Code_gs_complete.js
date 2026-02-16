@@ -69,6 +69,9 @@ function doGet(e) {
       case 'getUnprocessedPdfs':
         result = { success: true, data: getUnprocessedPdfs() };
         break;
+      case 'getDonePdfIndex':
+        result = { success: true, data: getDonePdfIndex() };
+        break;
       case 'getJsonFileList':
         result = { success: true, data: getJsonFileList() };
         break;
@@ -1734,6 +1737,91 @@ function getDrivePdfListWithIndex() {
     return pdfList;
   }
 }
+
+/**
+ * 入力済みPDFフォルダのPDFインデックスデータ＋No.逆引き結果を返す
+ * search_sample.html のPDFインデックス検索用
+ */
+function getDonePdfIndex() {
+  var result = [];
+  try {
+    // ① 入力済みPDFフォルダのPDFファイル一覧取得
+    var doneFolder = DriveApp.getFolderById(DONE_PDF_FOLDER_ID);
+    var files = doneFolder.getFilesByType(MimeType.PDF);
+    var doneFiles = {}; // fileName → fileId
+    while (files.hasNext()) {
+      var f = files.next();
+      doneFiles[f.getName()] = f.getId();
+    }
+
+    // ② PDFインデックスシートから fileId→メタデータ のマップ作成
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var indexSheet = ss.getSheetByName('PDFインデックス');
+    var indexMap = {}; // fileId → {hospital, patientId, patientName, birthdate}
+    if (indexSheet && indexSheet.getLastRow() >= 2) {
+      var indexData = indexSheet.getRange(1, 1, indexSheet.getLastRow(), indexSheet.getLastColumn()).getValues();
+      var iHeaders = indexData[0];
+      var iFileIdCol = iHeaders.indexOf('fileId');
+      var iHospitalCol = iHeaders.indexOf('hospital');
+      var iPatientIdCol = iHeaders.indexOf('patientId');
+      var iPatientNameCol = iHeaders.indexOf('patientName');
+      var iBirthdateCol = iHeaders.indexOf('birthdate');
+      for (var i = 1; i < indexData.length; i++) {
+        var row = indexData[i];
+        var fId = iFileIdCol >= 0 ? row[iFileIdCol] : '';
+        if (fId) {
+          indexMap[fId] = {
+            hospital: iHospitalCol >= 0 ? String(row[iHospitalCol] || '') : '',
+            patientId: iPatientIdCol >= 0 ? String(row[iPatientIdCol] || '') : '',
+            patientName: iPatientNameCol >= 0 ? String(row[iPatientNameCol] || '') : '',
+            birthdate: iBirthdateCol >= 0 ? String(row[iBirthdateCol] || '') : ''
+          };
+        }
+      }
+    }
+
+    // ③ 回答データ1シートから 元PDFファイル名→No. の逆引きマップ作成
+    var sheet = ss.getSheetByName(RESPONSE_SHEET_NAME);
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var noCol = headers.indexOf('No.');
+    var pdfCol = headers.indexOf('元PDFファイル名');
+    var pdfToNo = {}; // fileName → No.
+    if (noCol >= 0 && pdfCol >= 0 && sheet.getLastRow() >= 2) {
+      var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+      for (var j = 0; j < data.length; j++) {
+        var no = data[j][noCol];
+        var pdfName = String(data[j][pdfCol] || '').trim();
+        if (no && pdfName) {
+          pdfToNo[pdfName] = String(no);
+        }
+      }
+    }
+
+    // ④ マージ: インデックス済みのPDFのみ、No.付きで返す
+    for (var fileName in doneFiles) {
+      var fileId = doneFiles[fileName];
+      var meta = indexMap[fileId];
+      if (!meta) continue; // インデックスされていないPDFはスキップ
+      var linkedNo = pdfToNo[fileName] || '';
+      result.push({
+        fileName: fileName,
+        fileId: fileId,
+        hospital: meta.hospital,
+        patientId: meta.patientId,
+        patientName: meta.patientName,
+        birthdate: meta.birthdate,
+        no: linkedNo
+      });
+    }
+
+    // ファイル名でソート
+    result.sort(function(a, b) { return a.fileName.localeCompare(b.fileName); });
+  } catch (err) {
+    Logger.log('getDonePdfIndex エラー: ' + err.toString());
+  }
+  return result;
+}
+
 /**
  * PDFインデックスにエントリを追加/更新
  * @param {Object} params - { fileId, fileName, hospital, patientId, patientName, birthdate, source }
