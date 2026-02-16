@@ -157,6 +157,36 @@
             color: #888;
             margin-top: 4px;
         }
+        .pdf-search-bar {
+            margin-bottom: 8px;
+        }
+        .pdf-search-bar input {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid #ffcc80;
+            border-radius: 6px;
+            outline: none;
+        }
+        .pdf-search-bar input:focus {
+            border-color: #ff9800;
+            box-shadow: 0 0 0 2px rgba(255,152,0,0.15);
+        }
+        .unindexed-badge {
+            display: inline-block;
+            padding: 1px 5px;
+            background: #bdbdbd;
+            color: #fff;
+            border-radius: 3px;
+            font-size: 10px;
+            margin-right: 4px;
+        }
+        .indexed-cell {
+            color: #333;
+        }
+        .not-indexed-cell {
+            color: #ccc;
+        }
 
         .btn-save {
             display: block;
@@ -348,10 +378,53 @@
             background: #fff3e0;
             border-bottom: 1px solid #ffcc80;
         }
+        .pdf-preview-panel .pp-title-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0;
+        }
         .pdf-preview-panel .pp-title {
             font-size: 14px;
             font-weight: bold;
             color: #e65100;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .pdf-preview-panel .pp-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            font-size: 18px;
+            color: #e65100;
+            background: #fff;
+            border: 1px solid #ffcc80;
+            border-radius: 6px;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background 0.15s, box-shadow 0.15s;
+            user-select: none;
+        }
+        .pdf-preview-panel .pp-nav-btn:hover {
+            background: #ffe0b2;
+            box-shadow: 0 1px 4px rgba(230,81,0,0.15);
+        }
+        .pdf-preview-panel .pp-nav-btn:disabled {
+            color: #ccc;
+            border-color: #e0e0e0;
+            background: #f5f5f5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .pdf-preview-panel .pp-counter {
+            font-size: 12px;
+            color: #999;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         .pdf-preview-panel .pp-body {
             padding: 0;
@@ -367,6 +440,191 @@
             padding: 40px 16px;
             font-size: 14px;
         }
+
+        /* === インデックス機能 === */
+        .step2-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .btn-index-batch {
+            padding: 10px 20px;
+            font-size: 14px;
+            color: #fff;
+            background: #ef6c00;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-index-batch:hover { background: #e65100; }
+        .btn-index-batch:disabled { background: #ccc; cursor: not-allowed; }
+
+        .index-stats-bar {
+            display: none;
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #795548;
+        }
+        .index-stats-bar span { font-weight: bold; }
+
+        .index-progress-area {
+            display: none;
+            margin-top: 10px;
+            padding: 14px;
+            background: #fff;
+            border: 1px solid #ffe0b2;
+            border-radius: 8px;
+        }
+        .idx-progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .idx-progress-text {
+            font-size: 13px;
+            color: #666;
+        }
+        .idx-progress-bar-wrap {
+            background: #e0e0e0;
+            border-radius: 6px;
+            height: 20px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+        .idx-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ffb74d, #ef6c00);
+            border-radius: 6px;
+            transition: width 0.4s ease;
+            width: 0%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            min-width: 30px;
+        }
+        .idx-progress-log {
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 12px;
+            color: #555;
+            margin-top: 8px;
+            border-top: 1px solid #eee;
+            padding-top: 8px;
+        }
+        .idx-progress-log div {
+            padding: 2px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .idx-log-ok { color: #2e7d32; }
+        .idx-log-err { color: #c62828; }
+
+        .btn-idx-stop {
+            padding: 6px 16px;
+            font-size: 12px;
+            color: #c62828;
+            background: #fff;
+            border: 1px solid #ef9a9a;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-idx-stop:hover { background: #ffebee; }
+
+        .btn-idx-inline {
+            padding: 3px 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #ef6c00;
+            background: #fff;
+            border: 1px solid #ffcc80;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-idx-inline:hover { background: #fff3e0; }
+        .btn-idx-inline:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-idx-rerun {
+            color: #999;
+            border-color: #ddd;
+        }
+        .btn-idx-rerun:hover { background: #f5f5f5; color: #666; }
+
+        /* === 自動候補バー === */
+        .auto-candidate-bar {
+            display: none;
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #2e7d32;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .auto-candidate-bar.visible {
+            display: flex;
+        }
+        .auto-candidate-bar .candidate-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .auto-candidate-bar .candidate-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .auto-candidate-bar .candidate-score {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #4CAF50;
+            color: #fff;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+        .auto-candidate-bar .candidate-file {
+            font-weight: bold;
+        }
+        .auto-candidate-bar .candidate-detail {
+            color: #558b2f;
+            font-size: 12px;
+        }
+        .auto-candidate-bar .candidate-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        .btn-adopt {
+            padding: 5px 14px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #fff;
+            background: #4CAF50;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-adopt:hover { background: #388E3C; }
+        .btn-dismiss {
+            padding: 5px 14px;
+            font-size: 12px;
+            color: #888;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-dismiss:hover { background: #f0f0f0; }
 
         @media (max-width: 900px) {
             .compare-view.visible {
@@ -413,7 +671,12 @@
             <div class="compare-right">
                 <div class="pdf-preview-panel">
                     <div class="pp-header">
-                        <span class="pp-title" id="pdfPreviewTitle">PDFプレビュー</span>
+                        <div class="pp-title-area">
+                            <button class="pp-nav-btn" id="pdfPrevBtn" onclick="navigatePdf(-1)" disabled title="前のPDF">&#9664;</button>
+                            <span class="pp-title" id="pdfPreviewTitle">PDFプレビュー</span>
+                            <button class="pp-nav-btn" id="pdfNextBtn" onclick="navigatePdf(1)" disabled title="次のPDF">&#9654;</button>
+                            <span class="pp-counter" id="pdfCounter"></span>
+                        </div>
                     </div>
                     <div class="pp-body" id="pdfPreviewBody">
                         <div class="pp-placeholder">② でPDFファイルを選択するとここにプレビューが表示されます</div>
@@ -425,7 +688,35 @@
         <!-- Step 2: Google DriveからPDF選択 -->
         <div class="step">
             <div class="step-title">② Google DriveからPDFを選択</div>
-            <button class="btn-load-pdf" id="loadPdfBtn" onclick="loadDrivePdfList()">Drive PDF一覧を読み込む</button>
+            <div class="step2-actions">
+                <button class="btn-load-pdf" id="loadPdfBtn" onclick="loadDrivePdfList()">Drive PDF一覧を読み込む</button>
+                <button class="btn-index-batch" id="btnIndexBatch" onclick="startBatchIndex()" disabled>未処理を一括インデックス (<span id="unindexedCount">0</span>件)</button>
+            </div>
+            <div class="index-stats-bar" id="indexStatsBar">
+                合計: <span id="statTotal">-</span> 件 ／ インデックス済: <span id="statIndexed">-</span> 件 ／ 未処理: <span id="statUnindexed">-</span> 件
+            </div>
+            <div class="index-progress-area" id="indexProgressArea">
+                <div class="idx-progress-header">
+                    <span class="idx-progress-text" id="indexProgressText">処理中...</span>
+                    <button class="btn-idx-stop" onclick="stopBatchIndex()">中止</button>
+                </div>
+                <div class="idx-progress-bar-wrap">
+                    <div class="idx-progress-bar" id="indexProgressBar">0%</div>
+                </div>
+                <div class="idx-progress-log" id="indexProgressLog"></div>
+            </div>
+            <div class="auto-candidate-bar" id="autoCandidateBar">
+                <span class="candidate-icon">&#128269;</span>
+                <div class="candidate-info">
+                    <span class="candidate-score" id="candidateScore"></span>
+                    <span class="candidate-file" id="candidateFile"></span>
+                    <span class="candidate-detail" id="candidateDetail"></span>
+                </div>
+                <div class="candidate-actions">
+                    <button class="btn-adopt" onclick="adoptCandidate()">候補を採用</button>
+                    <button class="btn-dismiss" onclick="dismissAutoCandidate()">無視</button>
+                </div>
+            </div>
             <div class="pdf-list-area" id="pdfListArea"></div>
         </div>
 
@@ -447,6 +738,461 @@
         let selectedRow = null;
         let drivePdfList = [];
         let selectedDriveFile = null; // { fileId, fileName }
+        let isIndexing = false;   // 一括インデックス処理中フラグ
+        let stopIndexing = false; // 一括処理中止フラグ
+
+        // === JSONP汎用API呼び出し（インデックス機能用） ===
+        function callApi(action, params, callback, timeoutMs) {
+            timeoutMs = timeoutMs || 30000;
+            var cbName = 'cb_' + action + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+            var url = APPS_SCRIPT_API_URL + '?callback=' + cbName + '&action=' + action;
+            if (params) {
+                for (var k in params) {
+                    url += '&' + k + '=' + encodeURIComponent(params[k]);
+                }
+            }
+            var script;
+            var timer = setTimeout(function() {
+                delete window[cbName];
+                if (script && script.parentNode) script.parentNode.removeChild(script);
+                callback({ success: false, error: 'タイムアウト (' + (timeoutMs / 1000) + '秒)' });
+            }, timeoutMs);
+
+            window[cbName] = function(data) {
+                clearTimeout(timer);
+                delete window[cbName];
+                if (script && script.parentNode) script.parentNode.removeChild(script);
+                callback(data);
+            };
+            script = document.createElement('script');
+            script.src = url;
+            script.onerror = function() {
+                clearTimeout(timer);
+                delete window[cbName];
+                if (script.parentNode) script.parentNode.removeChild(script);
+                callback({ success: false, error: 'ネットワークエラー' });
+            };
+            document.head.appendChild(script);
+        }
+
+        // === インデックス統計更新 ===
+        function updateIndexStats() {
+            var total = drivePdfList.length;
+            var indexed = 0;
+            for (var i = 0; i < drivePdfList.length; i++) {
+                if (drivePdfList[i].indexed) indexed++;
+            }
+            var unindexed = total - indexed;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statIndexed').textContent = indexed;
+            document.getElementById('statUnindexed').textContent = unindexed;
+            document.getElementById('unindexedCount').textContent = unindexed;
+            document.getElementById('indexStatsBar').style.display = total > 0 ? 'block' : 'none';
+
+            var batchBtn = document.getElementById('btnIndexBatch');
+            batchBtn.disabled = (unindexed === 0) || isIndexing;
+        }
+
+        // === 個別PDFインデックス ===
+        function indexOnePdf(fileId, buttonEl) {
+            if (buttonEl) {
+                buttonEl.disabled = true;
+                buttonEl.textContent = '処理中...';
+            }
+            callApi('indexPdfWithGemini', { fileId: fileId }, function(data) {
+                if (!data.success || !data.data || !data.data.success) {
+                    var msg = (data.data && data.data.message) || data.error || 'インデックスエラー';
+                    showIndexResult('error', msg);
+                    if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = '実行'; }
+                    return;
+                }
+                // ローカルデータを更新
+                var r = data.data;
+                for (var i = 0; i < drivePdfList.length; i++) {
+                    if (drivePdfList[i].fileId === fileId) {
+                        drivePdfList[i].indexed = true;
+                        drivePdfList[i].hospital = r.ocrData.hospital || '';
+                        drivePdfList[i].patientId = r.ocrData.patientId || '';
+                        drivePdfList[i].patientName = r.ocrData.patientName || '';
+                        drivePdfList[i].birthdate = r.ocrData.birthdate || '';
+                        break;
+                    }
+                }
+                updateIndexStats();
+                renderPdfList();
+                showIndexResult('success', (r.fileName || '') + ' のインデックスが完了しました');
+            }, 120000);
+        }
+
+        // === 一括インデックス ===
+        function startBatchIndex() {
+            var unindexed = drivePdfList.filter(function(p) { return !p.indexed; });
+            if (unindexed.length === 0) return;
+
+            isIndexing = true;
+            stopIndexing = false;
+            document.getElementById('btnIndexBatch').disabled = true;
+            document.getElementById('loadPdfBtn').disabled = true;
+
+            var progressArea = document.getElementById('indexProgressArea');
+            var progressBar = document.getElementById('indexProgressBar');
+            var progressText = document.getElementById('indexProgressText');
+            var progressLog = document.getElementById('indexProgressLog');
+            progressArea.style.display = 'block';
+            progressLog.innerHTML = '';
+
+            var total = unindexed.length;
+            var current = 0;
+            var successCount = 0;
+            var errorCount = 0;
+
+            function processNext() {
+                if (stopIndexing || current >= total) {
+                    var status = stopIndexing ? '中止しました' : '完了';
+                    progressText.textContent = status + ': ' + successCount + '件成功 / ' + errorCount + '件エラー';
+                    progressBar.style.width = '100%';
+                    progressBar.textContent = stopIndexing ? '中止' : '100%';
+                    isIndexing = false;
+                    stopIndexing = false;
+                    document.getElementById('loadPdfBtn').disabled = false;
+                    updateIndexStats();
+                    return;
+                }
+
+                var pdf = unindexed[current];
+
+                // バッチ処理中に個別ボタンで既にインデックス済みならスキップ
+                if (pdf.indexed) {
+                    current++;
+                    setTimeout(processNext, 50);
+                    return;
+                }
+
+                var pct = Math.round((current / total) * 100);
+                progressText.textContent = '処理中 (' + (current + 1) + '/' + total + '): ' + pdf.fileName;
+                progressBar.style.width = pct + '%';
+                progressBar.textContent = pct + '%';
+
+                callApi('indexPdfWithGemini', { fileId: pdf.fileId }, function(data) {
+                    current++;
+                    var logDiv = document.createElement('div');
+
+                    if (data.success && data.data && data.data.success) {
+                        successCount++;
+                        var r = data.data;
+                        logDiv.className = 'idx-log-ok';
+                        logDiv.textContent = '[OK] ' + pdf.fileName + ' \u2192 ' +
+                            (r.ocrData.hospital || '?') + ' / ' +
+                            (r.ocrData.patientName || '?');
+                        // ローカルデータを更新
+                        for (var i = 0; i < drivePdfList.length; i++) {
+                            if (drivePdfList[i].fileId === pdf.fileId) {
+                                drivePdfList[i].indexed = true;
+                                drivePdfList[i].hospital = r.ocrData.hospital || '';
+                                drivePdfList[i].patientId = r.ocrData.patientId || '';
+                                drivePdfList[i].patientName = r.ocrData.patientName || '';
+                                drivePdfList[i].birthdate = r.ocrData.birthdate || '';
+                                break;
+                            }
+                        }
+                    } else {
+                        errorCount++;
+                        var msg = (data.data && data.data.message) || data.error || 'エラー';
+                        logDiv.className = 'idx-log-err';
+                        logDiv.textContent = '[ERR] ' + pdf.fileName + ': ' + msg;
+                    }
+
+                    progressLog.appendChild(logDiv);
+                    progressLog.scrollTop = progressLog.scrollHeight;
+                    renderPdfList();
+                    updateIndexStats();
+                    setTimeout(processNext, 300);
+                }, 120000);
+            }
+
+            processNext();
+        }
+
+        function stopBatchIndex() {
+            stopIndexing = true;
+        }
+
+        // インデックス結果メッセージ表示
+        function showIndexResult(type, message) {
+            var area = document.getElementById('resultArea');
+            area.className = 'result ' + type;
+            area.textContent = message;
+            area.style.display = 'block';
+            if (type === 'success') {
+                setTimeout(function() { area.style.display = 'none'; }, 5000);
+            }
+        }
+
+        // === あいまい検索によるPDF自動候補 ===
+        let selectedPatientInfo = null; // { name, birthdate, hospital, id }
+        let autoCandidatePdf = null;    // 自動候補のPDFオブジェクト
+
+        // カタカナ類似文字グループ（search_sample.htmlから移植）
+        var SIMILAR_CHARS = [
+            'アカガ', 'イキギ', 'ウクグ', 'エケゲ', 'オコゴ',
+            'サザ', 'シジ', 'スズ', 'セゼ', 'ソゾ',
+            'タダ', 'チヂ', 'ツヅッ', 'テデ', 'トド',
+            'ハバパ', 'ヒビピ', 'フブプ', 'ヘベペ', 'ホボポ',
+            'ヤャ', 'ユュ', 'ヨョ',
+            'ワヮ',
+            'オウ', 'エイ',
+            'ヅズ', 'ヂジ'
+        ];
+
+        function isSimilarChar(a, b) {
+            if (a === b) return true;
+            for (var i = 0; i < SIMILAR_CHARS.length; i++) {
+                if (SIMILAR_CHARS[i].indexOf(a) >= 0 && SIMILAR_CHARS[i].indexOf(b) >= 0) return true;
+            }
+            return false;
+        }
+
+        // カタカナ正規化（スペース・記号除去）
+        function normalizeKana(str) {
+            if (!str) return '';
+            return String(str).replace(/[\s\u3000\-\.\・]/g, '');
+        }
+
+        // カタカナあいまいマッチ（1文字違いまで許容）
+        function fuzzyMatchKana(a, b) {
+            var na = normalizeKana(a);
+            var nb = normalizeKana(b);
+            if (!na || !nb) return { match: false, exact: false, score: 0 };
+
+            // 完全一致
+            if (na === nb) return { match: true, exact: true, score: 40 };
+
+            // 部分文字列一致（片方がもう片方を含む）
+            if (na.indexOf(nb) >= 0 || nb.indexOf(na) >= 0) {
+                return { match: true, exact: false, score: 25 };
+            }
+
+            // あいまいマッチ（文字数が近い場合のみ）
+            if (Math.abs(na.length - nb.length) > 2) return { match: false, exact: false, score: 0 };
+
+            var longer = na.length >= nb.length ? na : nb;
+            var shorter = na.length >= nb.length ? nb : na;
+            var diffCount = 0;
+            var si = 0;
+            for (var li = 0; li < longer.length && si < shorter.length; li++) {
+                if (isSimilarChar(longer[li], shorter[si])) {
+                    si++;
+                } else {
+                    diffCount++;
+                    if (diffCount > 1) return { match: false, exact: false, score: 0 };
+                    // 挿入の場合：longerだけ進む（siは進めない）
+                    // 次が一致するか確認
+                    if (li + 1 < longer.length && isSimilarChar(longer[li + 1], shorter[si])) {
+                        continue; // liだけ進んでsiはそのまま
+                    }
+                    si++; // 置換として扱う
+                }
+            }
+            diffCount += (longer.length - li) + (shorter.length - si);
+            if (diffCount <= 1) return { match: true, exact: false, score: 20 };
+            return { match: false, exact: false, score: 0 };
+        }
+
+        // 生年月日を正規化 → { year, month, day } （西暦）
+        function normalizeBirthdate(str) {
+            if (!str) return null;
+            var s = String(str);
+
+            // 元号パターン: 昭和35年12月16日, 平成20年7月23日, 令和02年7月5日
+            var eraMatch = s.match(/(明治|大正|昭和|平成|令和)\s*(\d{1,2})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/);
+            if (eraMatch) {
+                var eraOffsets = { '明治': 1867, '大正': 1911, '昭和': 1925, '平成': 1988, '令和': 2018 };
+                var westernYear = eraOffsets[eraMatch[1]] + parseInt(eraMatch[2]);
+                return { year: westernYear, month: parseInt(eraMatch[3]), day: parseInt(eraMatch[4]) };
+            }
+
+            // 西暦パターン: 1960年12月16日 or 1960/12/16
+            var westernMatch = s.match(/(\d{4})\s*[年\/\-]\s*(\d{1,2})\s*[月\/\-]\s*(\d{1,2})/);
+            if (westernMatch) {
+                return { year: parseInt(westernMatch[1]), month: parseInt(westernMatch[2]), day: parseInt(westernMatch[3]) };
+            }
+
+            return null;
+        }
+
+        // 生年月日スコア（最大30点）
+        function scoreBirthdate(bd1, bd2) {
+            var n1 = normalizeBirthdate(bd1);
+            var n2 = normalizeBirthdate(bd2);
+            if (!n1 || !n2) return 0;
+
+            if (n1.year === n2.year && n1.month === n2.month && n1.day === n2.day) return 30;
+            if (n1.year === n2.year && n1.month === n2.month) return 15;
+            if (n1.year === n2.year) return 5;
+            return 0;
+        }
+
+        // 医療機関名スコア（最大20点）
+        function scoreHospital(h1, h2) {
+            if (!h1 || !h2) return 0;
+            var s1 = String(h1).replace(/[\s\u3000]/g, '');
+            var s2 = String(h2).replace(/[\s\u3000]/g, '');
+            if (!s1 || !s2) return 0;
+
+            if (s1 === s2) return 20;
+            if (s1.indexOf(s2) >= 0 || s2.indexOf(s1) >= 0) return 20;
+            // 先頭3文字以上一致
+            var minLen = Math.min(s1.length, s2.length, 3);
+            if (minLen >= 3 && s1.substring(0, minLen) === s2.substring(0, minLen)) return 10;
+            return 0;
+        }
+
+        // 患者IDスコア（最大10点）
+        function scorePatientId(id1, id2) {
+            if (!id1 || !id2) return 0;
+            var s1 = String(id1).replace(/[\s\-]/g, '').toUpperCase();
+            var s2 = String(id2).replace(/[\s\-]/g, '').toUpperCase();
+            if (!s1 || !s2) return 0;
+
+            if (s1 === s2) return 10;
+            if (s1.indexOf(s2) >= 0 || s2.indexOf(s1) >= 0) return 5;
+            return 0;
+        }
+
+        // PDF1件のマッチスコア計算（最大100点）
+        function scorePdfMatch(pdf, patientInfo) {
+            if (!pdf.indexed) return 0;
+            var nameScore = fuzzyMatchKana(pdf.patientName, patientInfo.name).score;
+            var bdScore = scoreBirthdate(pdf.birthdate, patientInfo.birthdate);
+            var hospScore = scoreHospital(pdf.hospital, patientInfo.hospital);
+            var idScore = scorePatientId(pdf.patientId, patientInfo.id);
+            return nameScore + bdScore + hospScore + idScore;
+        }
+
+        // viewDataレスポンスから患者情報を抽出
+        function extractPatientInfo(headers, row) {
+            var info = { name: '', birthdate: '', hospital: '', id: '' };
+
+            // 生年月日は4カラムに分割されている場合がある
+            // "4. 生年月日 - 年号" → 昭和, 平成, etc.
+            // "5. - 年（半角数字）" → 35
+            // "6. - 月（半角数字）" → 12
+            // "7. - 日（半角数字）" → 16
+            var bdEra = '', bdYear = '', bdMonth = '', bdDay = '';
+
+            for (var i = 0; i < headers.length; i++) {
+                var h = headers[i];
+                var v = (row[i] !== undefined && row[i] !== null) ? String(row[i]) : '';
+
+                // 患者名（カタカナ氏名）
+                // ヘッダー例: "3. 名前（カタカナ）"
+                if (h.indexOf('名前') >= 0 || h.indexOf('カタカナ') >= 0 ||
+                    h.indexOf('氏名') >= 0 || h.indexOf('お名前') >= 0) {
+                    if (v && !info.name) info.name = v;
+                }
+
+                // 生年月日 - 年号（分割カラム対応）
+                // ヘッダー例: "4. 生年月日 - 年号"
+                if (h.indexOf('生年月日') >= 0 && h.indexOf('年号') >= 0) {
+                    if (v) bdEra = v;
+                }
+                // 年（分割カラム対応）
+                // ヘッダー例: "5. - 年（半角数字）"
+                else if (/^\d*\.\s*-?\s*年/.test(h) || (h.indexOf('年') >= 0 && h.indexOf('半角数字') >= 0 && h.indexOf('月') < 0 && h.indexOf('日') < 0)) {
+                    if (v) bdYear = v;
+                }
+                // 月（分割カラム対応）
+                // ヘッダー例: "6. - 月（半角数字）"
+                else if (/^\d*\.\s*-?\s*月/.test(h) || (h.indexOf('月') >= 0 && h.indexOf('半角数字') >= 0 && h.indexOf('年') < 0 && h.indexOf('日') < 0)) {
+                    if (v) bdMonth = v;
+                }
+                // 日（分割カラム対応）
+                // ヘッダー例: "7. - 日（半角数字）"
+                else if (/^\d*\.\s*-?\s*日/.test(h) || (h.indexOf('日') >= 0 && h.indexOf('半角数字') >= 0 && h.indexOf('年') < 0 && h.indexOf('月') < 0)) {
+                    if (v) bdDay = v;
+                }
+                // 生年月日が1カラムにまとまっている場合のフォールバック
+                else if (h.indexOf('生年月日') >= 0 && h.indexOf('年号') < 0) {
+                    if (v && !info.birthdate) info.birthdate = v;
+                }
+
+                // 医療機関名
+                // ヘッダー例: "1. 受診中の歯科医院を選んでください。"
+                if (h.indexOf('歯科医院') >= 0 || h.indexOf('医療機関') >= 0 || h.indexOf('受診中') >= 0) {
+                    if (v && !info.hospital) info.hospital = v;
+                }
+
+                // 患者ID
+                // ヘッダー例: "2. ID番号"
+                if (h.indexOf('ID') >= 0 || h.indexOf('id') >= 0 || h.indexOf('ＩＤ') >= 0) {
+                    if (v && !info.id) info.id = v;
+                }
+            }
+
+            // 分割された生年月日カラムを結合
+            if (bdEra && bdYear && !info.birthdate) {
+                info.birthdate = bdEra + bdYear + '年' + (bdMonth || '?') + '月' + (bdDay || '?') + '日';
+            }
+
+            console.log('[extractPatientInfo]', info);
+            return info;
+        }
+
+        // 自動マッチング実行
+        function autoMatchPdf() {
+            if (!selectedPatientInfo || drivePdfList.length === 0) return;
+
+            var bestScore = 0;
+            var bestPdf = null;
+            var bestIdx = -1;
+
+            for (var i = 0; i < drivePdfList.length; i++) {
+                var score = scorePdfMatch(drivePdfList[i], selectedPatientInfo);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestPdf = drivePdfList[i];
+                    bestIdx = i;
+                }
+            }
+
+            console.log('[autoMatchPdf] bestScore:', bestScore, 'bestPdf:', bestPdf ? bestPdf.fileName : 'none');
+
+            if (bestScore >= 20 && bestPdf) {
+                autoCandidatePdf = bestPdf;
+                autoCandidatePdf._score = bestScore;
+                autoCandidatePdf._originalIndex = bestIdx;
+                showAutoCandidate(bestPdf, bestScore);
+                // 自動的にPDFを仮選択
+                selectDrivePdf(bestIdx);
+            } else {
+                dismissAutoCandidate();
+            }
+        }
+
+        // 自動候補バーを表示
+        function showAutoCandidate(pdf, score) {
+            var bar = document.getElementById('autoCandidateBar');
+            document.getElementById('candidateScore').textContent = score + '点';
+            document.getElementById('candidateFile').textContent = pdf.fileName;
+            document.getElementById('candidateDetail').textContent =
+                ' \u2014 ' + (pdf.patientName || '?') + ' / ' + (pdf.hospital || '?') + ' / ' + (pdf.birthdate || '?');
+            bar.className = 'auto-candidate-bar visible';
+        }
+
+        // 自動候補バーを非表示
+        function dismissAutoCandidate() {
+            document.getElementById('autoCandidateBar').className = 'auto-candidate-bar';
+            autoCandidatePdf = null;
+        }
+
+        // 候補を採用（既に仮選択済みなので確認メッセージだけ）
+        function adoptCandidate() {
+            if (autoCandidatePdf) {
+                showIndexResult('success', autoCandidatePdf.fileName + ' を候補として採用しました');
+                document.getElementById('autoCandidateBar').className = 'auto-candidate-bar';
+            }
+        }
 
         // ① データ一覧読み込み
         function loadNoList() {
@@ -571,6 +1317,9 @@
                     if (String(row[noIdx]) === String(no)) {
                         wrap.innerHTML = buildDetailTable(headers, row);
                         found = true;
+                        // 患者情報を抽出してPDF自動マッチング
+                        selectedPatientInfo = extractPatientInfo(headers, row);
+                        autoMatchPdf();
                         break;
                     }
                 }
@@ -608,7 +1357,8 @@
         }
 
         function escapeHtml(str) {
-            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
         function closeCompareView() {
@@ -633,6 +1383,8 @@
             var title = document.getElementById('pdfPreviewTitle');
             title.textContent = 'PDFプレビュー';
             body.innerHTML = '<div class="pp-placeholder">② でPDFファイルを選択するとここにプレビューが表示されます</div>';
+            currentPdfIndex = -1;
+            updatePdfNavButtons();
         }
 
         // ② Google DriveからPDF一覧を読み込み
@@ -643,13 +1395,9 @@
             btn.textContent = '読み込み中...';
             area.innerHTML = '<div style="color:#888; padding:10px;">読み込み中...</div>';
 
-            var cbName = 'pdfListCb_' + Date.now();
-            var url = APPS_SCRIPT_API_URL + '?action=getDrivePdfList&callback=' + cbName;
-
-            window[cbName] = function(result) {
-                delete window[cbName];
-                if (pdfScript.parentNode) document.head.removeChild(pdfScript);
-                clearTimeout(pdfTimeout);
+            console.log('[loadDrivePdfList] API呼び出し開始');
+            callApi('getDrivePdfList', {}, function(result) {
+                console.log('[loadDrivePdfList] 応答受信:', result ? 'OK' : 'null');
                 btn.disabled = false;
                 btn.textContent = 'Drive PDF一覧を読み込む';
 
@@ -659,61 +1407,140 @@
                 }
 
                 drivePdfList = result.data || [];
+                console.log('[loadDrivePdfList] PDF件数:', drivePdfList.length);
+                updateIndexStats();
                 renderPdfList();
-            };
-
-            var pdfTimeout = setTimeout(function() {
-                delete window[cbName];
-                if (pdfScript.parentNode) document.head.removeChild(pdfScript);
-                btn.disabled = false;
-                btn.textContent = 'Drive PDF一覧を読み込む';
-                area.innerHTML = '<div style="color:red;">タイムアウトしました</div>';
-            }, 30000);
-
-            var pdfScript = document.createElement('script');
-            pdfScript.src = url;
-            pdfScript.onerror = function() {
-                delete window[cbName];
-                if (pdfScript.parentNode) document.head.removeChild(pdfScript);
-                clearTimeout(pdfTimeout);
-                btn.disabled = false;
-                btn.textContent = 'Drive PDF一覧を読み込む';
-                area.innerHTML = '<div style="color:red;">通信エラー</div>';
-            };
-            document.head.appendChild(pdfScript);
+            }, 60000);
         }
+
+        // フィルタ済みPDFリスト（ナビゲーション用）
+        var filteredPdfList = [];
 
         function renderPdfList() {
             var area = document.getElementById('pdfListArea');
             if (drivePdfList.length === 0) {
                 area.innerHTML = '<div style="color:#888; padding:10px;">フォルダ内にPDFファイルはありません。</div>';
+                filteredPdfList = [];
                 return;
             }
 
-            var html = '<div class="pdf-count">' + drivePdfList.length + ' 件のPDFファイル</div>';
-            html += '<table><tr><th>ファイル名</th><th>サイズ</th><th>更新日時</th></tr>';
+            // 検索フィルタ（既存の入力値を保持）
+            var existingSearch = area.querySelector('#pdfSearchInput');
+            var searchTerm = existingSearch ? existingSearch.value : '';
+
+            // フィルタリング
+            filteredPdfList = [];
             for (var i = 0; i < drivePdfList.length; i++) {
                 var pdf = drivePdfList[i];
+                pdf._originalIndex = i;
+                if (searchTerm) {
+                    var term = searchTerm.toLowerCase();
+                    var match = (pdf.fileName || '').toLowerCase().indexOf(term) >= 0 ||
+                                (pdf.hospital || '').toLowerCase().indexOf(term) >= 0 ||
+                                (pdf.patientId || '').toLowerCase().indexOf(term) >= 0 ||
+                                (pdf.patientName || '').toLowerCase().indexOf(term) >= 0 ||
+                                (pdf.birthdate || '').toLowerCase().indexOf(term) >= 0;
+                    if (!match) continue;
+                }
+                filteredPdfList.push(pdf);
+            }
+
+            var html = '<div class="pdf-search-bar"><input type="text" id="pdfSearchInput" placeholder="検索（医療機関名 / 患者ID / 患者名 / 生年月日）" value="' + escapeHtml(searchTerm) + '" oninput="renderPdfList()"></div>';
+            html += '<div class="pdf-count">' + filteredPdfList.length + ' / ' + drivePdfList.length + ' 件のPDFファイル</div>';
+            html += '<table><tr><th>ファイル名</th><th>医療機関名</th><th>患者ID</th><th>患者名</th><th>生年月日</th><th>更新日時</th><th style="width:70px">操作</th></tr>';
+            for (var fi = 0; fi < filteredPdfList.length; fi++) {
+                var pdf = filteredPdfList[fi];
                 var isSelected = selectedDriveFile && selectedDriveFile.fileId === pdf.fileId;
                 var rowClass = isSelected ? 'pdf-selected' : '';
-                var sizeKB = (pdf.fileSize / 1024).toFixed(1);
-                html += '<tr class="' + rowClass + '" onclick="selectDrivePdf(' + i + ')">';
-                html += '<td>' + escapeHtml(pdf.fileName) + '</td>';
-                html += '<td>' + sizeKB + ' KB</td>';
+                var cellClass = pdf.indexed ? 'indexed-cell' : 'not-indexed-cell';
+                var badge = pdf.indexed === false ? '<span class="unindexed-badge">未</span>' : '';
+
+                html += '<tr class="' + rowClass + '" onclick="selectFilteredPdf(' + fi + ')">';
+                html += '<td>' + badge + escapeHtml(pdf.fileName) + '</td>';
+                html += '<td class="' + cellClass + '">' + escapeHtml(pdf.hospital || '-') + '</td>';
+                html += '<td class="' + cellClass + '">' + escapeHtml(pdf.patientId || '-') + '</td>';
+                html += '<td class="' + cellClass + '">' + escapeHtml(pdf.patientName || '-') + '</td>';
+                html += '<td class="' + cellClass + '">' + escapeHtml(pdf.birthdate || '-') + '</td>';
                 html += '<td>' + escapeHtml(pdf.lastUpdated || '') + '</td>';
+                var idxBtnClass = pdf.indexed ? 'btn-idx-inline btn-idx-rerun' : 'btn-idx-inline';
+                var idxBtnLabel = pdf.indexed ? '再実行' : '実行';
+                html += '<td><button class="' + idxBtnClass + '" onclick="event.stopPropagation(); indexOnePdf(\'' + pdf.fileId + '\', this)">' + idxBtnLabel + '</button></td>';
                 html += '</tr>';
             }
             html += '</table>';
             area.innerHTML = html;
+
+            // 検索ボックスにフォーカスを戻す
+            var newSearch = area.querySelector('#pdfSearchInput');
+            if (newSearch && searchTerm) {
+                newSearch.focus();
+                newSearch.setSelectionRange(searchTerm.length, searchTerm.length);
+            }
         }
 
-        function selectDrivePdf(index) {
-            var pdf = drivePdfList[index];
+        // フィルタ済みリストからPDFを選択
+        function selectFilteredPdf(filteredIndex) {
+            var pdf = filteredPdfList[filteredIndex];
+            var originalIndex = pdf._originalIndex;
+            selectDrivePdf(originalIndex);
+        }
+
+        // 現在表示中のPDFインデックス（フィルタ済みリスト内の位置）
+        var currentPdfIndex = -1;
+        // 現在表示中のPDFのoriginalIndex（drivePdfList内の位置）
+        var currentOriginalIndex = -1;
+
+        function selectDrivePdf(originalIndex) {
+            var pdf = drivePdfList[originalIndex];
             selectedDriveFile = { fileId: pdf.fileId, fileName: pdf.fileName };
+            currentOriginalIndex = originalIndex;
+            // フィルタ済みリスト内の位置を特定
+            currentPdfIndex = -1;
+            for (var i = 0; i < filteredPdfList.length; i++) {
+                if (filteredPdfList[i]._originalIndex === originalIndex) {
+                    currentPdfIndex = i;
+                    break;
+                }
+            }
             renderPdfList();
             updateSaveButton();
-            // PDFプレビューを表示
             showPdfPreview(pdf.fileId, pdf.fileName);
+            updatePdfNavButtons();
+        }
+
+        // PDF送り/逆送りナビゲーション（フィルタ済みリスト内で移動）
+        function navigatePdf(direction) {
+            if (filteredPdfList.length === 0) return;
+            var newFilteredIndex = currentPdfIndex + direction;
+            if (newFilteredIndex < 0 || newFilteredIndex >= filteredPdfList.length) return;
+            var pdf = filteredPdfList[newFilteredIndex];
+            selectDrivePdf(pdf._originalIndex);
+            scrollPdfListToFilteredIndex(newFilteredIndex);
+        }
+
+        function updatePdfNavButtons() {
+            var prevBtn = document.getElementById('pdfPrevBtn');
+            var nextBtn = document.getElementById('pdfNextBtn');
+            var counter = document.getElementById('pdfCounter');
+
+            if (filteredPdfList.length === 0 || currentPdfIndex < 0) {
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+                counter.textContent = '';
+                return;
+            }
+            prevBtn.disabled = (currentPdfIndex <= 0);
+            nextBtn.disabled = (currentPdfIndex >= filteredPdfList.length - 1);
+            counter.textContent = (currentPdfIndex + 1) + ' / ' + filteredPdfList.length;
+        }
+
+        function scrollPdfListToFilteredIndex(filteredIndex) {
+            var area = document.getElementById('pdfListArea');
+            var rows = area.querySelectorAll('table tr');
+            // +1 because first tr is header
+            if (rows[filteredIndex + 1]) {
+                rows[filteredIndex + 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
         }
 
         function updateSaveButton() {
@@ -791,6 +1618,19 @@
             saveBtn.disabled = false;
             saveBtn.textContent = '紐づける';
         }
+
+        // キーボードショートカット（左右矢印でPDF送り）
+        document.addEventListener('keydown', function(e) {
+            // テキスト入力中は無効
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'ArrowLeft') {
+                navigatePdf(-1);
+                e.preventDefault();
+            } else if (e.key === 'ArrowRight') {
+                navigatePdf(1);
+                e.preventDefault();
+            }
+        });
 
         // JSONP リクエスト
         function jsonpRequest(action, params) {
