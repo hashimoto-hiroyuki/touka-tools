@@ -626,6 +626,92 @@
         }
         .btn-dismiss:hover { background: #f0f0f0; }
 
+        /* === 抜去位置入力 === */
+        .extraction-input-area {
+            margin-bottom: 12px;
+            padding: 14px;
+            background: #fce4ec;
+            border: 1px solid #ef9a9a;
+            border-radius: 8px;
+            display: none;
+        }
+        .extraction-input-area.visible { display: block; }
+        .extraction-input-area .ext-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #c62828;
+            margin-bottom: 10px;
+        }
+        .extraction-input-area .ext-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .extraction-input-area .ext-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .extraction-input-area .ext-label {
+            font-size: 13px;
+            color: #555;
+            font-weight: bold;
+        }
+        .extraction-input-area .ext-checkbox-group {
+            display: flex;
+            gap: 8px;
+        }
+        .extraction-input-area .ext-checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fff;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .extraction-input-area .ext-checkbox-group label:hover {
+            background: #fff3e0;
+        }
+        .extraction-input-area .ext-checkbox-group input[type="checkbox"]:checked + span {
+            font-weight: bold;
+            color: #c62828;
+        }
+        .extraction-input-area .ext-checkbox-group label:has(input:checked) {
+            background: #ffcdd2;
+            border-color: #ef9a9a;
+        }
+        .extraction-input-area input[type="text"] {
+            width: 80px;
+            padding: 5px 8px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .extraction-input-area input[type="text"]:focus {
+            border-color: #c62828;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(198,40,40,0.15);
+        }
+        .extraction-input-area .ext-preview {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+        }
+        .extraction-input-area .ext-preview strong {
+            color: #c62828;
+        }
+        .extraction-input-area .ext-note {
+            font-size: 11px;
+            color: #999;
+            margin-top: 4px;
+        }
+
         @media (max-width: 900px) {
             .compare-view.visible {
                 flex-direction: column;
@@ -724,6 +810,34 @@
         <div class="step">
             <div class="step-title">③ 紐づけ実行</div>
             <div id="selectionSummary" style="margin-bottom:12px; padding:10px; background:#e3f2fd; border-radius:6px; font-size:14px; display:none;"></div>
+
+            <!-- 抜去位置入力エリア -->
+            <div class="extraction-input-area" id="extractionInputArea">
+                <div class="ext-title">【質問14】歯の抜去位置（医師入力）</div>
+                <div class="ext-row">
+                    <div class="ext-group">
+                        <span class="ext-label">左右:</span>
+                        <div class="ext-checkbox-group">
+                            <label><input type="checkbox" id="extRight" onchange="updateExtractionPreview()"><span>右</span></label>
+                            <label><input type="checkbox" id="extLeft" onchange="updateExtractionPreview()"><span>左</span></label>
+                        </div>
+                    </div>
+                    <div class="ext-group">
+                        <span class="ext-label">上下:</span>
+                        <div class="ext-checkbox-group">
+                            <label><input type="checkbox" id="extUpper" onchange="updateExtractionPreview()"><span>上</span></label>
+                            <label><input type="checkbox" id="extLower" onchange="updateExtractionPreview()"><span>下</span></label>
+                        </div>
+                    </div>
+                    <div class="ext-group">
+                        <span class="ext-label">番号:</span>
+                        <input type="text" id="extNumber" placeholder="例: 6" oninput="updateExtractionPreview()">
+                    </div>
+                </div>
+                <div class="ext-preview" id="extractionPreview">抜去位置: <strong>（未入力）</strong></div>
+                <div class="ext-note">※ PDFを確認して入力してください。空欄でも紐づけは実行できます。</div>
+            </div>
+
             <button class="btn-save" id="saveBtn" onclick="executeLinkPdf()" disabled>紐づける</button>
         </div>
 
@@ -1555,6 +1669,14 @@
             const btn = document.getElementById('saveBtn');
             btn.disabled = !(selectedNo && selectedDriveFile);
 
+            // 抜去位置入力エリアの表示制御（No.とPDFの両方が選択されたら表示）
+            var extArea = document.getElementById('extractionInputArea');
+            if (selectedNo && selectedDriveFile) {
+                extArea.className = 'extraction-input-area visible';
+            } else {
+                extArea.className = 'extraction-input-area';
+            }
+
             // 選択サマリーを更新
             const summary = document.getElementById('selectionSummary');
             if (selectedNo || selectedDriveFile) {
@@ -1575,14 +1697,50 @@
             }
         }
 
+        // === 抜去位置入力 ===
+        function getExtractionPosition() {
+            var parts = [];
+            if (document.getElementById('extRight').checked) parts.push('右');
+            if (document.getElementById('extLeft').checked) parts.push('左');
+            if (document.getElementById('extUpper').checked) parts.push('上');
+            if (document.getElementById('extLower').checked) parts.push('下');
+            var num = document.getElementById('extNumber').value.trim();
+            if (num) parts.push(num);
+            return parts.join('');
+        }
+
+        function updateExtractionPreview() {
+            var pos = getExtractionPosition();
+            var preview = document.getElementById('extractionPreview');
+            if (pos) {
+                preview.innerHTML = '抜去位置: <strong>' + escapeHtml(pos) + '</strong>';
+            } else {
+                preview.innerHTML = '抜去位置: <strong>（未入力）</strong>';
+            }
+        }
+
+        function resetExtractionInput() {
+            document.getElementById('extRight').checked = false;
+            document.getElementById('extLeft').checked = false;
+            document.getElementById('extUpper').checked = false;
+            document.getElementById('extLower').checked = false;
+            document.getElementById('extNumber').value = '';
+            updateExtractionPreview();
+        }
+
         // ③ 紐づけ実行（Google Drive経由）
         async function executeLinkPdf() {
             if (!selectedNo || !selectedDriveFile) return;
 
             const resultArea = document.getElementById('resultArea');
             const saveBtn = document.getElementById('saveBtn');
+            const extractionPosition = getExtractionPosition();
 
-            const msg = 'No.' + selectedNo + ' に「' + selectedDriveFile.fileName + '」を紐づけます。\n（紐づけ後、PDFは完了フォルダへ移動されます）\n\nよろしいですか？';
+            var msg = 'No.' + selectedNo + ' に「' + selectedDriveFile.fileName + '」を紐づけます。\n';
+            if (extractionPosition) {
+                msg += '抜去位置: ' + extractionPosition + '\n';
+            }
+            msg += '（紐づけ後、PDFは完了フォルダへ移動されます）\n\nよろしいですか？';
             if (!confirm(msg)) return;
 
             saveBtn.disabled = true;
@@ -1591,13 +1749,18 @@
             resultArea.textContent = '紐づけ処理中...（スプレッドシート更新 → PDF移動）';
             resultArea.style.display = 'block';
 
+            var params = {
+                no: selectedNo,
+                row: selectedRow,
+                fileId: selectedDriveFile.fileId,
+                fileName: encodeURIComponent(selectedDriveFile.fileName)
+            };
+            if (extractionPosition) {
+                params.extractionPosition = encodeURIComponent(extractionPosition);
+            }
+
             try {
-                const result = await jsonpRequest('linkPdfFromDrive', {
-                    no: selectedNo,
-                    row: selectedRow,
-                    fileId: selectedDriveFile.fileId,
-                    fileName: encodeURIComponent(selectedDriveFile.fileName)
-                });
+                const result = await jsonpRequest('linkPdfFromDrive', params);
 
                 if (result.success && result.data && result.data.success) {
                     resultArea.className = 'result success';
@@ -1605,6 +1768,9 @@
 
                     // 選択状態をリセット
                     selectedDriveFile = null;
+
+                    // 抜去位置入力をリセット
+                    resetExtractionInput();
 
                     // PDFプレビューをクリア
                     clearPdfPreview();

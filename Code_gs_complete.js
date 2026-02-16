@@ -1818,6 +1818,21 @@ function linkPdfFromDrive(params) {
   if (!updateResult.success) {
     return updateResult;
   }
+  // 1.5. 抜去位置が指定されていれば「抜去位置」列を更新
+  var extractionMsg = '';
+  var extractionPosition = params.extractionPosition ? decodeURIComponent(params.extractionPosition) : '';
+  if (extractionPosition) {
+    try {
+      var extResult = updateExtractionPosition(no, extractionPosition);
+      if (extResult && extResult.success) {
+        extractionMsg = ' / 抜去位置: ' + extractionPosition;
+      } else {
+        extractionMsg = ' / （抜去位置: ' + (extResult.message || '更新失敗') + '）';
+      }
+    } catch (e) {
+      extractionMsg = ' / （抜去位置更新: スキップ）';
+    }
+  }
   // 2. Source → OCR に変更（既存関数を再利用）
   var sourceMsg = '';
   try {
@@ -1836,8 +1851,41 @@ function linkPdfFromDrive(params) {
   file.moveTo(destFolder);
   return {
     success: true,
-    message: 'No.' + no + ' に「' + fileName + '」を紐づけ、PDFを移動しました' + sourceMsg
+    message: 'No.' + no + ' に「' + fileName + '」を紐づけ、PDFを移動しました' + extractionMsg + sourceMsg
   };
+}
+
+/**
+ * 抜去位置を更新
+ * @param {number} targetNo - 対象のNo.
+ * @param {string} extractionPosition - 抜去位置テキスト（例: "左上6"）
+ * @returns {Object} 結果
+ */
+function updateExtractionPosition(targetNo, extractionPosition) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(RESPONSE_SHEET_NAME);
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const lastRow = sheet.getLastRow();
+  const noCol = headers.indexOf('No.');
+  var extCol = headers.indexOf('抜去位置');
+  if (noCol < 0) return { success: false, message: 'No.列が見つかりません' };
+  // 「抜去位置」列がなければ自動作成
+  if (extCol < 0) {
+    addExtractionPositionColumn();
+    // 列を再取得
+    const newHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    extCol = newHeaders.indexOf('抜去位置');
+    if (extCol < 0) return { success: false, message: '抜去位置列の作成に失敗しました' };
+  }
+  const noValues = sheet.getRange(2, noCol + 1, lastRow - 1, 1).getValues();
+  for (let i = 0; i < noValues.length; i++) {
+    if (Number(noValues[i][0]) === targetNo) {
+      sheet.getRange(i + 2, extCol + 1).setValue(extractionPosition);
+      Logger.log('抜去位置更新: No.' + targetNo + ' → ' + extractionPosition);
+      return { success: true, message: '抜去位置を更新しました' };
+    }
+  }
+  return { success: false, message: 'No.' + targetNo + ' が見つかりません' };
 }
 // ========== OCR照合（共有版）==========
 /**
