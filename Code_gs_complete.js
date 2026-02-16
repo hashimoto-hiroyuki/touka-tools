@@ -174,12 +174,33 @@ function getFormInfo() {
   };
 }
 // ========== 医療機関質問のEntry ID取得 ==========
+// ※ form.createResponse()でプリフィルURLを生成し、正しいentry.XXXを抽出する
 function getHospitalQuestionEntryId() {
   const form = FormApp.getActiveForm();
   // ★ ListItem（プルダウン）を検索 ★
   const items = form.getItems(FormApp.ItemType.LIST);
   for (let i = 0; i < items.length; i++) {
     if (items[i].getTitle().includes('受診中の歯科医院')) {
+      try {
+        // プリフィルURLを生成してEntry IDを抽出
+        const listItem = items[i].asListItem();
+        const choices = listItem.getChoices();
+        if (choices.length > 0) {
+          const response = listItem.createResponse(choices[0].getValue());
+          const prefillUrl = form.createResponse()
+            .withItemResponse(response)
+            .toPrefilledUrl();
+          // URLから entry.XXXX を抽出
+          const match = prefillUrl.match(/entry\.(\d+)=/);
+          if (match) {
+            Logger.log('プリフィルURLからEntry ID取得: ' + match[1]);
+            return match[1];
+          }
+        }
+      } catch (e) {
+        Logger.log('プリフィルURL方式でのEntry ID取得失敗: ' + e.toString());
+      }
+      // フォールバック: Item IDを返す
       return items[i].getId();
     }
   }
