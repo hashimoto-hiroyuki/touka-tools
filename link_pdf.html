@@ -1283,6 +1283,10 @@
             renderTable();
             updateSaveButton();
             loadPatientDetail(no);
+            // PDF一覧が未読み込みなら自動的に読み込む（あいまい検索のため）
+            if (drivePdfList.length === 0) {
+                loadDrivePdfList();
+            }
         }
 
         // 選択されたNo.のアンケート全データを取得して比較ビューに表示
@@ -1410,6 +1414,10 @@
                 console.log('[loadDrivePdfList] PDF件数:', drivePdfList.length);
                 updateIndexStats();
                 renderPdfList();
+                // PDF一覧読み込み完了後、患者情報があれば自動マッチング実行
+                if (selectedPatientInfo) {
+                    autoMatchPdf();
+                }
             }, 60000);
         }
 
