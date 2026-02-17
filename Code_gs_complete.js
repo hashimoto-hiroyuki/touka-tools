@@ -2314,7 +2314,7 @@ function indexPdfWithGemini(fileId) {
     '- 生年月日は「昭和35年12月16日」のような形式にしてください\n' +
     '- 名前は「テラニシ キョウコ」のように氏と名の間にスペースを入れてください\n' +
     '- JSONのみ出力し、```やマークダウンは不要です';
-  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.0-flash:generateContent?key=' + GEMINI_API_KEY;
+  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_API_KEY;
   var payload = {
     contents: [{
       parts: [
@@ -2350,18 +2350,36 @@ function indexPdfWithGemini(fileId) {
   } catch (e) {
     return { success: false, message: 'Gemini APIレスポンス解析エラー' };
   }
-  // JSONを抽出（```json ... ``` を除去）
+  // JSONを抽出（```json ... ``` を除去、不正JSONの修復）
   var jsonText = textContent.trim();
   if (jsonText.indexOf('```json') >= 0) {
     jsonText = jsonText.split('```json')[1].split('```')[0].trim();
   } else if (jsonText.indexOf('```') >= 0) {
     jsonText = jsonText.split('```')[1].split('```')[0].trim();
   }
+  // JSON部分のみ抽出（{ から最後の } まで）
+  var firstBrace = jsonText.indexOf('{');
+  var lastBrace = jsonText.lastIndexOf('}');
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    jsonText = jsonText.substring(firstBrace, lastBrace + 1);
+  }
+  // 末尾カンマを除去（JSON仕様違反の修復）
+  jsonText = jsonText.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
   var ocrData;
   try {
     ocrData = JSON.parse(jsonText);
   } catch (e) {
-    return { success: false, message: 'OCR結果のJSON解析エラー: ' + jsonText.substring(0, 100) };
+    // 最終手段: 正規表現で各フィールドを抽出
+    ocrData = {};
+    var fields = ['hospital', 'patientId', 'patientName', 'birthdate'];
+    for (var fi = 0; fi < fields.length; fi++) {
+      var re = new RegExp('"' + fields[fi] + '"\\s*:\\s*"([^"]*)"');
+      var m = jsonText.match(re);
+      if (m) ocrData[fields[fi]] = m[1];
+    }
+    if (!ocrData.hospital && !ocrData.patientId && !ocrData.patientName) {
+      return { success: false, message: 'OCR結果のJSON解析エラー: ' + jsonText.substring(0, 100) };
+    }
   }
   // インデックスに保存
   var indexResult = addPdfIndexEntry({
