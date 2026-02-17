@@ -687,11 +687,13 @@
             border-color: #ef9a9a;
         }
         .extraction-input-area input[type="text"] {
-            width: 80px;
-            padding: 5px 8px;
-            font-size: 14px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            width: 100px;
+            padding: 8px 10px;
+            font-size: 18px;
+            font-weight: bold;
+            border: 2px solid #c62828;
+            border-radius: 6px;
+            background: #fff8e1;
         }
         .extraction-input-area input[type="text"]:focus {
             border-color: #c62828;
@@ -835,6 +837,7 @@
                     </div>
                 </div>
                 <div class="ext-preview" id="extractionPreview">抜去位置: <strong>（未入力）</strong></div>
+                <div class="ext-warning" id="extractionWarning" style="display:none; color:#c62828; font-size:13px; font-weight:bold; margin-top:4px;">⚠ 左右・上下にチェックがありますが、番号が未入力です</div>
                 <div class="ext-note">※ PDFを確認して入力してください。空欄でも紐づけは実行できます。</div>
             </div>
 
@@ -1712,10 +1715,22 @@
         function updateExtractionPreview() {
             var pos = getExtractionPosition();
             var preview = document.getElementById('extractionPreview');
+            var warning = document.getElementById('extractionWarning');
+            var hasCheckbox = document.getElementById('extRight').checked ||
+                              document.getElementById('extLeft').checked ||
+                              document.getElementById('extUpper').checked ||
+                              document.getElementById('extLower').checked;
+            var num = document.getElementById('extNumber').value.trim();
             if (pos) {
                 preview.innerHTML = '抜去位置: <strong>' + escapeHtml(pos) + '</strong>';
             } else {
                 preview.innerHTML = '抜去位置: <strong>（未入力）</strong>';
+            }
+            // チェックありで番号未入力の場合に警告
+            if (hasCheckbox && !num) {
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
             }
         }
 

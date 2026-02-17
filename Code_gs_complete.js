@@ -1254,9 +1254,10 @@ function updatePdfFilename(targetNo, pdfFilename) {
  * @param {number} targetNo - 対象のNo.
  * @returns {Object} 結果
  */
-function updateSourceToOCR(targetNo) {
+function updateSourceToOCR(targetNo, extraData) {
   const folder = getOrCreateJsonFolder();
   const noStr = String(targetNo).padStart(3, '0');
+  extraData = extraData || {};
   // _Form_ を含むJSONファイルを検索
   const allFiles = folder.getFiles();
   let renamedJson = false;
@@ -1269,12 +1270,22 @@ function updateSourceToOCR(targetNo) {
     if (name.startsWith(noStr + '_Form_') && name.endsWith('.json')) {
       oldJsonName = name;
       newJsonName = name.replace('_Form_', '_OCR_');
-      // JSONファイル内のsourceを書き換え
+      // JSONファイル内のsource・抜去位置・PDFファイル名を書き換え
       try {
         const content = file.getBlob().getDataAsString();
         const jsonData = JSON.parse(content);
         if (jsonData.metadata) {
           jsonData.metadata.source = 'OCR';
+        }
+        if (jsonData.data) {
+          // 抜去位置を更新
+          if (extraData.extractionPosition) {
+            jsonData.data['抜去位置'] = extraData.extractionPosition;
+          }
+          // 元PDFファイル名を更新
+          if (extraData.pdfFileName) {
+            jsonData.data['元PDFファイル名'] = extraData.pdfFileName;
+          }
         }
         file.setContent(JSON.stringify(jsonData, null, 2));
       } catch (parseErr) {
@@ -1921,10 +1932,13 @@ function linkPdfFromDrive(params) {
       extractionMsg = ' / （抜去位置更新: スキップ）';
     }
   }
-  // 2. Source → OCR に変更（既存関数を再利用）
+  // 2. Source → OCR に変更 + 抜去位置・PDFファイル名をJSONに書き込み
   var sourceMsg = '';
   try {
-    var sourceResult = updateSourceToOCR(no);
+    var sourceResult = updateSourceToOCR(no, {
+      extractionPosition: extractionPosition,
+      pdfFileName: fileName
+    });
     if (sourceResult && sourceResult.success) {
       sourceMsg = ' / Source → OCR に変更';
     } else {
