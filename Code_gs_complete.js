@@ -682,8 +682,8 @@ function buildJsonFromRow(headers, rowData) {
 }
 /**
  * JSONファイルをGoogleドライブに保存
- * ファイル名形式: No_ソース_ID_日付.json
- * 例: 001_Form_211_20260210.json, 057_OCR_123_20260210.json
+ * ファイル名形式: No_タイムスタンプ.json
+ * 例: 001_20260217_173511.json
  */
 function saveJsonToGoogleDrive(jsonData, rowNumber, noValueDirect) {
   const folder = getOrCreateJsonFolder();
@@ -706,18 +706,32 @@ function saveJsonToGoogleDrive(jsonData, rowNumber, noValueDirect) {
     }
   }
   if (!noStr) noStr = String(rowNumber).padStart(3, '0');
-  // ソース判定
-  const source = jsonData.metadata.source || 'Unknown';
-  const sourceLabel = (source === 'OCR') ? 'OCR' : 'Form';
-  // ID番号
-  const idNumber = jsonData.data['2. ID番号'] || 'noID';
-  // 日付（YYYYMMDD）
-  const now = new Date();
-  const dateStr = now.getFullYear()
-    + String(now.getMonth() + 1).padStart(2, '0')
-    + String(now.getDate()).padStart(2, '0');
-  // 同じNo.+ソース+ID+日付のファイルが既にあれば (2), (3)... を付与
-  const baseName = noStr + '_' + sourceLabel + '_' + idNumber + '_' + dateStr;
+  // タイムスタンプを取得（データシートのタイムスタンプ優先、なければ現在時刻）
+  let tsDate = null;
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(RESPONSE_SHEET_NAME);
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const tsColIndex = headers.indexOf('タイムスタンプ');
+    if (tsColIndex >= 0 && rowNumber >= 2) {
+      const tsValue = sheet.getRange(rowNumber, tsColIndex + 1).getValue();
+      if (tsValue) tsDate = new Date(tsValue);
+    }
+  } catch (e) {
+    // 取得失敗時は現在時刻にフォールバック
+  }
+  if (!tsDate || isNaN(tsDate.getTime())) tsDate = new Date();
+  // タイムスタンプ文字列（YYYYMMDD_HHmmss）
+  const tsStr = tsDate.getFullYear()
+    + String(tsDate.getMonth() + 1).padStart(2, '0')
+    + String(tsDate.getDate()).padStart(2, '0')
+    + '_'
+    + String(tsDate.getHours()).padStart(2, '0')
+    + String(tsDate.getMinutes()).padStart(2, '0')
+    + String(tsDate.getSeconds()).padStart(2, '0');
+  // ファイル名: No_タイムスタンプ.json
+  const baseName = noStr + '_' + tsStr;
+  // 同じファイル名が既にあれば (2), (3)... を付与
   const escapedBase = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const allFiles = folder.getFiles();
   let sameCount = 0;
@@ -1258,7 +1272,7 @@ function updateSourceToOCR(targetNo, extraData) {
   const folder = getOrCreateJsonFolder();
   const noStr = String(targetNo).padStart(3, '0');
   extraData = extraData || {};
-  // _Form_ を含むJSONファイルを検索
+  // 該当No.のJSONファイルを検索（新旧両方の命名規則に対応）
   const allFiles = folder.getFiles();
   let renamedJson = false;
   let oldJsonName = '';
@@ -1266,10 +1280,9 @@ function updateSourceToOCR(targetNo, extraData) {
   while (allFiles.hasNext()) {
     const file = allFiles.next();
     const name = file.getName();
-    // 該当No.の _Form_ JSONファイルを探す
-    if (name.startsWith(noStr + '_Form_') && name.endsWith('.json')) {
+    // 該当No.のJSONファイルを探す（新形式: 001_20260217_173511.json / 旧形式: 001_Form_xxx.json）
+    if (name.startsWith(noStr + '_') && name.endsWith('.json')) {
       oldJsonName = name;
-      newJsonName = name.replace('_Form_', '_OCR_');
       // JSONファイル内のsource・抜去位置・PDFファイル名を書き換え
       try {
         const content = file.getBlob().getDataAsString();
@@ -1291,10 +1304,16 @@ function updateSourceToOCR(targetNo, extraData) {
       } catch (parseErr) {
         Logger.log('JSON内容更新エラー: ' + parseErr.toString());
       }
-      // ファイル名をリネーム
-      file.setName(newJsonName);
+      // 旧形式の場合のみリネーム（_Form_ → _OCR_）
+      if (name.indexOf('_Form_') >= 0) {
+        newJsonName = name.replace('_Form_', '_OCR_');
+        file.setName(newJsonName);
+        Logger.log('JSONリネーム: ' + oldJsonName + ' → ' + newJsonName);
+      } else {
+        newJsonName = name;
+        Logger.log('JSON内容更新: ' + name);
+      }
       renamedJson = true;
-      Logger.log('JSONリネーム: ' + oldJsonName + ' → ' + newJsonName);
       break;
     }
   }
@@ -1304,7 +1323,7 @@ function updateSourceToOCR(targetNo, extraData) {
     newJsonName: newJsonName,
     message: renamedJson
       ? 'No.' + targetNo + ' のSource を OCR に変更しました。(' + oldJsonName + ' → ' + newJsonName + ')'
-      : 'No.' + targetNo + ' の _Form_ JSONファイルが見つかりませんでした。'
+      : 'No.' + targetNo + ' のJSONファイルが見つかりませんでした。'
   };
 }
 /**
