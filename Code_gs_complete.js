@@ -773,27 +773,41 @@ function savePdfToGoogleDrive(pdfBase64, rowNumber, idNumber, duplicateCount, or
     // No.取得失敗時はrow番号で代替
   }
   if (!noStr) noStr = String(rowNumber).padStart(3, '0');
-  // 日付（YYYYMMDD）
-  const now = new Date();
-  const dateStr = now.getFullYear()
-    + String(now.getMonth() + 1).padStart(2, '0')
-    + String(now.getDate()).padStart(2, '0');
-  const id = idNumber || 'noID';
-  const baseName = noStr + '_OCR_' + id + '_' + dateStr;
-  // 同じIDのPDFファイルが既にあれば (2), (3)... を付与
-  const idPattern = '_OCR_' + id + '_';
+  // タイムスタンプを取得（データシートのタイムスタンプ優先、なければ現在時刻）
+  let tsDate = null;
+  try {
+    const ss2 = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet2 = ss2.getSheetByName(RESPONSE_SHEET_NAME);
+    const headers2 = sheet2.getRange(1, 1, 1, sheet2.getLastColumn()).getValues()[0];
+    const tsColIndex = headers2.indexOf('タイムスタンプ');
+    if (tsColIndex >= 0 && rowNumber >= 2) {
+      const tsValue = sheet2.getRange(rowNumber, tsColIndex + 1).getValue();
+      if (tsValue) tsDate = new Date(tsValue);
+    }
+  } catch (e) {}
+  if (!tsDate || isNaN(tsDate.getTime())) tsDate = new Date();
+  const tsStr = tsDate.getFullYear()
+    + String(tsDate.getMonth() + 1).padStart(2, '0')
+    + String(tsDate.getDate()).padStart(2, '0')
+    + '_'
+    + String(tsDate.getHours()).padStart(2, '0')
+    + String(tsDate.getMinutes()).padStart(2, '0')
+    + String(tsDate.getSeconds()).padStart(2, '0');
+  const baseName = noStr + '_' + tsStr;
+  // 同じファイル名のPDFが既にあれば (2), (3)... を付与
+  const escapedBase = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const allFiles = folder.getFiles();
-  let sameIdPdfCount = 0;
+  let samePdfCount = 0;
   while (allFiles.hasNext()) {
     const f = allFiles.next();
     const name = f.getName();
-    if (name.indexOf(idPattern) >= 0 && name.endsWith('.pdf')) {
-      sameIdPdfCount++;
+    if (name === baseName + '.pdf' || new RegExp('^' + escapedBase + '\\(\\d+\\)\\.pdf$').test(name)) {
+      samePdfCount++;
     }
   }
   let fileName;
-  if (sameIdPdfCount > 0) {
-    fileName = baseName + '(' + (sameIdPdfCount + 1) + ').pdf';
+  if (samePdfCount > 0) {
+    fileName = baseName + '(' + (samePdfCount + 1) + ').pdf';
   } else {
     fileName = baseName + '.pdf';
   }
