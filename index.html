@@ -105,6 +105,13 @@
         }
         .sidebar .tree-group.cat-data .tree-category svg { stroke: #e65100; }
 
+        .sidebar .tree-group.cat-flow .tree-category {
+            color: #00695c;
+            border-left-color: #00897b;
+            background: linear-gradient(90deg, #e0f2f1 0%, transparent 100%);
+        }
+        .sidebar .tree-group.cat-flow .tree-category svg { stroke: #00695c; }
+
         .sidebar .tree-group.cat-lab .tree-category {
             color: #7b1fa2;
             border-left-color: #ab47bc;
@@ -119,6 +126,8 @@
         .sidebar .tree-group.cat-ocr .tree-item::after { border-color: #90caf9; }
         .sidebar .tree-group.cat-data .tree-item::before,
         .sidebar .tree-group.cat-data .tree-item::after { border-color: #ffcc80; }
+        .sidebar .tree-group.cat-flow .tree-item::before,
+        .sidebar .tree-group.cat-flow .tree-item::after { border-color: #80cbc4; }
         .sidebar .tree-group.cat-lab .tree-item::before,
         .sidebar .tree-group.cat-lab .tree-item::after { border-color: #ce93d8; }
 
@@ -406,6 +415,24 @@
         <!-- 左サイドバー -->
         <nav class="sidebar">
 
+            <!-- データフロー -->
+            <div class="tree-group cat-flow">
+                <div class="tree-category">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
+                    データフロー
+                </div>
+                <div class="tree-item" data-detail="dataflow-slides" onclick="showDetail('dataflow-slides')">
+                    <div class="item-icon ic-teal"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5"/></svg></div>
+                    <span class="item-label">全体データフロー</span>
+                    <span class="tag tag-ext">Slides</span>
+                </div>
+                <div class="tree-item" data-detail="workflow-chart" onclick="showDetail('workflow-chart')">
+                    <div class="item-icon ic-teal"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"/></svg></div>
+                    <span class="item-label">フォーム入力ワークフロー</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
+            </div>
+
             <!-- アンケート作成・開発 -->
             <div class="tree-group cat-create">
                 <div class="tree-category">
@@ -491,11 +518,6 @@
                 <div class="tree-item" data-detail="search-sample" onclick="showDetail('search-sample')">
                     <div class="item-icon ic-orange"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg></div>
                     <span class="item-label">検体番号検索</span>
-                    <span class="tag tag-web">Web</span>
-                </div>
-                <div class="tree-item" data-detail="workflow-chart" onclick="showDetail('workflow-chart')">
-                    <div class="item-icon ic-orange"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2.25M15 3v2.25M9 18.75V21M15 18.75V21"/></svg></div>
-                    <span class="item-label">フォーム入力ワークフロー</span>
                     <span class="tag tag-web">Web</span>
                 </div>
             </div>
@@ -884,6 +906,34 @@
                 <a class="btn-open" href="search_sample.html" target="_blank">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
                     アプリを開く
+                </a>
+            </div>
+
+            <!-- 全体データフロー -->
+            <div class="detail" id="detail-dataflow-slides">
+                <div class="detail-header">
+                    <div class="detail-icon ic-teal"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5"/></svg></div>
+                    <div>
+                        <div class="detail-title">全体データフロー</div>
+                        <div class="detail-subtitle">糖化アンケート管理システムのデータの流れを図解</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>アンケート用紙のスキャンから、OCR処理・照合・フォーム入力・データシート保存・検体紐づけまで、システム全体のデータフローをスライドで図解しています。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>内容</h3>
+                    <ul>
+                        <li>スキャンPDF → OCR処理 → 照合のフロー</li>
+                        <li>フォーム入力 → PDF紐づけ → データシートのフロー</li>
+                        <li>Google Drive / スプレッドシート間の連携</li>
+                        <li>各アプリの役割と接続関係</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="https://docs.google.com/presentation/d/1ciOK-SHLd32RmyNOaqrEYjkGGpakIyxK/edit?slide=id.g3beea63a265_0_90#slide=id.g3beea63a265_0_90" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    スライドを開く
                 </a>
             </div>
 
