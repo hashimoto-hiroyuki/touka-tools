@@ -520,6 +520,11 @@
                     <span class="item-label">テストデータ削除</span>
                     <span class="tag tag-web">Web</span>
                 </div>
+                <div class="tree-item" data-detail="restore-json" onclick="showDetail('restore-json')">
+                    <div class="item-icon ic-green"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182"/></svg></div>
+                    <span class="item-label">JSON復元</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
                 <div class="tree-item" data-detail="search-sample" onclick="showDetail('search-sample')">
                     <div class="item-icon ic-orange"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg></div>
                     <span class="item-label">検体番号検索</span>
@@ -881,6 +886,33 @@
                     </ul>
                 </div>
                 <a class="btn-open" href="delete_test_data.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
+            </div>
+
+            <!-- JSON復元 -->
+            <div class="detail" id="detail-restore-json">
+                <div class="detail-header">
+                    <div class="detail-icon ic-green"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182"/></svg></div>
+                    <div>
+                        <div class="detail-title">JSON復元ツール</div>
+                        <div class="detail-subtitle">JSONファイルからスプレッドシートを復元</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>アンケートJSONフォルダに保存されたJSONファイルから、回答データ1シートのデータを復元するツールです。テストデータ削除後の復元や、シートの再構築に使用します。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>機能</h3>
+                    <ul>
+                        <li>JSONファイル一覧の表示と選択</li>
+                        <li>選択したファイルからスプレッドシートへのデータ復元</li>
+                        <li>既存No.との重複チェック（スキップ）</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="restore_from_json.html" target="_blank">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
                     アプリを開く
                 </a>

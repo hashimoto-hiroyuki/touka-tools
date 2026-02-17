@@ -131,6 +131,14 @@ function doGet(e) {
       case 'unlockOcrResult':
         result = { success: true, data: unlockOcrResult(e.parameter.fileId) };
         break;
+      // ========== JSON復元 ==========
+      case 'getJsonFilesForRestore':
+        result = { success: true, data: getJsonFilesForRestore() };
+        break;
+      case 'restoreFromJson':
+        const restoreFileIds = e.parameter.fileIds ? decodeURIComponent(e.parameter.fileIds).split(',') : [];
+        result = { success: true, data: restoreFromJson(restoreFileIds) };
+        break;
       // ========== 検体番号検索（氏名・生年月日） ==========
       case 'searchByNameBirthdate':
         if (e.parameter.password === VIEW_PASSWORD) {
@@ -2527,5 +2535,150 @@ function indexAllPdfs() {
     processed: results.length,
     total: pdfList.length,
     results: results
+  };
+}
+
+// ========== JSON復元機能 ==========
+/**
+ * アンケートJSONフォルダ内のファイル一覧を取得（復元用）
+ * 各ファイルのNo.、ソース、ファイル名、作成日時を返す
+ */
+function getJsonFilesForRestore() {
+  const folder = getOrCreateJsonFolder();
+  const files = folder.getFiles();
+  const fileList = [];
+  while (files.hasNext()) {
+    const file = files.next();
+    const name = file.getName();
+    if (!name.endsWith('.json')) continue;
+    // ファイル名からNo.を抽出（新旧両形式対応）
+    let no = null;
+    const matchNew = name.match(/^(\d{3})_\d{8}_\d{6}/);
+    const matchOld = name.match(/^(\d{3})_(Form|OCR)_/);
+    if (matchNew) no = parseInt(matchNew[1], 10);
+    else if (matchOld) no = parseInt(matchOld[1], 10);
+    fileList.push({
+      fileId: file.getId(),
+      fileName: name,
+      no: no,
+      size: file.getSize(),
+      lastUpdated: file.getLastUpdated().toISOString()
+    });
+  }
+  fileList.sort(function(a, b) {
+    if (a.no === null && b.no === null) return 0;
+    if (a.no === null) return 1;
+    if (b.no === null) return -1;
+    return a.no - b.no;
+  });
+  return { totalFiles: fileList.length, files: fileList };
+}
+
+/**
+ * JSONファイルからスプレッドシートのデータを復元
+ * @param {string[]} fileIds - 復元するJSONファイルのIDリスト（空なら全件）
+ */
+function restoreFromJson(fileIds) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(RESPONSE_SHEET_NAME);
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const lastRow = sheet.getLastRow();
+
+  // 既存のNo.を取得（重複防止）
+  const noCol = headers.indexOf('No.');
+  const existingNos = new Set();
+  if (lastRow >= 2 && noCol >= 0) {
+    const noData = sheet.getRange(2, noCol + 1, lastRow - 1, 1).getValues();
+    for (let i = 0; i < noData.length; i++) {
+      if (noData[i][0]) existingNos.add(String(noData[i][0]));
+    }
+  }
+
+  // JSONフォルダからファイルを読み込み
+  const folder = getOrCreateJsonFolder();
+  const files = folder.getFiles();
+  const jsonFiles = [];
+  while (files.hasNext()) {
+    const file = files.next();
+    if (!file.getName().endsWith('.json')) continue;
+    if (fileIds.length > 0 && fileIds.indexOf(file.getId()) < 0) continue;
+    jsonFiles.push(file);
+  }
+
+  let restored = 0;
+  let skipped = 0;
+  const errors = [];
+  const results = [];
+
+  for (const file of jsonFiles) {
+    try {
+      const content = file.getBlob().getDataAsString();
+      const jsonData = JSON.parse(content);
+      const data = jsonData.data || {};
+      const metadata = jsonData.metadata || {};
+
+      // ファイル名からNo.を取得
+      let no = null;
+      const matchNew = file.getName().match(/^(\d{3})_/);
+      if (matchNew) no = matchNew[1];
+
+      // 既にシートに同じNo.がある場合はスキップ
+      if (no && existingNos.has(String(parseInt(no, 10)))) {
+        skipped++;
+        results.push({ fileName: file.getName(), status: 'skipped', reason: 'No.' + parseInt(no, 10) + ' は既に存在' });
+        continue;
+      }
+
+      // ヘッダーの順序に合わせてデータ配列を構築
+      const rowData = headers.map(function(header) {
+        if (header === 'No.') {
+          return no ? String(parseInt(no, 10)) : '';
+        }
+        if (header === 'タイムスタンプ') {
+          // metadataからタイムスタンプを復元
+          if (metadata.submittedAt) return new Date(metadata.submittedAt);
+          if (metadata.createdAt) return new Date(metadata.createdAt);
+          return new Date();
+        }
+        if (header === 'メールアドレス') {
+          return metadata.email || '';
+        }
+        if (header === JSON_CREATED_COLUMN_NAME) {
+          return '済';  // JSON既にあるので済
+        }
+        if (header === '元PDFファイル名') {
+          return data['元PDFファイル名'] || '';
+        }
+        if (header === '抜去位置') {
+          return data['抜去位置'] || '';
+        }
+        return data[header] !== undefined && data[header] !== null ? data[header] : '';
+      });
+
+      // シートに行追加
+      const newRow = sheet.getLastRow() + 1;
+      sheet.getRange(newRow, 1, 1, rowData.length).setValues([rowData]);
+
+      // No.列を文字列形式に（日付表示防止）
+      if (noCol >= 0) {
+        sheet.getRange(newRow, noCol + 1).setNumberFormat('@');
+      }
+
+      if (no) existingNos.add(String(parseInt(no, 10)));
+      restored++;
+      results.push({ fileName: file.getName(), status: 'restored', row: newRow });
+    } catch (err) {
+      errors.push({ fileName: file.getName(), error: err.toString() });
+      results.push({ fileName: file.getName(), status: 'error', error: err.toString() });
+    }
+  }
+
+  return {
+    success: true,
+    message: restored + '件を復元しました。' + (skipped > 0 ? '（' + skipped + '件スキップ）' : ''),
+    restored: restored,
+    skipped: skipped,
+    errors: errors.length,
+    details: results
   };
 }
