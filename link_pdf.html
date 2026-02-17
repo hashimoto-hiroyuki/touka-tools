@@ -1841,6 +1841,12 @@
             const saveBtn = document.getElementById('saveBtn');
             const extractionPosition = getExtractionPosition();
 
+            // 抜去位置が未入力の場合、警告を表示して確認
+            if (!extractionPosition) {
+                var proceed = confirm('⚠️ 抜去位置が入力されていません。\n\n抜去位置を入力せずに紐づけを続行しますか？\n\n「キャンセル」を押して抜去位置を入力してください。');
+                if (!proceed) return;
+            }
+
             var msg = 'No.' + selectedNo + ' に「' + selectedDriveFile.fileName + '」を紐づけます。\n';
             if (extractionPosition) {
                 msg += '抜去位置: ' + extractionPosition + '\n';
