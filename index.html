@@ -493,6 +493,11 @@
                     <span class="item-label">検体番号検索</span>
                     <span class="tag tag-web">Web</span>
                 </div>
+                <div class="tree-item" data-detail="workflow-chart" onclick="showDetail('workflow-chart')">
+                    <div class="item-icon ic-orange"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2.25M15 3v2.25M9 18.75V21M15 18.75V21"/></svg></div>
+                    <span class="item-label">フォーム入力ワークフロー</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
             </div>
 
             <!-- 検査値入力 -->
@@ -877,6 +882,33 @@
                     </ul>
                 </div>
                 <a class="btn-open" href="search_sample.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
+            </div>
+
+            <!-- フォーム入力ワークフロー -->
+            <div class="detail" id="detail-workflow-chart">
+                <div class="detail-header">
+                    <div class="detail-icon ic-orange"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2.25M15 3v2.25M9 18.75V21M15 18.75V21"/></svg></div>
+                    <div>
+                        <div class="detail-title">フォーム入力ワークフロー</div>
+                        <div class="detail-subtitle">第三者がPDFを見ながらデータシートを完成させる手順</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>第三者がブラウザのみでアンケートデータの入力からPDF紐づけ、検体番号紐づけまでを完結させるためのワークフローチャートです。各ステップの操作と内部の動きを対比して図示します。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>ステップ</h3>
+                    <ul>
+                        <li>ステップ1：アンケートフォームで質問1〜13を入力</li>
+                        <li>ステップ2：PDF紐づけ（link_pdf.html）＋ 質問14入力</li>
+                        <li>ステップ3：検体番号検索（search_sample.html）で紐づけ</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="workflow_chart.html" target="_blank">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
                     アプリを開く
                 </a>
