@@ -1445,7 +1445,7 @@
 
             let html = '<table><tr><th>No.</th><th>ID</th><th>医療機関</th><th>PDF</th></tr>';
             for (const item of filtered) {
-                const isSelected = selectedNo === item.no;
+                const isSelected = selectedNo !== null && String(selectedNo) === String(item.no);
                 const hasPdf = !!item.pdfFilename;
                 let rowClass = '';
                 if (isSelected) rowClass = 'selected';
