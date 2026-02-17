@@ -1357,6 +1357,73 @@
             document.head.appendChild(script);
         }
 
+        // 紐づけ完了後: No.一覧とPDF一覧を再読み込みし、次の未紐づけNo.を自動選択
+        function loadNoListThenSelectNext(completedNo) {
+            const loadBtn = document.getElementById('loadBtn');
+            loadBtn.disabled = true;
+            loadBtn.textContent = '読み込み中...';
+
+            const callbackName = 'listNextCallback_' + Date.now();
+            const url = APPS_SCRIPT_API_URL + '?action=getNoList&callback=' + callbackName;
+
+            window[callbackName] = function(result) {
+                delete window[callbackName];
+                document.head.removeChild(script);
+                clearTimeout(timeoutId);
+                loadBtn.disabled = false;
+                loadBtn.textContent = '一覧を読み込む';
+
+                if (result.success) {
+                    noListData = result.data;
+                    document.getElementById('filterRow').style.display = 'block';
+                    renderTable();
+
+                    // PDF一覧も再読み込み（移動されたファイルが消える）→ 完了後に次のNo.を選択
+                    callApi('getDrivePdfList', {}, function(pdfResult) {
+                        if (pdfResult.success) {
+                            drivePdfList = pdfResult.data || [];
+                            renderPdfList();
+                        }
+
+                        // 次のPDF未紐づけNo.を探して自動選択
+                        var filterNoPdf = document.getElementById('filterNoPdf').checked;
+                        var candidates = noListData.filter(function(item) {
+                            return !item.pdfFilename && item.no !== completedNo;
+                        });
+                        if (candidates.length > 0) {
+                            // completedNoの次の番号を優先
+                            var nextItem = candidates.find(function(item) { return item.no > completedNo; });
+                            if (!nextItem) nextItem = candidates[0];
+                            selectRow(nextItem.no, nextItem.row);
+                            showIndexResult('success', 'No.' + nextItem.no + ' を自動選択しました（残り ' + candidates.length + ' 件）');
+                        } else {
+                            showIndexResult('success', '全ての紐づけが完了しました！');
+                        }
+                    }, 60000);
+                } else {
+                    document.getElementById('tableArea').innerHTML = '<p style="color:red;">読み込みエラー: ' + result.error + '</p>';
+                }
+            };
+
+            const timeoutId = setTimeout(function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                loadBtn.disabled = false;
+                loadBtn.textContent = '一覧を読み込む';
+            }, 30000);
+
+            const script = document.createElement('script');
+            script.src = url;
+            script.onerror = function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                clearTimeout(timeoutId);
+                loadBtn.disabled = false;
+                loadBtn.textContent = '一覧を読み込む';
+            };
+            document.head.appendChild(script);
+        }
+
         function renderTable() {
             const filterNoPdf = document.getElementById('filterNoPdf').checked;
             let filtered = noListData;
@@ -1781,8 +1848,14 @@
                     resultArea.className = 'result success';
                     resultArea.innerHTML = '<strong>完了:</strong> ' + escapeHtml(result.data.message || '紐づけが完了しました');
 
+                    // 紐づけ済みのNo.を記録
+                    var completedNo = selectedNo;
+
                     // 選択状態をリセット
                     selectedDriveFile = null;
+                    selectedNo = null;
+                    selectedRow = null;
+                    selectedPatientInfo = null;
 
                     // 抜去位置入力をリセット
                     resetExtractionInput();
@@ -1790,10 +1863,8 @@
                     // PDFプレビューをクリア
                     clearPdfPreview();
 
-                    // 一覧を再読み込み
-                    loadNoList();
-                    // PDF一覧も再読み込み（移動されたファイルが消える）
-                    loadDrivePdfList();
+                    // 一覧を再読み込み → 完了後に次のNo.を自動選択
+                    loadNoListThenSelectNext(completedNo);
                 } else {
                     resultArea.className = 'result error';
                     resultArea.textContent = 'エラー: ' + ((result.data && result.data.message) || result.error || '不明なエラー');
