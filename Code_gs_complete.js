@@ -1339,13 +1339,48 @@ function updateSourceToOCR(targetNo, extraData) {
       break;
     }
   }
+  // JSONファイルが見つからない場合、スプレッドシートから新規作成
+  if (!renamedJson) {
+    try {
+      const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      const sheet = ss.getSheetByName(RESPONSE_SHEET_NAME);
+      const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      const noColIdx = headers.indexOf('No.');
+      if (noColIdx >= 0) {
+        const lastRow = sheet.getLastRow();
+        if (lastRow >= 2) {
+          const noValues = sheet.getRange(2, noColIdx + 1, lastRow - 1, 1).getValues();
+          for (let i = 0; i < noValues.length; i++) {
+            if (Number(noValues[i][0]) === targetNo) {
+              const rowData = sheet.getRange(i + 2, 1, 1, headers.length).getValues()[0];
+              const jsonData = buildJsonFromRow(headers, rowData);
+              jsonData.metadata.source = 'OCR';
+              if (extraData.extractionPosition && jsonData.data) {
+                jsonData.data['抜去位置'] = extraData.extractionPosition;
+              }
+              if (extraData.pdfFileName && jsonData.data) {
+                jsonData.data['元PDFファイル名'] = extraData.pdfFileName;
+              }
+              saveJsonToGoogleDrive(jsonData, i + 2, targetNo);
+              newJsonName = noStr + '_新規作成';
+              renamedJson = true;
+              Logger.log('JSONファイル新規作成: No.' + targetNo);
+              break;
+            }
+          }
+        }
+      }
+    } catch (createErr) {
+      Logger.log('JSON新規作成エラー: ' + createErr.toString());
+    }
+  }
   return {
     success: renamedJson,
     oldJsonName: oldJsonName,
     newJsonName: newJsonName,
     message: renamedJson
-      ? 'No.' + targetNo + ' のSource を OCR に変更しました。(' + oldJsonName + ' → ' + newJsonName + ')'
-      : 'No.' + targetNo + ' のJSONファイルが見つかりませんでした。'
+      ? (oldJsonName ? 'No.' + targetNo + ' のSource を OCR に変更しました。(' + oldJsonName + ' → ' + newJsonName + ')' : 'No.' + targetNo + ' のJSONファイルを新規作成しました。')
+      : 'No.' + targetNo + ' のJSONファイルが見つからず、作成もできませんでした。'
   };
 }
 /**
