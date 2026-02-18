@@ -261,67 +261,75 @@
         <h1>フォーム入力ワークフロー</h1>
         <p class="subtitle">第三者がPDFを見ながらデータシートを完成させる手順（すべてブラウザのみ）</p>
 
-        <!-- A/B フロー説明 -->
+        <!-- A/B フロー説明（共通＋分岐レイアウト） -->
         <div style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; overflow: hidden;">
             <div style="padding: 14px 20px; background: linear-gradient(135deg, #455a64, #37474f); color: #fff; font-weight: bold; font-size: 17px; display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 20px;">📋</span>
                 回答方法による2つのフロー
             </div>
-            <div style="padding: 20px; display: flex; gap: 0; align-items: stretch;">
-                <!-- Aフロー -->
-                <div style="flex: 1; padding: 16px 20px;">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
-                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: #e65100; color: #fff; border-radius: 50%; font-size: 18px; font-weight: bold; flex-shrink: 0;">A</span>
-                        <span style="font-size: 17px; font-weight: bold; color: #e65100;">QRコードで回答した人</span>
-                    </div>
-                    <div style="padding-left: 10px; border-left: 3px solid #e65100;">
-                        <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px;">
-                            <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; background: #fff3e0; color: #e65100; border-radius: 50%; font-size: 13px; font-weight: bold; border: 1.5px solid #e65100;">1</span>
-                            <span style="font-size: 15px;">紙をスキャンしてPDF化 → 元PDFフォルダへ</span>
-                        </div>
-                        <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px;">
-                            <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; background: #fff3e0; color: #e65100; border-radius: 50%; font-size: 13px; font-weight: bold; border: 1.5px solid #e65100;">2</span>
-                            <span style="font-size: 15px;">PDF紐づけ ＋ 質問14（抜歯位置）入力<span style="color: #999; font-size: 13px;">（ステップ②）</span></span>
-                        </div>
-                        <div style="display: flex; align-items: flex-start; gap: 8px;">
-                            <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; background: #fff3e0; color: #e65100; border-radius: 50%; font-size: 13px; font-weight: bold; border: 1.5px solid #e65100;">3</span>
-                            <span style="font-size: 15px;">検体番号の紐づけ<span style="color: #999; font-size: 13px;">（ステップ③）</span></span>
-                        </div>
-                    </div>
-                    <div style="margin-top: 12px; padding: 8px 12px; background: #fff3e0; border-radius: 6px; font-size: 13px; color: #e65100;">
-                        ⚠️ フォーム回答済みのため、①アンケート入力はスキップ
+            <div style="padding: 20px 24px;">
+
+                <!-- 共通: スキャン -->
+                <div style="text-align: center; margin-bottom: 6px;">
+                    <div style="display: inline-flex; align-items: center; gap: 10px; padding: 10px 28px; background: #f5f5f5; border: 2px solid #bdbdbd; border-radius: 10px; font-size: 16px; font-weight: bold; color: #333;">
+                        <span style="font-size: 20px;">📄</span>
+                        紙をスキャンしてPDF化 → 元PDFフォルダへ
                     </div>
                 </div>
-                <!-- 中央仕切り -->
-                <div style="width: 2px; background: #e0e0e0;"></div>
-                <!-- Bフロー -->
-                <div style="flex: 1; padding: 16px 20px;">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
-                        <span style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: #1976D2; color: #fff; border-radius: 50%; font-size: 18px; font-weight: bold; flex-shrink: 0;">B</span>
-                        <span style="font-size: 17px; font-weight: bold; color: #1976D2;">紙で回答した人</span>
+
+                <!-- 下向き矢印（分岐） -->
+                <div style="text-align: center; font-size: 24px; color: #bbb; margin: 4px 0;">▼</div>
+
+                <!-- 分岐: A（スキップ） / B（フォーム入力） -->
+                <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 6px;">
+                    <!-- A: QRコード組 → スキップ -->
+                    <div style="flex: 1; max-width: 440px; text-align: center; padding: 14px 16px; background: #fff3e0; border: 2px solid #e65100; border-radius: 10px;">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px;">
+                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: #e65100; color: #fff; border-radius: 50%; font-size: 16px; font-weight: bold;">A</span>
+                            <span style="font-size: 16px; font-weight: bold; color: #e65100;">QRコードで回答した人</span>
+                        </div>
+                        <div style="padding: 8px 12px; background: #fff; border-radius: 6px; font-size: 14px; color: #e65100; font-weight: bold;">
+                            ⚠️ ①アンケート入力はスキップ
+                        </div>
+                        <div style="font-size: 12px; color: #999; margin-top: 4px;">フォーム回答済みのため不要</div>
                     </div>
-                    <div style="padding-left: 10px; border-left: 3px solid #1976D2;">
-                        <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px;">
-                            <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; background: #e3f2fd; color: #1976D2; border-radius: 50%; font-size: 13px; font-weight: bold; border: 1.5px solid #1976D2;">1</span>
-                            <span style="font-size: 15px;">紙をスキャンしてPDF化 → 元PDFフォルダへ</span>
+                    <!-- B: 紙回答組 → フォーム入力 -->
+                    <div style="flex: 1; max-width: 440px; text-align: center; padding: 14px 16px; background: #e3f2fd; border: 2px solid #1976D2; border-radius: 10px;">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px;">
+                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: #1976D2; color: #fff; border-radius: 50%; font-size: 16px; font-weight: bold;">B</span>
+                            <span style="font-size: 16px; font-weight: bold; color: #1976D2;">紙で回答した人</span>
                         </div>
-                        <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px;">
-                            <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; background: #e3f2fd; color: #1976D2; border-radius: 50%; font-size: 13px; font-weight: bold; border: 1.5px solid #1976D2;">2</span>
-                            <span style="font-size: 15px;">PDFを見ながらフォームで質問1〜13を入力<span style="color: #999; font-size: 13px;">（ステップ①）</span></span>
+                        <div style="padding: 8px 12px; background: #fff; border-radius: 6px; font-size: 14px; color: #1565C0; font-weight: bold;">
+                            📝 PDFを見ながらフォームで質問1〜13を入力
                         </div>
-                        <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px;">
-                            <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; background: #e3f2fd; color: #1976D2; border-radius: 50%; font-size: 13px; font-weight: bold; border: 1.5px solid #1976D2;">3</span>
-                            <span style="font-size: 15px;">PDF紐づけ ＋ 質問14（抜歯位置）入力<span style="color: #999; font-size: 13px;">（ステップ②）</span></span>
-                        </div>
-                        <div style="display: flex; align-items: flex-start; gap: 8px;">
-                            <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; background: #e3f2fd; color: #1976D2; border-radius: 50%; font-size: 13px; font-weight: bold; border: 1.5px solid #1976D2;">4</span>
-                            <span style="font-size: 15px;">検体番号の紐づけ<span style="color: #999; font-size: 13px;">（ステップ③）</span></span>
-                        </div>
-                    </div>
-                    <div style="margin-top: 12px; padding: 8px 12px; background: #e3f2fd; border-radius: 6px; font-size: 13px; color: #1565C0;">
-                        📝 全ステップ（①→②→③）を順に実行
+                        <div style="font-size: 12px; color: #999; margin-top: 4px;">ステップ①</div>
                     </div>
                 </div>
+
+                <!-- 下向き矢印（合流） -->
+                <div style="text-align: center; font-size: 24px; color: #bbb; margin: 4px 0;">▼</div>
+
+                <!-- 共通: PDF紐づけ -->
+                <div style="text-align: center; margin-bottom: 6px;">
+                    <div style="display: inline-flex; align-items: center; gap: 10px; padding: 10px 28px; background: #f5f5f5; border: 2px solid #bdbdbd; border-radius: 10px; font-size: 16px; font-weight: bold; color: #333;">
+                        <span style="font-size: 20px;">🔗</span>
+                        PDF紐づけ ＋ 質問14（抜歯位置）入力
+                        <span style="font-size: 13px; color: #999; font-weight: normal;">ステップ②</span>
+                    </div>
+                </div>
+
+                <!-- 下向き矢印 -->
+                <div style="text-align: center; font-size: 24px; color: #bbb; margin: 4px 0;">▼</div>
+
+                <!-- 共通: 検体番号 -->
+                <div style="text-align: center;">
+                    <div style="display: inline-flex; align-items: center; gap: 10px; padding: 10px 28px; background: #f5f5f5; border: 2px solid #bdbdbd; border-radius: 10px; font-size: 16px; font-weight: bold; color: #333;">
+                        <span style="font-size: 20px;">🔎</span>
+                        検体番号の紐づけ
+                        <span style="font-size: 13px; color: #999; font-weight: normal;">ステップ③</span>
+                    </div>
+                </div>
+
             </div>
         </div>
 
