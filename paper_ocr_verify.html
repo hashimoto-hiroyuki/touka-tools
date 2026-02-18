@@ -143,6 +143,9 @@
                 <button class="btn btn-orange" id="btnIndexUnprocessed" onclick="startBatchIndex()" disabled>
                     未処理を一括インデックス (<span id="unindexedCount">0</span>件)
                 </button>
+                <button class="btn btn-green" id="btnReindexAll" onclick="startReindexAll()" disabled>
+                    全件再判定 (<span id="reindexCount">0</span>件)
+                </button>
                 <button class="btn btn-sm" style="background:#eee; color:#333;" id="btnStopIndex" onclick="stopBatchIndex()" style="display:none;">中止</button>
             </div>
 
@@ -305,6 +308,10 @@
 
             var batchBtn = document.getElementById('btnIndexUnprocessed');
             batchBtn.disabled = (unindexed === 0) || isIndexing;
+
+            document.getElementById('reindexCount').textContent = total;
+            var reindexBtn = document.getElementById('btnReindexAll');
+            reindexBtn.disabled = (total === 0) || isIndexing;
         }
 
         // === PDF一覧描画 ===
@@ -350,7 +357,8 @@
                 if (!p.indexed) {
                     actionHtml = '<button class="btn btn-sm btn-primary" onclick="indexOnePdf(\'' + p.fileId + '\', this)">インデックス</button>';
                 } else {
-                    actionHtml = '<button class="btn btn-sm" style="background:#e3f2fd; color:#1565C0;" onclick="previewPdf(\'' + p.fileId + '\', \'' + escapeHtml(p.fileName) + '\')">プレビュー</button>';
+                    actionHtml = '<button class="btn btn-sm" style="background:#e3f2fd; color:#1565C0;" onclick="previewPdf(\'' + p.fileId + '\', \'' + escapeHtml(p.fileName) + '\')">プレビュー</button> ' +
+                        '<button class="btn btn-sm" style="background:#fff3e0; color:#e65100;" onclick="indexOnePdf(\'' + p.fileId + '\', this)">再判定</button>';
                 }
 
                 tr.innerHTML =
@@ -491,6 +499,91 @@
 
         function stopBatchIndex() {
             stopIndexingFlag = true;
+        }
+
+        // === 全件再判定（インデックス済みも含めて再実行） ===
+        function startReindexAll() {
+            var targets = drivePdfList.slice(); // 全件
+            if (targets.length === 0) return;
+
+            if (!confirm('全' + targets.length + '件を再インデックスします。\nGemini APIを使用するため時間がかかります。\n実行しますか？')) return;
+
+            isIndexing = true;
+            stopIndexingFlag = false;
+            document.getElementById('btnReindexAll').disabled = true;
+            document.getElementById('btnIndexUnprocessed').disabled = true;
+            document.getElementById('btnLoadPdfs').disabled = true;
+
+            var progressArea = document.getElementById('progressArea');
+            var progressBar = document.getElementById('progressBar');
+            var progressText = document.getElementById('progressText');
+            var progressLog = document.getElementById('progressLog');
+            progressArea.style.display = 'block';
+            progressLog.innerHTML = '';
+
+            var total = targets.length;
+            var current = 0;
+            var successCount = 0;
+            var errorCount = 0;
+
+            function processNext() {
+                if (stopIndexingFlag || current >= total) {
+                    var status = stopIndexingFlag ? '中止しました' : '完了';
+                    progressText.textContent = status + ': ' + successCount + '件成功 / ' + errorCount + '件エラー';
+                    progressBar.style.width = '100%';
+                    progressBar.textContent = stopIndexingFlag ? '中止' : '100%';
+                    isIndexing = false;
+                    stopIndexingFlag = false;
+                    document.getElementById('btnLoadPdfs').disabled = false;
+                    updateStats();
+                    return;
+                }
+
+                var pdf = targets[current];
+                var pct = Math.round((current / total) * 100);
+                progressText.textContent = '再判定中 (' + (current + 1) + '/' + total + '): ' + pdf.fileName;
+                progressBar.style.width = pct + '%';
+                progressBar.textContent = pct + '%';
+
+                callApi('indexPdfWithGemini', { fileId: pdf.fileId }, function(data) {
+                    current++;
+                    var logDiv = document.createElement('div');
+
+                    if (data.success && data.data && data.data.success) {
+                        successCount++;
+                        var r = data.data;
+                        var qrLabel = r.ocrData.qrCheckbox ? 'QR' : '紙';
+                        logDiv.className = 'log-ok';
+                        logDiv.textContent = '[OK] ' + pdf.fileName + ' → ' +
+                            (r.ocrData.hospital || '?') + ' / ' +
+                            (r.ocrData.patientName || '?') + ' [' + qrLabel + ']';
+                        for (var i = 0; i < drivePdfList.length; i++) {
+                            if (drivePdfList[i].fileId === pdf.fileId) {
+                                drivePdfList[i].indexed = true;
+                                drivePdfList[i].hospital = r.ocrData.hospital || '';
+                                drivePdfList[i].patientId = r.ocrData.patientId || '';
+                                drivePdfList[i].patientName = r.ocrData.patientName || '';
+                                drivePdfList[i].birthdate = r.ocrData.birthdate || '';
+                                drivePdfList[i].qrCheckbox = r.ocrData.qrCheckbox === true;
+                                break;
+                            }
+                        }
+                    } else {
+                        errorCount++;
+                        var msg = (data.data && data.data.message) || data.error || 'エラー';
+                        logDiv.className = 'log-err';
+                        logDiv.textContent = '[ERR] ' + pdf.fileName + ': ' + msg;
+                    }
+
+                    progressLog.appendChild(logDiv);
+                    progressLog.scrollTop = progressLog.scrollHeight;
+                    renderPdfList();
+                    updateStats();
+                    setTimeout(processNext, 300);
+                }, 120000);
+            }
+
+            processNext();
         }
 
         // === PDFプレビュー ===
