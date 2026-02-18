@@ -1787,17 +1787,20 @@ function getDrivePdfListWithIndex() {
     var patientIdCol = headers.indexOf('patientId');
     var patientNameCol = headers.indexOf('patientName');
     var birthdateCol = headers.indexOf('birthdate');
+    var qrCheckboxCol = headers.indexOf('qrCheckbox');
     // fileIdをキーにしたマップを作成
     var indexMap = {};
     for (var i = 1; i < indexData.length; i++) {
       var row = indexData[i];
       var fId = row[fileIdCol];
       if (fId) {
+        var qrVal = qrCheckboxCol >= 0 ? row[qrCheckboxCol] : '';
         indexMap[fId] = {
           hospital: hospitalCol >= 0 ? row[hospitalCol] : '',
           patientId: patientIdCol >= 0 ? row[patientIdCol] : '',
           patientName: patientNameCol >= 0 ? row[patientNameCol] : '',
-          birthdate: birthdateCol >= 0 ? row[birthdateCol] : ''
+          birthdate: birthdateCol >= 0 ? row[birthdateCol] : '',
+          qrCheckbox: (qrVal === true || qrVal === 'TRUE' || qrVal === 'true')
         };
       }
     }
@@ -1809,12 +1812,14 @@ function getDrivePdfListWithIndex() {
         pdfList[j].patientId = info.patientId || '';
         pdfList[j].patientName = info.patientName || '';
         pdfList[j].birthdate = info.birthdate || '';
+        pdfList[j].qrCheckbox = info.qrCheckbox || false;
         pdfList[j].indexed = true;
       } else {
         pdfList[j].hospital = '';
         pdfList[j].patientId = '';
         pdfList[j].patientName = '';
         pdfList[j].birthdate = '';
+        pdfList[j].qrCheckbox = false;
         pdfList[j].indexed = false;
       }
     }
@@ -1942,6 +1947,7 @@ function addPdfIndexEntry(params) {
   var patientName = decodeURIComponent(params.patientName || '');
   var birthdate = decodeURIComponent(params.birthdate || '');
   var source = params.source || 'index_script';
+  var qrCheckbox = params.qrCheckbox !== undefined ? params.qrCheckbox : '';
   if (!fileId) {
     return { success: false, message: 'fileIdが必要です' };
   }
@@ -1950,29 +1956,45 @@ function addPdfIndexEntry(params) {
   // シートがなければ作成
   if (!sheet) {
     sheet = ss.insertSheet('PDFインデックス');
-    sheet.appendRow(['fileId', 'fileName', 'hospital', 'patientId', 'patientName', 'birthdate', 'indexedAt', 'source']);
-    sheet.getRange(1, 1, 1, 8).setFontWeight('bold');
+    sheet.appendRow(['fileId', 'fileName', 'hospital', 'patientId', 'patientName', 'birthdate', 'indexedAt', 'source', 'qrCheckbox']);
+    sheet.getRange(1, 1, 1, 9).setFontWeight('bold');
+  } else {
+    // 既存シートにqrCheckbox列がなければ追加
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    if (headers.indexOf('qrCheckbox') < 0) {
+      var newCol = sheet.getLastColumn() + 1;
+      sheet.getRange(1, newCol).setValue('qrCheckbox').setFontWeight('bold');
+    }
   }
+  // qrCheckbox列の位置を取得
+  var allHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var qrCol = allHeaders.indexOf('qrCheckbox') + 1; // 1-based
   // 既存エントリを検索
   var lastRow = sheet.getLastRow();
   if (lastRow >= 2) {
     var fileIds = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
     for (var i = 0; i < fileIds.length; i++) {
       if (fileIds[i][0] === fileId) {
-        // 既存行を更新
+        // 既存行を更新（8列分）
         sheet.getRange(i + 2, 1, 1, 8).setValues([[
           fileId, fileName, hospital, patientId, patientName, birthdate,
           Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd HH:mm:ss'), source
         ]]);
+        // qrCheckbox列を更新
+        if (qrCol > 0) {
+          sheet.getRange(i + 2, qrCol).setValue(qrCheckbox);
+        }
         return { success: true, action: 'updated' };
       }
     }
   }
   // 新規追加
-  sheet.appendRow([
-    fileId, fileName, hospital, patientId, patientName, birthdate,
-    Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd HH:mm:ss'), source
-  ]);
+  var newRow = [fileId, fileName, hospital, patientId, patientName, birthdate,
+    Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd HH:mm:ss'), source];
+  // qrCheckbox列の位置に合わせてパディング
+  while (newRow.length < qrCol - 1) newRow.push('');
+  newRow[qrCol - 1] = qrCheckbox;
+  sheet.appendRow(newRow);
   return { success: true, action: 'created' };
 }
 /**
@@ -2408,26 +2430,29 @@ function indexPdfWithGemini(fileId) {
     base64Data = Utilities.base64Encode(blob.getBytes());
     mimeType = 'application/pdf';
   }
-  // Gemini APIで4フィールドOCR
+  // Gemini APIで5フィールドOCR（QRチェックボックス判定追加）
   var prompt = 'あなたは日本の医療アンケートのOCRアシスタントです。\n' +
-    'このPDFの1ページ目から以下の4つの情報を読み取ってください。\n\n' +
+    'このPDFの1ページ目から以下の5つの情報を読み取ってください。\n\n' +
     '1. 医療機関名: ページ右上に印刷されている医療機関名（歯科医院名）\n' +
     '2. 患者さんID: 医療機関名の左側にある手書きの数字・英数字\n' +
     '3. 名前: 「質問1」の回答欄に手書きカタカナで書かれた氏名（氏と名）\n' +
-    '4. 生年月日: 「質問2」の回答欄にある元号（昭和・平成・令和）の丸囲みと手書きの年月日\n\n' +
+    '4. 生年月日: 「質問2」の回答欄にある元号（昭和・平成・令和）の丸囲みと手書きの年月日\n' +
+    '5. QRコード回答チェック: 「質問2」の生年月日の付近にある「□以降、QRコードで回答」というチェックボックスにチェック（レ点や✓やペンの印）が入っているかどうか\n\n' +
     '以下のJSON形式のみで回答してください（説明不要）:\n' +
     '{\n' +
     '  "hospital": "医療機関名",\n' +
     '  "patientId": "患者ID",\n' +
     '  "patientName": "氏 名",\n' +
-    '  "birthdate": "○○XX年YY月ZZ日"\n' +
+    '  "birthdate": "○○XX年YY月ZZ日",\n' +
+    '  "qrCheckbox": true または false\n' +
     '}\n\n' +
     '注意:\n' +
     '- 読み取れない場合は空文字""にしてください\n' +
     '- 生年月日は「昭和35年12月16日」のような形式にしてください\n' +
     '- 名前は「テラニシ キョウコ」のように氏と名の間にスペースを入れてください\n' +
+    '- qrCheckboxは、チェックが入っていればtrue、入っていなければfalse、チェックボックス自体が存在しない場合もfalseにしてください\n' +
     '- JSONのみ出力し、```やマークダウンは不要です';
-  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_API_KEY;
+  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY;
   var payload = {
     contents: [{
       parts: [
@@ -2490,6 +2515,9 @@ function indexPdfWithGemini(fileId) {
       var m = jsonText.match(re);
       if (m) ocrData[fields[fi]] = m[1];
     }
+    // qrCheckboxはboolean値なので別途抽出
+    var qrMatch = jsonText.match(/"qrCheckbox"\s*:\s*(true|false)/);
+    if (qrMatch) ocrData.qrCheckbox = (qrMatch[1] === 'true');
     if (!ocrData.hospital && !ocrData.patientId && !ocrData.patientName) {
       return { success: false, message: 'OCR結果のJSON解析エラー: ' + jsonText.substring(0, 100) };
     }
@@ -2502,6 +2530,7 @@ function indexPdfWithGemini(fileId) {
     patientId: encodeURIComponent(ocrData.patientId || ''),
     patientName: encodeURIComponent(ocrData.patientName || ''),
     birthdate: encodeURIComponent(ocrData.birthdate || ''),
+    qrCheckbox: ocrData.qrCheckbox === true ? 'TRUE' : 'FALSE',
     source: 'gemini_gas'
   });
   return {
