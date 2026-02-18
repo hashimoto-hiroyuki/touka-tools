@@ -261,11 +261,56 @@
         <h1>フォーム入力ワークフロー</h1>
         <p class="subtitle">第三者がPDFを見ながらデータシートを完成させる手順（すべてブラウザのみ）</p>
 
+        <!-- QRチェック分岐 -->
+        <div style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; overflow: hidden;">
+            <div style="padding: 14px 20px; background: linear-gradient(135deg, #6a1b9a, #4a148c); color: #fff; font-weight: bold; font-size: 17px; display: flex; align-items: center; gap: 12px;">
+                <span style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: rgba(255,255,255,0.25); border-radius: 50%; font-size: 17px;">0</span>
+                PDFの確認 ― QRコードで回答したか？
+            </div>
+            <div style="padding: 20px;">
+                <!-- PDF閲覧 -->
+                <div style="text-align: center; margin-bottom: 16px;">
+                    <span class="op-box"><span class="icon">📄</span>元PDFフォルダのPDFを開き、質問2 を確認する</span>
+                </div>
+                <!-- 分岐図 -->
+                <div style="display: flex; gap: 0; justify-content: center; align-items: stretch;">
+                    <!-- 左: チェックなし（紙回答） -->
+                    <div style="flex: 1; max-width: 420px; text-align: center;">
+                        <div style="display: inline-block; padding: 12px 24px; background: #e3f2fd; border: 2px solid #1976D2; border-radius: 10px; font-size: 18px; font-weight: bold; color: #1565C0;">
+                            &#9744; 以降、QRコードで回答
+                        </div>
+                        <div style="font-size: 13px; color: #999; margin-top: 6px;">チェックなし</div>
+                        <div style="font-size: 28px; color: #1976D2; margin: 8px 0;">&#9660;</div>
+                        <div style="display: inline-block; padding: 10px 20px; background: #1976D2; color: #fff; border-radius: 8px; font-size: 15px; font-weight: bold;">
+                            紙回答 &#8594; ステップ1へ
+                        </div>
+                        <div style="font-size: 13px; color: #666; margin-top: 6px;">フォーム入力が必要</div>
+                    </div>
+                    <!-- 中央の仕切り -->
+                    <div style="width: 2px; background: #e0e0e0; margin: 0 20px;"></div>
+                    <!-- 右: チェックあり（QRコード組） -->
+                    <div style="flex: 1; max-width: 420px; text-align: center;">
+                        <div style="display: inline-block; padding: 12px 24px; background: #fce4ec; border: 2px solid #c62828; border-radius: 10px; font-size: 18px; font-weight: bold; color: #c62828;">
+                            &#9745; 以降、QRコードで回答
+                        </div>
+                        <div style="font-size: 13px; color: #999; margin-top: 6px;">チェックあり</div>
+                        <div style="font-size: 28px; color: #c62828; margin: 8px 0;">&#9660;</div>
+                        <div style="display: inline-block; padding: 10px 20px; background: #c62828; color: #fff; border-radius: 8px; font-size: 15px; font-weight: bold;">
+                            QR回答済 &#8594; ステップ2へ
+                        </div>
+                        <div style="font-size: 13px; color: #c62828; margin-top: 6px; font-weight: bold;">&#9888; ステップ1をスキップ（入力するとデータ重複）</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-arrow">&#9660;</div>
+
         <!-- ステップ1 -->
         <div class="step-card step1">
             <div class="step-header">
                 <span class="step-num">1</span>
-                アンケート入力
+                アンケート入力（紙回答のみ）
                 <div class="step-app-info">
                     <svg class="step-app-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M9 11l3 3L22 4"/>
@@ -278,34 +323,14 @@
                 </div>
             </div>
             <div class="step-body">
-                <div style="background: #fff3e0; border: 1px solid #ff9800; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; font-size: 14px; color: #e65100; display: flex; align-items: flex-start; gap: 10px;">
-                    <span style="font-size: 20px; flex-shrink: 0;">&#9888;</span>
-                    <div>
-                        <strong>QRコード組の重複入力に注意</strong><br>
-                        PDFの質問2欄「<strong>&#9745; 以降、QRコードで回答</strong>」にチェックがある場合、その患者さんは<strong>既にフォームで回答済み</strong>です。<br>
-                        再度フォーム入力すると<strong>データが重複</strong>します。ステップ1をスキップし、<strong>ステップ2（PDF紐づけ）のみ</strong>行ってください。
-                    </div>
-                </div>
                 <table class="flow-table">
                     <tr><th>操作</th><th></th><th>内部の動き</th></tr>
-                    <tr>
-                        <td><span class="op-box"><span class="icon">📄</span>元PDFフォルダのPDFを閲覧</span></td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td><span class="op-box"><span class="icon">👁️</span>質問2「□以降、QRコードで回答」を確認</span></td>
-                        <td>→</td>
-                        <td>
-                            <span style="display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; background: #fce4ec; border: 1px solid #ef9a9a; border-radius: 6px; font-size: 14px; color: #c62828;">チェックあり → ステップ2へ（入力不要）</span>
-                        </td>
-                    </tr>
                     <tr>
                         <td><span class="op-box"><span class="icon">✏️</span>質問1〜13を入力して送信</span></td>
                         <td>→</td>
                         <td>
                             <span class="sys-box">スプレッドシートに行を自動追加</span>
-                            <div class="note">※PDF紐づけなし・質問14は空・紙回答のみ入力</div>
+                            <div class="note">※PDF紐づけなし・質問14は空</div>
                         </td>
                     </tr>
                 </table>
