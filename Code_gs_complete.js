@@ -2404,32 +2404,11 @@ function indexPdfWithGemini(fileId) {
     return { success: false, message: 'ファイルが見つかりません: ' + e.toString() };
   }
   var fileName = file.getName();
-  // PDFを画像に変換してBase64エンコード
+  // PDFをそのままBase64エンコードしてGeminiに送信（PDF直接読み取りで高精度）
   var base64Data;
-  var mimeType;
-  try {
-    // Google DriveのサムネイルAPIでPDFを画像化（高解像度）
-    var thumbnailUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w2000';
-    var token = ScriptApp.getOAuthToken();
-    var imgResponse = UrlFetchApp.fetch(thumbnailUrl, {
-      headers: { 'Authorization': 'Bearer ' + token },
-      muteHttpExceptions: true
-    });
-    if (imgResponse.getResponseCode() === 200) {
-      base64Data = Utilities.base64Encode(imgResponse.getContent());
-      mimeType = imgResponse.getHeaders()['Content-Type'] || 'image/jpeg';
-    } else {
-      // フォールバック: PDFをそのまま送信
-      var blob = file.getBlob();
-      base64Data = Utilities.base64Encode(blob.getBytes());
-      mimeType = 'application/pdf';
-    }
-  } catch (e) {
-    // フォールバック: PDFをそのまま送信
-    var blob = file.getBlob();
-    base64Data = Utilities.base64Encode(blob.getBytes());
-    mimeType = 'application/pdf';
-  }
+  var mimeType = 'application/pdf';
+  var blob = file.getBlob();
+  base64Data = Utilities.base64Encode(blob.getBytes());
   // Gemini APIで5フィールドOCR（QRチェックボックス判定追加）
   var prompt = 'あなたは日本の医療アンケートのOCRアシスタントです。\n' +
     'このPDFの1ページ目から以下の5つの情報を読み取ってください。\n\n' +
