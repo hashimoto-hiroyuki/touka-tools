@@ -278,6 +278,14 @@
                 </div>
             </div>
             <div class="step-body">
+                <div style="background: #fff3e0; border: 1px solid #ff9800; border-radius: 8px; padding: 12px 16px; margin-bottom: 14px; font-size: 14px; color: #e65100; display: flex; align-items: flex-start; gap: 10px;">
+                    <span style="font-size: 20px; flex-shrink: 0;">&#9888;</span>
+                    <div>
+                        <strong>QRコード組の重複入力に注意</strong><br>
+                        PDFの質問2欄「<strong>&#9745; 以降、QRコードで回答</strong>」にチェックがある場合、その患者さんは<strong>既にフォームで回答済み</strong>です。<br>
+                        再度フォーム入力すると<strong>データが重複</strong>します。ステップ1をスキップし、<strong>ステップ2（PDF紐づけ）のみ</strong>行ってください。
+                    </div>
+                </div>
                 <table class="flow-table">
                     <tr><th>操作</th><th></th><th>内部の動き</th></tr>
                     <tr>
@@ -286,11 +294,18 @@
                         <td></td>
                     </tr>
                     <tr>
+                        <td><span class="op-box"><span class="icon">👁️</span>質問2「□以降、QRコードで回答」を確認</span></td>
+                        <td>→</td>
+                        <td>
+                            <span style="display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; background: #fce4ec; border: 1px solid #ef9a9a; border-radius: 6px; font-size: 14px; color: #c62828;">チェックあり → ステップ2へ（入力不要）</span>
+                        </td>
+                    </tr>
+                    <tr>
                         <td><span class="op-box"><span class="icon">✏️</span>質問1〜13を入力して送信</span></td>
                         <td>→</td>
                         <td>
                             <span class="sys-box">スプレッドシートに行を自動追加</span>
-                            <div class="note">※PDF紐づけなし・質問14は空</div>
+                            <div class="note">※PDF紐づけなし・質問14は空・紙回答のみ入力</div>
                         </td>
                     </tr>
                 </table>
