@@ -2452,7 +2452,7 @@ function indexPdfWithGemini(fileId) {
     '- 名前は「テラニシ キョウコ」のように氏と名の間にスペースを入れてください\n' +
     '- qrCheckboxは、チェックが入っていればtrue、入っていなければfalse、チェックボックス自体が存在しない場合もfalseにしてください\n' +
     '- JSONのみ出力し、```やマークダウンは不要です';
-  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY;
+  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_API_KEY;
   var payload = {
     contents: [{
       parts: [
