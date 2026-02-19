@@ -1315,6 +1315,13 @@
                 return;
             }
             var s = scorePdfMatch(pdf, selectedPatientInfo);
+            // 候補なし判定: 名前=0 かつ 生年月日=0 かつ ID=0
+            if (s.name === 0 && s.birthdate === 0 && s.id === 0) {
+                el.textContent = '[候補なし]';
+                var body = document.getElementById('pdfPreviewBody');
+                body.innerHTML = '<div class="pp-placeholder">このPDFは候補に該当しません</div>';
+                return;
+            }
             el.textContent = '[候補確率：名前:' + s.name + '/40 生年月日:' + s.birthdate + '/30 医療機関:' + s.hospital + '/20 ID:' + s.id + '/10]';
         }
 
