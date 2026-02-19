@@ -267,7 +267,10 @@
                 <span style="font-size: 20px;">📋</span>
                 回答方法による2つのフロー
             </div>
-            <div style="padding: 20px 24px;">
+            <div style="padding: 20px 24px; display: flex; gap: 20px; align-items: stretch;">
+
+                <!-- フロー本体 -->
+                <div style="flex: 1; min-width: 0;">
 
                 <!-- 共通: スキャン -->
                 <div style="text-align: center; margin-bottom: 6px;">
@@ -328,6 +331,30 @@
                         検体番号の紐づけ
                         <span style="font-size: 13px; color: #999; font-weight: normal;">ステップ③</span>
                     </div>
+                </div>
+
+                </div><!-- /フロー本体 -->
+
+                <!-- 管理支援ツール（サイドパネル） -->
+                <div style="width: 180px; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; gap: 10px; padding-left: 16px; border-left: 2px dashed #e0e0e0;">
+                    <div style="font-size: 12px; font-weight: bold; color: #78909c; text-align: center; margin-bottom: 4px; letter-spacing: 0.5px;">
+                        🛠️ 管理支援ツール
+                    </div>
+                    <a href="view_data.html" target="_blank"
+                       style="display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 8px; font-size: 12px; font-weight: bold; color: #7b1fa2; text-decoration: none;">
+                        <span style="font-size: 15px;">📊</span>
+                        <span>データ閲覧</span>
+                    </a>
+                    <a href="pdf_arrival_status.html" target="_blank"
+                       style="display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 8px; font-size: 12px; font-weight: bold; color: #7b1fa2; text-decoration: none;">
+                        <span style="font-size: 15px;">⏱️</span>
+                        <span>PDF到着状況</span>
+                    </a>
+                    <a href="check_pdf_status.html" target="_blank"
+                       style="display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 8px; font-size: 12px; font-weight: bold; color: #7b1fa2; text-decoration: none;">
+                        <span style="font-size: 15px;">📋</span>
+                        <span>PDF処理状況</span>
+                    </a>
                 </div>
 
             </div>
