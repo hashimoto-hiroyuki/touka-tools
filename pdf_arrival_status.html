@@ -39,20 +39,29 @@
         .btn-refresh:hover { opacity: 0.85; }
         .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        /* === サマリーカード === */
-        .card-row {
+        /* === 等式レイアウト === */
+        .equation-container {
             display: flex;
-            gap: 16px;
-            margin-bottom: 20px;
+            align-items: center;
+            gap: 0;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
         }
+
         .summary-card {
-            flex: 1;
-            min-width: 140px;
+            min-width: 130px;
             background: #fff;
             border-radius: 12px;
             box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-            padding: 20px;
+            padding: 16px 20px;
             border-top: 4px solid #ccc;
+            text-align: center;
+        }
+        .summary-card .card-number {
+            font-size: 13px;
+            font-weight: 700;
+            color: #999;
+            margin-bottom: 2px;
         }
         .summary-card .card-count {
             font-size: 36px;
@@ -68,14 +77,111 @@
             color: #bbb;
             margin-top: 2px;
         }
+
+        /* カード色 */
+        .card-total { border-top-color: #667eea; }
+        .card-total .card-count { color: #3949ab; }
+        .card-total .card-number { color: #667eea; }
+
         .card-scan { border-top-color: #ff9800; }
         .card-scan .card-count { color: #e65100; }
+        .card-scan .card-number { color: #ff9800; }
+
         .card-done { border-top-color: #43a047; }
         .card-done .card-count { color: #2e7d32; }
-        .card-linked { border-top-color: #1976d2; }
-        .card-linked .card-count { color: #1565c0; }
-        .card-unlinked { border-top-color: #e53935; }
-        .card-unlinked .card-count { color: #c62828; }
+        .card-done .card-number { color: #43a047; }
+
+        .card-shortage { border-top-color: #e53935; }
+        .card-shortage .card-count { color: #c62828; }
+        .card-shortage .card-number { color: #e53935; }
+
+        .card-shortage-zero { border-top-color: #43a047; }
+        .card-shortage-zero .card-count { color: #2e7d32; }
+        .card-shortage-zero .card-number { color: #43a047; }
+
+        /* 等号 */
+        .equation-operator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 14px;
+            flex-shrink: 0;
+        }
+        .operator-symbol {
+            font-size: 36px;
+            font-weight: 700;
+            color: #888;
+            line-height: 1;
+        }
+        .eq-match .operator-symbol { color: #2e7d32; }
+        .eq-mismatch .operator-symbol { color: #c62828; }
+
+        /* プラス記号 */
+        .equation-op-small {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 10px;
+            flex-shrink: 0;
+        }
+        .op-symbol-small {
+            font-size: 28px;
+            font-weight: 700;
+            color: #aaa;
+            line-height: 1;
+        }
+
+        /* === 等式検証結果 === */
+        .equation-result {
+            padding: 14px 20px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .equation-result-ok {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        .equation-result-warn {
+            background: #fff3e0;
+            color: #e65100;
+            border: 1px solid #ffe0b2;
+        }
+        .equation-result-error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+        .eq-result-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+            line-height: 1.2;
+        }
+        .eq-result-body {
+            flex: 1;
+        }
+        .eq-result-main {
+            font-weight: 600;
+        }
+        .eq-result-detail {
+            font-size: 13px;
+            font-weight: 400;
+            margin-top: 4px;
+            opacity: 0.85;
+        }
+        .eq-result-formula {
+            font-size: 13px;
+            font-weight: 400;
+            margin-top: 6px;
+            padding: 6px 10px;
+            background: rgba(0,0,0,0.04);
+            border-radius: 4px;
+            font-family: 'Consolas', 'Courier New', monospace;
+        }
 
         /* === 警告メッセージ === */
         .alert {
@@ -114,7 +220,7 @@
             border-radius: 8px;
             box-shadow: 0 1px 4px rgba(0,0,0,0.1);
             overflow: auto;
-            max-height: calc(100vh - 420px);
+            max-height: calc(100vh - 480px);
         }
         table {
             width: 100%;
@@ -178,10 +284,49 @@
             font-size: 13px;
         }
 
-        @media (max-width: 700px) {
-            .card-row { flex-wrap: wrap; }
-            .summary-card { flex: 1 1 calc(50% - 8px); min-width: 140px; }
-            .summary-card .card-count { font-size: 28px; }
+        /* === レスポンシブ === */
+        @media (max-width: 900px) {
+            .equation-container {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 4px;
+            }
+            .equation-container .summary-card {
+                width: 100%;
+            }
+            .equation-operator {
+                padding: 6px 0;
+            }
+            .operator-symbol {
+                font-size: 28px;
+            }
+            .equation-op-small {
+                padding: 4px 0;
+            }
+            .op-symbol-small {
+                font-size: 22px;
+            }
+            .equation-right-group {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0;
+                align-items: center;
+                width: 100%;
+            }
+            .equation-right-group .summary-card {
+                flex: 1;
+                min-width: 100px;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .summary-card .card-count {
+                font-size: 28px;
+            }
+            .summary-card {
+                min-width: 90px;
+                padding: 12px 10px;
+            }
         }
     </style>
 </head>
@@ -194,29 +339,54 @@
     <div id="errorArea"></div>
 
     <div id="dashboard" style="display:none;">
-        <!-- サマリーカード -->
-        <div class="card-row">
-            <div class="summary-card card-scan">
-                <div class="card-count" id="countScan">-</div>
-                <div class="card-label">スキャンPDFフォルダ</div>
-                <div class="card-sub">未処理PDF</div>
+        <!-- 等式レイアウト -->
+        <div class="equation-container">
+            <!-- 左辺: ① データシート総データ数 -->
+            <div class="summary-card card-total">
+                <div class="card-number">①</div>
+                <div class="card-count" id="countTotal">-</div>
+                <div class="card-label">データシート総データ数</div>
+                <div class="card-sub">スプレッドシート行数</div>
             </div>
+
+            <!-- 等号 -->
+            <div class="equation-operator" id="eqSign">
+                <span class="operator-symbol">=</span>
+            </div>
+
+            <!-- 右辺: ② + ③ + ④ -->
+            <div class="summary-card card-scan">
+                <div class="card-number">②</div>
+                <div class="card-count" id="countScan">-</div>
+                <div class="card-label">元PDFファイル数</div>
+                <div class="card-sub">スキャンPDF（未処理）</div>
+            </div>
+
+            <div class="equation-op-small">
+                <span class="op-symbol-small">+</span>
+            </div>
+
             <div class="summary-card card-done">
+                <div class="card-number">③</div>
                 <div class="card-count" id="countDone">-</div>
-                <div class="card-label">入力済みPDFフォルダ</div>
+                <div class="card-label">入力済PDF数</div>
                 <div class="card-sub">処理済みPDF</div>
             </div>
-            <div class="summary-card card-linked">
-                <div class="card-count" id="countLinked">-</div>
-                <div class="card-label">紐づけ済み</div>
-                <div class="card-sub">データシート上</div>
+
+            <div class="equation-op-small">
+                <span class="op-symbol-small">+</span>
             </div>
-            <div class="summary-card card-unlinked">
-                <div class="card-count" id="countUnlinked">-</div>
-                <div class="card-label">未紐づけ</div>
-                <div class="card-sub">紙未到着の可能性</div>
+
+            <div class="summary-card card-shortage" id="cardShortage">
+                <div class="card-number">④</div>
+                <div class="card-count" id="countShortage">-</div>
+                <div class="card-label">紙未到着数</div>
+                <div class="card-sub">① − (②+③)</div>
             </div>
         </div>
+
+        <!-- 等式検証結果 -->
+        <div id="equationResult"></div>
 
         <!-- 警告エリア -->
         <div id="alertArea"></div>
@@ -314,9 +484,14 @@
         function tryRender() {
             if (!pdfData || !noListData) return;
 
-            var scanCount = pdfData.unprocessedCount || 0;
-            var doneCount = pdfData.processedCount || 0;
+            // --- データ計算 ---
+            var totalData = noListData.length;                    // ① データシート総データ数
+            var scanCount = pdfData.unprocessedCount || 0;        // ② 元PDFファイル数
+            var doneCount = pdfData.processedCount || 0;          // ③ 入力済PDF数
+            var totalPdf = scanCount + doneCount;                 // ②+③
+            var shortage = totalData - totalPdf;                  // ④ 紙未到着数（計算値）
 
+            // 未紐づけデータの分類（テーブル用）
             var linked = [];
             var unlinked = [];
             for (var i = 0; i < noListData.length; i++) {
@@ -327,33 +502,86 @@
                     unlinked.push(r);
                 }
             }
-
-            // ソート: No.降順
             unlinked.sort(function(a, b) { return Number(b.no) - Number(a.no); });
 
-            // カード表示
+            // --- カード表示 ---
+            document.getElementById('countTotal').textContent = totalData;
             document.getElementById('countScan').textContent = scanCount;
             document.getElementById('countDone').textContent = doneCount;
-            document.getElementById('countLinked').textContent = linked.length;
-            document.getElementById('countUnlinked').textContent = unlinked.length;
+            document.getElementById('countShortage').textContent = shortage;
 
-            // 警告メッセージ
-            var alertHtml = '';
-            if (unlinked.length > 0) {
-                alertHtml += '<div class="alert alert-warning">';
-                alertHtml += '<span class="alert-icon">&#9888;</span>';
-                alertHtml += '<span>未紐づけのデータが <strong>' + unlinked.length + ' 件</strong>あります。紙回答が未到着の可能性があります。</span>';
-                alertHtml += '</div>';
+            // ④カードの色切替（0なら緑、正なら赤）
+            var cardShortage = document.getElementById('cardShortage');
+            if (shortage <= 0) {
+                cardShortage.className = 'summary-card card-shortage-zero';
+            } else {
+                cardShortage.className = 'summary-card card-shortage';
             }
+
+            // = 記号の切替
+            var eqSign = document.getElementById('eqSign');
+            var eqSymbol = eqSign.querySelector('.operator-symbol');
+            if (shortage >= 0) {
+                // 等式成立（① = ②+③+④ は常に成立するが、shortage >= 0 が正常）
+                eqSign.className = 'equation-operator eq-match';
+                eqSymbol.textContent = '=';
+            } else {
+                // shortage < 0: PDFがデータシートより多い（異常）
+                eqSign.className = 'equation-operator eq-mismatch';
+                eqSymbol.textContent = '\u2260'; // ≠
+            }
+
+            // --- 等式検証結果 ---
+            var eqHtml = '';
+            var formula = '\u2460 ' + totalData + ' = \u2461 ' + scanCount + ' + \u2462 ' + doneCount + ' + \u2463 ' + shortage;
+
+            if (shortage === 0) {
+                // 全データにPDFがある
+                eqHtml += '<div class="equation-result equation-result-ok">';
+                eqHtml += '<span class="eq-result-icon">&#10003;</span>';
+                eqHtml += '<div class="eq-result-body">';
+                eqHtml += '<div class="eq-result-main">全データにPDFが存在します</div>';
+                eqHtml += '<div class="eq-result-formula">' + formula + '</div>';
+                eqHtml += '</div></div>';
+            } else if (shortage > 0) {
+                // 紙未到着あり
+                eqHtml += '<div class="equation-result equation-result-warn">';
+                eqHtml += '<span class="eq-result-icon">&#9888;</span>';
+                eqHtml += '<div class="eq-result-body">';
+                eqHtml += '<div class="eq-result-main">紙未到着のPDFが <strong>' + shortage + ' 件</strong>あります</div>';
+                eqHtml += '<div class="eq-result-detail">\u2460 データシート（' + totalData + '件）に対して、物理PDF（\u2461+\u2462 = ' + totalPdf + '件）が ' + shortage + '件 不足しています</div>';
+                eqHtml += '<div class="eq-result-formula">' + formula + '</div>';
+                eqHtml += '</div></div>';
+            } else {
+                // shortage < 0: 異常
+                eqHtml += '<div class="equation-result equation-result-error">';
+                eqHtml += '<span class="eq-result-icon">&#9888;</span>';
+                eqHtml += '<div class="eq-result-body">';
+                eqHtml += '<div class="eq-result-main">データ不整合: PDFがデータシートより ' + Math.abs(shortage) + '件 多い</div>';
+                eqHtml += '<div class="eq-result-detail">物理PDF（\u2461+\u2462 = ' + totalPdf + '件）がデータシート（\u2460 = ' + totalData + '件）を超えています。余剰PDFの確認が必要です。</div>';
+                eqHtml += '<div class="eq-result-formula">\u2460 ' + totalData + ' \u2260 \u2461 ' + scanCount + ' + \u2462 ' + doneCount + ' + \u2463 ' + shortage + '</div>';
+                eqHtml += '</div></div>';
+            }
+
+            document.getElementById('equationResult').innerHTML = eqHtml;
+
+            // --- 警告メッセージ ---
+            var alertHtml = '';
             if (scanCount > 0) {
                 alertHtml += '<div class="alert alert-info">';
                 alertHtml += '<span class="alert-icon">&#9432;</span>';
-                alertHtml += '<span>スキャンPDFフォルダに未処理のPDFが <strong>' + scanCount + ' 件</strong>あります。PDF紐づけで処理してください。</span>';
+                alertHtml += '<span>\u2461 スキャンPDFフォルダに未処理のPDFが <strong>' + scanCount + ' 件</strong>あります。PDF紐づけで処理してください。</span>';
+                alertHtml += '</div>';
+            }
+            if (unlinked.length > 0 && unlinked.length !== shortage) {
+                alertHtml += '<div class="alert alert-info">';
+                alertHtml += '<span class="alert-icon">&#9432;</span>';
+                alertHtml += '<span>未紐づけデータ: ' + unlinked.length + '件（うち \u2461 スキャン未処理に対応: ' + (unlinked.length - Math.max(shortage, 0)) + '件、紙未到着: ' + Math.max(shortage, 0) + '件）</span>';
                 alertHtml += '</div>';
             }
             document.getElementById('alertArea').innerHTML = alertHtml;
 
-            // 未紐づけテーブル
+            // --- 未紐づけテーブル ---
             var tableHtml = '<div class="section-title">未紐づけデータ一覧（' + unlinked.length + '件）</div>';
             if (unlinked.length === 0) {
                 tableHtml += '<div class="no-data">未紐づけのデータはありません</div>';
