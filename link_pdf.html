@@ -431,6 +431,14 @@
             white-space: nowrap;
             flex-shrink: 0;
         }
+        .pdf-preview-panel .pp-score-detail {
+            font-size: 11px;
+            color: #b45309;
+            white-space: nowrap;
+            flex-shrink: 0;
+            margin-left: auto;
+            letter-spacing: 0.3px;
+        }
         .pdf-preview-panel .pp-body {
             padding: 0;
         }
@@ -770,6 +778,7 @@
                             <button class="pp-nav-btn" id="pdfNextBtn" onclick="navigatePdf(1)" disabled title="次のPDF">&#9654;</button>
                             <span class="pp-counter" id="pdfCounter"></span>
                         </div>
+                        <span class="pp-score-detail" id="pdfScoreDetail"></span>
                     </div>
                     <div class="pp-body" id="pdfPreviewBody">
                         <div class="pp-placeholder">② でPDFファイルを選択するとここにプレビューが表示されます</div>
@@ -1182,14 +1191,20 @@
             return 0;
         }
 
-        // PDF1件のマッチスコア計算（最大100点）
+        // PDF1件のマッチスコア計算（最大100点）— 内訳オブジェクトを返す
         function scorePdfMatch(pdf, patientInfo) {
-            if (!pdf.indexed) return 0;
+            if (!pdf.indexed) return { total: 0, name: 0, birthdate: 0, hospital: 0, id: 0 };
             var nameScore = fuzzyMatchKana(pdf.patientName, patientInfo.name).score;
             var bdScore = scoreBirthdate(pdf.birthdate, patientInfo.birthdate);
             var hospScore = scoreHospital(pdf.hospital, patientInfo.hospital);
             var idScore = scorePatientId(pdf.patientId, patientInfo.id);
-            return nameScore + bdScore + hospScore + idScore;
+            return {
+                total: nameScore + bdScore + hospScore + idScore,
+                name: nameScore,
+                birthdate: bdScore,
+                hospital: hospScore,
+                id: idScore
+            };
         }
 
         // viewDataレスポンスから患者情報を抽出
@@ -1270,9 +1285,9 @@
             var bestIdx = -1;
 
             for (var i = 0; i < drivePdfList.length; i++) {
-                var score = scorePdfMatch(drivePdfList[i], selectedPatientInfo);
-                if (score > bestScore) {
-                    bestScore = score;
+                var result = scorePdfMatch(drivePdfList[i], selectedPatientInfo);
+                if (result.total > bestScore) {
+                    bestScore = result.total;
                     bestPdf = drivePdfList[i];
                     bestIdx = i;
                 }
@@ -1290,6 +1305,17 @@
             } else {
                 dismissAutoCandidate();
             }
+        }
+
+        // オレンジバーにスコア内訳を表示
+        function updateScoreDetail(pdf) {
+            var el = document.getElementById('pdfScoreDetail');
+            if (!selectedPatientInfo || !pdf || !pdf.indexed) {
+                el.textContent = '';
+                return;
+            }
+            var s = scorePdfMatch(pdf, selectedPatientInfo);
+            el.textContent = '[候補確率：名前:' + s.name + '/40 生年月日:' + s.birthdate + '/30 医療機関:' + s.hospital + '/20 ID:' + s.id + '/10]';
         }
 
         // 自動候補バーを表示
@@ -1596,6 +1622,7 @@
             body.innerHTML = '<div class="pp-placeholder">② でPDFファイルを選択するとここにプレビューが表示されます</div>';
             currentPdfIndex = -1;
             updatePdfNavButtons();
+            document.getElementById('pdfScoreDetail').textContent = '';
         }
 
         // ② Google DriveからPDF一覧を読み込み
@@ -1721,6 +1748,7 @@
             updateSaveButton();
             showPdfPreview(pdf.fileId, pdf.fileName);
             updatePdfNavButtons();
+            updateScoreDetail(pdf);
         }
 
         // PDF送り/逆送りナビゲーション（フィルタ済みリスト内で移動）
