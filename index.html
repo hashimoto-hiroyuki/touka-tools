@@ -440,6 +440,11 @@
                     <span class="item-label">PDF紐づけ</span>
                     <span class="tag tag-web">Web</span>
                 </div>
+                <div class="grid-item" data-detail="pdf-arrival" onclick="showDetail('pdf-arrival')">
+                    <div class="item-icon ic-orange"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></div>
+                    <span class="item-label">PDF到着状況</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
                 <div class="grid-item" data-detail="index-pdfs" onclick="showDetail('index-pdfs')">
                     <div class="item-icon ic-blue"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776"/></svg></div>
                     <span class="item-label">PDFインデックス構築</span>
@@ -843,6 +848,34 @@
                         <li>① データ一覧を読み込み、紐づけ対象を選択</li>
                         <li>② Google DriveからPDFファイルを選択（プレビュー確認可能）</li>
                         <li>③ 紐づけ実行 → PDFが入力済みフォルダへ自動移動</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- PDF到着状況 -->
+            <div class="detail" id="detail-pdf-arrival">
+                <div class="detail-header">
+                    <div class="detail-icon ic-orange"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></div>
+                    <div>
+                        <div class="detail-title">PDF到着状況ダッシュボード</div>
+                        <div class="detail-subtitle">紙アンケートの到着・紐づけ状況を確認</div>
+                    </div>
+                <a class="btn-open" href="pdf_arrival_status.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>フォーム回答データとPDFの紐づけ状況をダッシュボード形式で表示します。QRコードで回答済みだが紙アンケートが未到着のデータを特定できます。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>表示内容</h3>
+                    <ul>
+                        <li>スキャンPDFフォルダ・入力済みPDFフォルダのファイル数</li>
+                        <li>データシート上の紐づけ済み・未紐づけ件数</li>
+                        <li>未紐づけデータの一覧（No.・ID・医療機関名）</li>
+                        <li>紙未到着の警告メッセージ</li>
                     </ul>
                 </div>
             </div>
