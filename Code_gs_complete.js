@@ -1495,6 +1495,7 @@ function getUnprocessedPdfs() {
     if (name.toLowerCase().endsWith('.pdf')) {
       unprocessed.push({
         name: name,
+        id: file.getId(),
         date: Utilities.formatDate(file.getDateCreated(), Session.getScriptTimeZone(), 'yyyy/MM/dd HH:mm'),
         size: Math.round(file.getSize() / 1024)
       });
@@ -1512,6 +1513,7 @@ function getUnprocessedPdfs() {
     if (name2.toLowerCase().endsWith('.pdf')) {
       processed.push({
         name: name2,
+        id: file2.getId(),
         date: Utilities.formatDate(file2.getDateCreated(), Session.getScriptTimeZone(), 'yyyy/MM/dd HH:mm'),
         size: Math.round(file2.getSize() / 1024)
       });
@@ -2045,6 +2047,25 @@ function linkPdfFromDrive(params) {
   } catch (e) {
     sourceMsg = ' / （Source変更: スキップ）';
   }
+  // 2.5. 「JSON作成済み」列に「済」を記入
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ss.getSheetByName(RESPONSE_SHEET_NAME);
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var jsonCol = headers.indexOf(JSON_CREATED_COLUMN_NAME);
+    if (jsonCol >= 0) {
+      var noCol = headers.indexOf('No.');
+      var noValues = sheet.getRange(2, noCol + 1, sheet.getLastRow() - 1, 1).getValues();
+      for (var j = 0; j < noValues.length; j++) {
+        if (Number(noValues[j][0]) === no) {
+          sheet.getRange(j + 2, jsonCol + 1).setValue('済');
+          break;
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log('JSON作成済みフラグ更新エラー: ' + e.toString());
+  }
   // 3. PDFファイルを入力済みPDFフォルダへ移動
   var file = DriveApp.getFileById(fileId);
   var destFolder = DriveApp.getFolderById(DONE_PDF_FOLDER_ID);
@@ -2404,32 +2425,10 @@ function indexPdfWithGemini(fileId) {
     return { success: false, message: 'ファイルが見つかりません: ' + e.toString() };
   }
   var fileName = file.getName();
-  // PDFを高解像度画像に変換してBase64エンコード（w4000で高精度OCR）
-  var base64Data;
-  var mimeType;
-  try {
-    // Google DriveのサムネイルAPIでPDFを画像化（高解像度 w4000）
-    var thumbnailUrl = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w4000';
-    var token = ScriptApp.getOAuthToken();
-    var imgResponse = UrlFetchApp.fetch(thumbnailUrl, {
-      headers: { 'Authorization': 'Bearer ' + token },
-      muteHttpExceptions: true
-    });
-    if (imgResponse.getResponseCode() === 200) {
-      base64Data = Utilities.base64Encode(imgResponse.getContent());
-      mimeType = imgResponse.getHeaders()['Content-Type'] || 'image/jpeg';
-    } else {
-      // フォールバック: PDFをそのまま送信
-      var blob = file.getBlob();
-      base64Data = Utilities.base64Encode(blob.getBytes());
-      mimeType = 'application/pdf';
-    }
-  } catch (e) {
-    // フォールバック: PDFをそのまま送信
-    var blob = file.getBlob();
-    base64Data = Utilities.base64Encode(blob.getBytes());
-    mimeType = 'application/pdf';
-  }
+  // PDFを直接Gemini 3 Flash Previewに送信（ローカルテストで全項目認識成功を確認済み）
+  var blob = file.getBlob();
+  var base64Data = Utilities.base64Encode(blob.getBytes());
+  var mimeType = 'application/pdf';
   // Gemini APIで5フィールドOCR（QRチェックボックス判定追加）
   var prompt = 'あなたは日本の医療アンケートのOCRアシスタントです。\n' +
     'このPDFの1ページ目から以下の5つの情報を読み取ってください。\n\n' +
@@ -2459,7 +2458,7 @@ function indexPdfWithGemini(fileId) {
     '- 名前は「テラニシ キョウコ」のように氏と名の間にスペースを入れてください\n' +
     '- qrCheckboxは上記の判定基準に厳密に従い、手書きの印があればtrue、空白のままならfalseにしてください\n' +
     '- JSONのみ出力し、```やマークダウンは不要です';
-  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_API_KEY;
+  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=' + GEMINI_API_KEY;
   var payload = {
     contents: [{
       parts: [
@@ -2474,7 +2473,7 @@ function indexPdfWithGemini(fileId) {
     }],
     generationConfig: {
       temperature: 0.1,
-      maxOutputTokens: 512
+      maxOutputTokens: 1024
     }
   };
   var options = {

@@ -92,6 +92,9 @@
         tbody tr:hover {
             background: #f5f8ff;
         }
+        tbody td a:hover {
+            text-decoration: underline;
+        }
 
         .status-unprocessed {
             color: #e53935;
@@ -216,23 +219,28 @@
 
             let html = '<table><thead><tr>';
             html += '<th style="width:40px;">No.</th>';
+            html += '<th style="width:80px;">状態</th>';
             html += '<th>ファイル名</th>';
             html += '<th style="width:140px;">作成日時</th>';
             html += '<th style="width:80px;">サイズ</th>';
-            html += '<th style="width:80px;">状態</th>';
             html += '</tr></thead><tbody>';
 
             for (let i = 0; i < list.length; i++) {
                 html += '<tr>';
                 html += '<td>' + (i + 1) + '</td>';
-                html += '<td>' + escapeHtml(list[i].name) + '</td>';
-                html += '<td>' + escapeHtml(list[i].date) + '</td>';
-                html += '<td>' + list[i].size + ' KB</td>';
                 if (isUnprocessed) {
                     html += '<td class="status-unprocessed">未処理</td>';
                 } else {
                     html += '<td class="status-processed">処理済み</td>';
                 }
+                if (list[i].id) {
+                    var driveUrl = 'https://drive.google.com/file/d/' + list[i].id + '/view';
+                    html += '<td><a href="' + driveUrl + '" target="_blank" style="color:#1976d2; text-decoration:none;">' + escapeHtml(list[i].name) + '</a></td>';
+                } else {
+                    html += '<td>' + escapeHtml(list[i].name) + '</td>';
+                }
+                html += '<td>' + escapeHtml(list[i].date) + '</td>';
+                html += '<td>' + list[i].size + ' KB</td>';
                 html += '</tr>';
             }
 
