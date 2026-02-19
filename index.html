@@ -257,21 +257,23 @@
         .btn-open {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 10px 24px;
-            font-size: 14px;
+            gap: 6px;
+            padding: 7px 16px;
+            font-size: 13px;
             font-weight: 600;
             color: #fff;
             background: #667eea;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             text-decoration: none;
-            margin-top: 8px;
+            margin-left: auto;
+            flex-shrink: 0;
+            white-space: nowrap;
             transition: opacity 0.15s;
         }
         .btn-open:hover { opacity: 0.85; }
-        .btn-open svg { width: 16px; height: 16px; stroke: #fff; }
+        .btn-open svg { width: 14px; height: 14px; stroke: #fff; }
 
         .btn-open.btn-local {
             background: #e57373;
@@ -311,6 +313,8 @@
             .cat-cards { gap: 8px; }
             .cat-card { min-width: 140px; }
             .main-panel { padding: 16px; }
+            .detail .detail-header { flex-wrap: wrap; }
+            .btn-open { padding: 6px 14px; font-size: 12px; }
         }
     </style>
 </head>
@@ -493,6 +497,10 @@
                         <div class="detail-title">アンケート作成ツール</div>
                         <div class="detail-subtitle">Vercelにデプロイされたウェブアプリ</div>
                     </div>
+                <a class="btn-open btn-vercel" href="https://touka-survey.vercel.app" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -507,10 +515,6 @@
                         <li>ブラウザから直接印刷</li>
                     </ul>
                 </div>
-                <a class="btn-open btn-vercel" href="https://touka-survey.vercel.app" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
-                </a>
             </div>
 
             <!-- GitHub -->
@@ -521,6 +525,10 @@
                         <div class="detail-title">touka-survey</div>
                         <div class="detail-subtitle">GitHubリポジトリ</div>
                     </div>
+                <a class="btn-open btn-github" href="https://github.com/hashimoto-hiroyuki/touka-survey" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    GitHubを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -534,10 +542,6 @@
                         <li>QRコード生成ライブラリ</li>
                     </ul>
                 </div>
-                <a class="btn-open btn-github" href="https://github.com/hashimoto-hiroyuki/touka-survey" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    GitHubを開く
-                </a>
             </div>
 
             <!-- アンケート白紙 -->
@@ -548,6 +552,10 @@
                         <div class="detail-title">アンケート白紙</div>
                         <div class="detail-subtitle">医療機関名・QRコードなしの白紙用紙</div>
                     </div>
+                <a class="btn-open" href="https://drive.google.com/file/d/1eBUtw9wJfi8pa8z2aNz2QoyzHjampd8V/view?usp=drive_link" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    PDFを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -560,10 +568,6 @@
                         <tr><th>場所</th><td>Google Drive</td></tr>
                     </table>
                 </div>
-                <a class="btn-open" href="https://drive.google.com/file/d/1eBUtw9wJfi8pa8z2aNz2QoyzHjampd8V/view?usp=drive_link" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    PDFを開く
-                </a>
             </div>
 
             <!-- アンケートフォーム -->
@@ -574,6 +578,10 @@
                         <div class="detail-title">アンケートフォーム</div>
                         <div class="detail-subtitle">Googleフォームによるオンライン回答</div>
                     </div>
+                <a class="btn-open btn-vercel" href="https://forms.gle/4gmJpKRGBNspNryw9" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    フォームを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -587,10 +595,6 @@
                         <li>回答はGoogleスプレッドシートに自動保存</li>
                     </ul>
                 </div>
-                <a class="btn-open btn-vercel" href="https://forms.gle/4gmJpKRGBNspNryw9" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    フォームを開く
-                </a>
             </div>
 
             <!-- OCR読み取り＋照合 -->
@@ -635,6 +639,10 @@
                         <div class="detail-title">OCR照合（共有版）</div>
                         <div class="detail-subtitle">メンバーと手分けしてOCR結果を照合</div>
                     </div>
+                <a class="btn-open" href="verify_ocr.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -659,10 +667,6 @@
                         <li>照合完了後、元PDFを入力済みフォルダへ自動移動</li>
                     </ul>
                 </div>
-                <a class="btn-open" href="verify_ocr.html" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
-                </a>
             </div>
 
             <!-- PDF先読み照合 -->
@@ -673,6 +677,10 @@
                         <div class="detail-title" style="text-decoration: line-through; opacity: 0.5;">PDF先読み照合</div>
                         <div class="detail-subtitle" style="text-decoration: line-through; opacity: 0.5;">PDFを先読みし高速にOCR照合（未着手）</div>
                     </div>
+                <a class="btn-open" href="prefetch_verify.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -688,10 +696,6 @@
                         <li>照合完了後、スプレッドシートへ自動保存</li>
                     </ul>
                 </div>
-                <a class="btn-open" href="prefetch_verify.html" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
-                </a>
             </div>
 
             <!-- 紙回答の自動OCR＋照合支援 -->
@@ -702,6 +706,10 @@
                         <div class="detail-title" style="text-decoration: line-through; opacity: 0.5;">紙回答の自動OCR＋照合支援</div>
                         <div class="detail-subtitle" style="text-decoration: line-through; opacity: 0.5;">QRコード未回答のPDFを抽出・OCR処理（開発中止）</div>
                     </div>
+                <a class="btn-open" href="paper_ocr_verify.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -717,10 +725,6 @@
                         <li>PDFプレビュー機能</li>
                     </ul>
                 </div>
-                <a class="btn-open" href="paper_ocr_verify.html" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
-                </a>
             </div>
 
             <!-- PDF処理状況チェック -->
@@ -731,6 +735,10 @@
                         <div class="detail-title">PDF処理状況チェック</div>
                         <div class="detail-subtitle">Google Driveフォルダの処理状況を確認</div>
                     </div>
+                <a class="btn-open" href="check_pdf_status.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -744,10 +752,6 @@
                         <li>ファイル名・作成日時・サイズを一覧表示</li>
                     </ul>
                 </div>
-                <a class="btn-open" href="check_pdf_status.html" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
-                </a>
             </div>
 
             <!-- データ閲覧 -->
@@ -758,6 +762,10 @@
                         <div class="detail-title">データ閲覧</div>
                         <div class="detail-subtitle">回答データの一覧表示・検索</div>
                     </div>
+                <a class="btn-open" href="view_data.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -772,10 +780,6 @@
                         <li>各患者の詳細データ展開表示</li>
                     </ul>
                 </div>
-                <a class="btn-open" href="view_data.html" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
-                </a>
             </div>
 
             <!-- PDF紐づけ -->
@@ -786,6 +790,10 @@
                         <div class="detail-title">PDF紐づけ</div>
                         <div class="detail-subtitle">フォーム回答とスキャンPDFの紐づけ</div>
                     </div>
+                <a class="btn-open" href="link_pdf.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -799,10 +807,6 @@
                         <li>③ 紐づけ実行 → PDFが入力済みフォルダへ自動移動</li>
                     </ul>
                 </div>
-                <a class="btn-open" href="link_pdf.html" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
-                </a>
             </div>
 
             <!-- テストデータ削除 -->
@@ -813,6 +817,10 @@
                         <div class="detail-title">テストデータ削除</div>
                         <div class="detail-subtitle">テスト用データの番号指定削除</div>
                     </div>
+                <a class="btn-open" href="delete_test_data.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -826,10 +834,6 @@
                         <li>パスワード認証で保護されています</li>
                     </ul>
                 </div>
-                <a class="btn-open" href="delete_test_data.html" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
-                </a>
             </div>
 
             <!-- JSON復元 -->
@@ -840,6 +844,10 @@
                         <div class="detail-title">JSON復元ツール</div>
                         <div class="detail-subtitle">JSONファイルからスプレッドシートを復元</div>
                     </div>
+                <a class="btn-open" href="restore_from_json.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -853,10 +861,6 @@
                         <li>既存No.との重複チェック（スキップ）</li>
                     </ul>
                 </div>
-                <a class="btn-open" href="restore_from_json.html" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
-                </a>
             </div>
 
             <!-- 検体番号検索 -->
@@ -867,6 +871,10 @@
                         <div class="detail-title">検体番号検索</div>
                         <div class="detail-subtitle">氏名・生年月日から検体No.を検索</div>
                     </div>
+                <a class="btn-open" href="search_sample.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -881,10 +889,6 @@
                         <li>パスワード認証で保護されています</li>
                     </ul>
                 </div>
-                <a class="btn-open" href="search_sample.html" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
-                </a>
             </div>
 
             <!-- 全体データフロー -->
@@ -895,6 +899,10 @@
                         <div class="detail-title">全体データフロー</div>
                         <div class="detail-subtitle">糖化アンケート管理システムのデータの流れを図解</div>
                     </div>
+                <a class="btn-open" href="https://docs.google.com/presentation/d/1ciOK-SHLd32RmyNOaqrEYjkGGpakIyxK/edit?slide=id.p1#slide=id.p1" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    スライドを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -909,10 +917,6 @@
                         <li>各アプリの役割と接続関係</li>
                     </ul>
                 </div>
-                <a class="btn-open" href="https://docs.google.com/presentation/d/1ciOK-SHLd32RmyNOaqrEYjkGGpakIyxK/edit?slide=id.p1#slide=id.p1" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    スライドを開く
-                </a>
             </div>
 
             <!-- PDFからフォーム入力するときの作業フロー -->
@@ -923,6 +927,10 @@
                         <div class="detail-title">PDFからフォーム入力するときの作業フロー</div>
                         <div class="detail-subtitle">第三者がPDFを見ながらデータシートを完成させる手順</div>
                     </div>
+                <a class="btn-open" href="workflow_chart.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -936,10 +944,6 @@
                         <li>ステップ3：検体番号検索（search_sample.html）で紐づけ</li>
                     </ul>
                 </div>
-                <a class="btn-open" href="workflow_chart.html" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
-                </a>
             </div>
 
             <!-- 元PDF閲覧ビューア -->
@@ -950,6 +954,10 @@
                         <div class="detail-title">元PDF閲覧ビューア</div>
                         <div class="detail-subtitle">Google Drive上のスキャンPDFをブラウザで快適に閲覧</div>
                     </div>
+                <a class="btn-open" href="view_pdf.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -964,10 +972,6 @@
                         <li>閲覧専用 — データの変更や移動は行いません</li>
                     </ul>
                 </div>
-                <a class="btn-open" href="view_pdf.html" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
-                </a>
             </div>
 
             <!-- PDFインデックス構築 -->
@@ -978,6 +982,10 @@
                         <div class="detail-title">PDFインデックス構築</div>
                         <div class="detail-subtitle">スキャンPDFから医療機関名・患者名・生年月日を事前読み取り</div>
                     </div>
+                <a class="btn-open" href="index_pdfs.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -992,10 +1000,6 @@
                         <li>検索・フィルタリングによるインデックス確認</li>
                     </ul>
                 </div>
-                <a class="btn-open" href="index_pdfs.html" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
-                </a>
             </div>
 
             <!-- HbA1c追跡データ入力 -->
@@ -1006,6 +1010,10 @@
                         <div class="detail-title">HbA1c追跡データ入力</div>
                         <div class="detail-subtitle">患者ごとのHbA1c等追跡値を入力</div>
                     </div>
+                <a class="btn-open" href="HbA1c_tracking_input.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -1020,10 +1028,6 @@
                         <li>測定日</li>
                     </ul>
                 </div>
-                <a class="btn-open" href="HbA1c_tracking_input.html" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
-                </a>
             </div>
 
             <!-- HbA1c追跡データを開く -->
@@ -1034,15 +1038,15 @@
                         <div class="detail-title">HbA1c追跡データを開く</div>
                         <div class="detail-subtitle">Googleスプレッドシートで追跡データを閲覧</div>
                     </div>
+                <a class="btn-open btn-vercel" href="https://docs.google.com/spreadsheets/d/1jr25zPPv2qCHkgXNA6oHV5eoSq0RcxpXEirWq0V5YA8/edit?gid=0#gid=0" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    スプレッドシートを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
                     <p>HbA1c追跡データが保存されているGoogleスプレッドシートを直接開きます。入力済みのデータの確認・編集が可能です。</p>
                 </div>
-                <a class="btn-open btn-vercel" href="https://docs.google.com/spreadsheets/d/1jr25zPPv2qCHkgXNA6oHV5eoSq0RcxpXEirWq0V5YA8/edit?gid=0#gid=0" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    スプレッドシートを開く
-                </a>
             </div>
 
             <!-- 検体PpP値入力 -->
@@ -1053,6 +1057,10 @@
                         <div class="detail-title">検体PpP値入力</div>
                         <div class="detail-subtitle">患者ごとの検体PpP値を入力</div>
                     </div>
+                <a class="btn-open" href="PpP_input.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
@@ -1066,10 +1074,6 @@
                         <li>測定日</li>
                     </ul>
                 </div>
-                <a class="btn-open" href="PpP_input.html" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
-                </a>
             </div>
 
             <!-- PpP値データを開く -->
@@ -1080,15 +1084,15 @@
                         <div class="detail-title">PpP値データを開く</div>
                         <div class="detail-subtitle">Googleスプレッドシートで検体データを閲覧</div>
                     </div>
+                <a class="btn-open btn-vercel" href="https://docs.google.com/spreadsheets/d/1y4z8dZjKuJKOS0HUxmnSSfkkvhRWkQpb--TXGm5amvs/edit?gid=0#gid=0" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    スプレッドシートを開く
+                </a>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
                     <p>検体PpP（ペントシジン）値のデータが保存されているGoogleスプレッドシートを直接開きます。入力済みのデータの確認・編集が可能です。</p>
                 </div>
-                <a class="btn-open btn-vercel" href="https://docs.google.com/spreadsheets/d/1y4z8dZjKuJKOS0HUxmnSSfkkvhRWkQpb--TXGm5amvs/edit?gid=0#gid=0" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    スプレッドシートを開く
-                </a>
             </div>
 
         </div><!-- /main-panel -->
