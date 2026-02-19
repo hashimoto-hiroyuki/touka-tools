@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -11,33 +11,36 @@
             font-family: 'Segoe UI', 'Yu Gothic UI', 'Meiryo', sans-serif;
             background: #f5f5f5;
             padding: 20px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         h1 {
             font-size: 20px;
             color: #333;
-            margin-bottom: 16px;
+            margin-bottom: 8px;
+        }
+        .description {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 12px;
         }
 
         .btn-refresh {
             display: inline-block;
-            padding: 10px 24px;
-            font-size: 14px;
+            padding: 8px 20px;
+            font-size: 13px;
             font-weight: bold;
             color: #fff;
             background: #667eea;
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
-        .btn-refresh:hover {
-            opacity: 0.85;
-        }
-        .btn-refresh:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        .btn-refresh:hover { opacity: 0.85; }
+        .btn-refresh:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .tab-bar {
             display: flex;
@@ -45,8 +48,8 @@
             margin-bottom: 0;
         }
         .tab-btn {
-            padding: 10px 20px;
-            font-size: 14px;
+            padding: 8px 16px;
+            font-size: 13px;
             font-weight: bold;
             border: none;
             border-radius: 8px 8px 0 0;
@@ -62,37 +65,95 @@
             color: #1976d2;
         }
 
-        .tab-content {
+        /* === 2カラムレイアウト === */
+        .split-layout {
+            display: flex;
+            gap: 0;
+            flex: 1;
+            min-height: 0;
             background: #fff;
             border-radius: 0 8px 8px 8px;
             box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-            overflow: auto;
-            max-height: calc(100vh - 320px);
+            overflow: hidden;
         }
 
+        .file-list-pane {
+            width: 480px;
+            min-width: 380px;
+            overflow: auto;
+            border-right: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        .preview-pane {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #fafafa;
+            min-width: 0;
+        }
+        .preview-pane iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .preview-placeholder {
+            color: #bbb;
+            font-size: 14px;
+            text-align: center;
+            padding: 40px;
+        }
+        .preview-placeholder svg {
+            width: 48px;
+            height: 48px;
+            stroke: #ddd;
+            display: block;
+            margin: 0 auto 12px;
+        }
+
+        /* === テーブル === */
         table {
+            width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 12px;
         }
         thead th {
             position: sticky;
             top: 0;
             background: #f8f9fa;
-            padding: 10px 12px;
+            padding: 8px 10px;
             text-align: left;
             border-bottom: 2px solid #dee2e6;
-            font-size: 12px;
+            font-size: 11px;
             color: #555;
             z-index: 10;
+            white-space: nowrap;
         }
         tbody td {
-            padding: 8px 12px;
+            padding: 6px 10px;
             border-bottom: 1px solid #f0f0f0;
         }
-        tbody tr:hover {
-            background: #f5f8ff;
+        tbody tr {
+            cursor: pointer;
+            transition: background 0.1s;
         }
-        tbody td a:hover {
+        tbody tr:hover {
+            background: #f0f5ff;
+        }
+        tbody tr.selected {
+            background: #e3f2fd;
+        }
+        tbody tr.selected td {
+            font-weight: 600;
+        }
+
+        .file-name-link {
+            color: #1976d2;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .file-name-link:hover {
             text-decoration: underline;
         }
 
@@ -108,41 +169,56 @@
             text-align: center;
             padding: 40px;
             color: #888;
-            font-size: 16px;
+            font-size: 14px;
         }
         .error-msg {
             background: #ffebee;
             color: #c62828;
             padding: 12px 16px;
             border-radius: 8px;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
         }
         .no-data {
             text-align: center;
             padding: 30px;
             color: #888;
-            font-size: 14px;
+            font-size: 13px;
         }
     </style>
 </head>
 <body>
     <h1>PDF処理状況チェック</h1>
-    <p style="color:#888; font-size:13px; margin-bottom:16px;">Google Drive上のスキャンPDFフォルダを確認し、OCR処理済み／未処理のステータスを一覧表示します。未処理のPDFはOCR読み取りやPDF紐づけで処理してください。</p>
+    <p class="description">Google Drive上のスキャンPDFフォルダを確認し、OCR処理済み／未処理のステータスを一覧表示します。ファイル名をクリックすると右側にプレビュー表示されます。</p>
 
     <button class="btn-refresh" id="refreshBtn" onclick="loadData()">最新データを取得</button>
 
     <div id="errorArea"></div>
 
-    <div id="tabArea" style="display:none;">
+    <div id="tabArea" style="display:none; flex:1; display:flex; flex-direction:column; min-height:0;">
         <div class="tab-bar">
             <button class="tab-btn active" id="tabUnprocessed" onclick="showTab('unprocessed')">未処理 - スキャンPDFフォルダ (<span id="tabUnprocessedCount">0</span>)</button>
             <button class="tab-btn processed-tab" id="tabProcessed" onclick="showTab('processed')">処理済み - 入力済みPDFフォルダ (<span id="tabProcessedCount">0</span>)</button>
         </div>
 
-        <div class="tab-content" id="unprocessedContent">
-            <div class="loading" id="loadingMsg">読み込み中...</div>
+        <div class="split-layout" id="unprocessedContent">
+            <div class="file-list-pane">
+                <div class="loading" id="loadingMsg">読み込み中...</div>
+            </div>
+            <div class="preview-pane" id="unprocessedPreview">
+                <div class="preview-placeholder">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                    ファイル名をクリックするとプレビューが表示されます
+                </div>
+            </div>
         </div>
-        <div class="tab-content" id="processedContent" style="display:none;">
+        <div class="split-layout" id="processedContent" style="display:none;">
+            <div class="file-list-pane"></div>
+            <div class="preview-pane" id="processedPreview">
+                <div class="preview-placeholder">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                    ファイル名をクリックするとプレビューが表示されます
+                </div>
+            </div>
         </div>
     </div>
 
@@ -202,14 +278,16 @@
         }
 
         function renderTabs(data) {
-            document.getElementById('tabArea').style.display = 'block';
+            document.getElementById('tabArea').style.display = 'flex';
             document.getElementById('tabUnprocessedCount').textContent = data.unprocessedCount;
             document.getElementById('tabProcessedCount').textContent = data.processedCount;
 
             // 未処理テーブル
-            document.getElementById('unprocessedContent').innerHTML = buildTable(data.unprocessed, true);
+            var unListPane = document.querySelector('#unprocessedContent .file-list-pane');
+            unListPane.innerHTML = buildTable(data.unprocessed, true);
             // 処理済みテーブル
-            document.getElementById('processedContent').innerHTML = buildTable(data.processed, false);
+            var prListPane = document.querySelector('#processedContent .file-list-pane');
+            prListPane.innerHTML = buildTable(data.processed, false);
         }
 
         function buildTable(list, isUnprocessed) {
@@ -217,28 +295,26 @@
                 return '<div class="no-data">' + (isUnprocessed ? '未処理のPDFはありません' : '処理済みのPDFはありません') + '</div>';
             }
 
-            let html = '<table><thead><tr>';
-            html += '<th style="width:40px;">No.</th>';
-            html += '<th style="width:80px;">状態</th>';
+            var tabId = isUnprocessed ? 'unprocessed' : 'processed';
+
+            var html = '<table><thead><tr>';
+            html += '<th style="width:32px;">No.</th>';
+            html += '<th style="width:56px;">状態</th>';
             html += '<th>ファイル名</th>';
-            html += '<th style="width:140px;">作成日時</th>';
-            html += '<th style="width:80px;">サイズ</th>';
+            html += '<th style="width:120px;">作成日時</th>';
+            html += '<th style="width:60px;">サイズ</th>';
             html += '</tr></thead><tbody>';
 
-            for (let i = 0; i < list.length; i++) {
-                html += '<tr>';
+            for (var i = 0; i < list.length; i++) {
+                var fileId = list[i].id || '';
+                html += '<tr data-file-id="' + fileId + '" data-tab="' + tabId + '" onclick="selectFile(this)">';
                 html += '<td>' + (i + 1) + '</td>';
                 if (isUnprocessed) {
                     html += '<td class="status-unprocessed">未処理</td>';
                 } else {
                     html += '<td class="status-processed">処理済み</td>';
                 }
-                if (list[i].id) {
-                    var driveUrl = 'https://drive.google.com/file/d/' + list[i].id + '/view';
-                    html += '<td><a href="' + driveUrl + '" target="_blank" style="color:#1976d2; text-decoration:none;">' + escapeHtml(list[i].name) + '</a></td>';
-                } else {
-                    html += '<td>' + escapeHtml(list[i].name) + '</td>';
-                }
+                html += '<td class="file-name-link">' + escapeHtml(list[i].name) + '</td>';
                 html += '<td>' + escapeHtml(list[i].date) + '</td>';
                 html += '<td>' + list[i].size + ' KB</td>';
                 html += '</tr>';
@@ -248,17 +324,37 @@
             return html;
         }
 
+        function selectFile(tr) {
+            var fileId = tr.getAttribute('data-file-id');
+            var tabId = tr.getAttribute('data-tab');
+
+            if (!fileId) return;
+
+            // ハイライト: 同じタブ内の全行からselectedを除去し、クリック行に付与
+            var container = document.getElementById(tabId + 'Content');
+            var rows = container.querySelectorAll('tbody tr');
+            for (var i = 0; i < rows.length; i++) {
+                rows[i].classList.remove('selected');
+            }
+            tr.classList.add('selected');
+
+            // プレビュー表示
+            var previewPane = document.getElementById(tabId + 'Preview');
+            var embedUrl = 'https://drive.google.com/file/d/' + fileId + '/preview';
+            previewPane.innerHTML = '<iframe src="' + embedUrl + '"></iframe>';
+        }
+
         function showTab(tab) {
             if (tab === 'unprocessed') {
                 document.getElementById('tabUnprocessed').classList.add('active');
                 document.getElementById('tabProcessed').classList.remove('active');
-                document.getElementById('unprocessedContent').style.display = 'block';
+                document.getElementById('unprocessedContent').style.display = 'flex';
                 document.getElementById('processedContent').style.display = 'none';
             } else {
                 document.getElementById('tabUnprocessed').classList.remove('active');
                 document.getElementById('tabProcessed').classList.add('active');
                 document.getElementById('unprocessedContent').style.display = 'none';
-                document.getElementById('processedContent').style.display = 'block';
+                document.getElementById('processedContent').style.display = 'flex';
             }
         }
 
