@@ -555,11 +555,9 @@
         if (v === 'はい') return ['はい', null];
         if (v === 'いいえ') return ['いいえ', null];
         if (v === '未回答') return [null, null];
-        if (v === '5年未満') return ['はい', '3年以内'];
-        if (v === '5〜10年前' || v === '5～10年前')
-            return ['はい', questionType === 'diabetes' ? '10年以内' : '3～10年以内'];
-        if (v === '10年以上前')
-            return ['はい', questionType === 'diabetes' ? 'もっと以前' : '10年以上前'];
+        if (v === '5年未満') return ['はい', '5年未満'];
+        if (v === '5〜10年前' || v === '5～10年前') return ['はい', '5〜10年前'];
+        if (v === '10年以上前') return ['はい', '10年以上前'];
         if (v === 'わからない') return ['はい', 'わからない'];
         return [v, null];
     }
@@ -573,8 +571,7 @@
     function parseExercise(value) {
         if (!value) return null;
         var v = value.trim();
-        if (v === 'はい') return 'しない';
-        if (v === 'いいえ' || v === '未回答') return null;
+        if (v === '未回答') return null;
         return v.replace('~', '～');
     }
 
@@ -670,8 +667,8 @@
         o['19. ご両親に糖尿病歴はありますか？'] = pr[0] || '';
         o['20. 何年前からですか？'] = pr[1] || '';
         o['21. 普段、運動をしてますか？'] = parseExercise(input['質問10_運動']) || '';
-        o['22. 普段、飲む物は何ですか？'] = parseDrinks(input['質問12_飲み物']) || '';
-        o['23. 普段、お菓子、スイーツなどは食べますか？'] = parseSweets(input['質問11_お菓子']) || '';
+        o['22. 普段、飲む物は何ですか？'] = parseDrinks(input['質問11_飲み物']) || '';
+        o['23. 普段、お菓子、スイーツなどは食べますか？'] = parseSweets(input['質問12_お菓子']) || '';
         var alc = parseAlcohol(input['質問13_飲酒習慣']);
         Object.assign(o, alc);
         o['抜去位置'] = input['質問14_歯の抜去位置'] || '';
