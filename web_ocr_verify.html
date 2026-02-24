@@ -702,10 +702,11 @@
             }
             if (!pageEl) return;
 
-            // ステップ1: 左パネル — PDF矩形上端をパネル上端にスクロール
+            // ステップ1: 左パネル — PDF矩形上端をパネル上端から少し下にスクロール
+            var pdfTopMargin = 4; // 上端の余白px（ヘッダーに隠れ防止）
             var rectScreenY = getPdfRectScreenY(wrapper, qr, pageEl);
             var wrapperRect = wrapper.getBoundingClientRect();
-            var pdfScrollDelta = rectScreenY - wrapperRect.top;
+            var pdfScrollDelta = rectScreenY - wrapperRect.top - pdfTopMargin;
             var pdfDesiredScroll = wrapper.scrollTop + pdfScrollDelta;
             var pdfMaxScroll = wrapper.scrollHeight - wrapper.clientHeight;
             wrapper.scrollTo({ top: Math.max(0, Math.min(pdfDesiredScroll, Math.max(0, pdfMaxScroll))), behavior: 'smooth' });
