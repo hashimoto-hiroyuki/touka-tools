@@ -130,6 +130,9 @@
                         <div class="pdf-preview-header">
                             <h3 id="pdfTitle">-</h3>
                             <span id="pageIndicator" style="display:none; font-size:11px; color:#e65100; font-weight:600; background:#fff3e0; padding:2px 8px; border-radius:10px;"></span>
+                            <button class="btn-toggle-preview" onclick="zoomPdf(-1)" title="縮小">−</button>
+                            <span id="zoomLevel" style="font-size:11px; color:#555; min-width:36px; text-align:center;">100%</span>
+                            <button class="btn-toggle-preview" onclick="zoomPdf(1)" title="拡大">＋</button>
                             <button class="btn-toggle-preview" onclick="startCurrentRectDefine()" title="現在の質問のハイライト矩形を定義" id="btnRectDefine">矩形定義</button>
                             <button class="btn-toggle-preview" onclick="adjustHighlight()" title="全矩形のリセット" style="font-size:10px;">リセット</button>
                             <button class="btn-toggle-preview" onclick="togglePreview()">プレビュー非表示</button>
@@ -363,6 +366,8 @@
 
         var pdfPageWrappers = [];  // 各ページのwrapperDiv
         var pdfDoc = null;
+        var currentScale = 1.5;  // PDF.jsの描画スケール
+        var baseScale = 1.5;     // 100%に対応するスケール
 
         function loadPdfWithPdfJs(fileId) {
             var container = document.getElementById('pdfPagesContainer');
@@ -410,8 +415,7 @@
 
         function renderPage(pdf, pageNum, container) {
             return pdf.getPage(pageNum).then(function(page) {
-                var scale = 1.5;
-                var viewport = page.getViewport({ scale: scale });
+                var viewport = page.getViewport({ scale: currentScale });
                 var canvas = document.createElement('canvas');
                 canvas.width = viewport.width;
                 canvas.height = viewport.height;
@@ -433,6 +437,32 @@
                 var ctx = canvas.getContext('2d');
                 return page.render({ canvasContext: ctx, viewport: viewport }).promise;
             });
+        }
+
+        function reRenderAllPages() {
+            if (!pdfDoc) return;
+            var container = document.getElementById('pdfPagesContainer');
+            container.innerHTML = '';
+            pdfPageWrappers = [];
+            var renderPromises = [];
+            for (var p = 1; p <= pdfDoc.numPages; p++) {
+                renderPromises.push(renderPage(pdfDoc, p, container));
+            }
+            Promise.all(renderPromises).then(function() {
+                // ハイライト再表示
+                if (activeQuestionIdx >= 0) highlightPdfPosition(activeQuestionIdx);
+            });
+        }
+
+        function zoomPdf(direction) {
+            var step = 0.25;
+            var newScale = currentScale + direction * step;
+            if (newScale < 0.5) newScale = 0.5;
+            if (newScale > 4.0) newScale = 4.0;
+            currentScale = newScale;
+            var pct = Math.round((currentScale / baseScale) * 100);
+            document.getElementById('zoomLevel').textContent = pct + '%';
+            reRenderAllPages();
         }
 
         function togglePreview() {
