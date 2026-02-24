@@ -43,33 +43,25 @@
         .pdf-iframe-wrapper { flex: 1; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; position: relative; }
         .pdf-iframe-wrapper iframe { width: 100%; height: 100%; border: none; }
         /* PDFナビゲーション用ミニマップ */
-        .pdf-nav-bar { position: absolute; top: 0; right: 0; width: 28px; height: 100%; background: rgba(0,0,0,0.03); border-left: 1px solid #e0e0e0; z-index: 10; display: flex; flex-direction: column; }
-        .pdf-nav-marker { position: absolute; right: 2px; width: 22px; height: 14px; background: rgba(230,81,0,0.2); border: 1px solid rgba(230,81,0,0.4); border-radius: 2px; cursor: pointer; transition: background 0.2s, transform 0.2s; font-size: 7px; color: #e65100; display: flex; align-items: center; justify-content: center; line-height: 1; }
-        .pdf-nav-marker:hover { background: rgba(230,81,0,0.4); transform: scaleX(1.2); }
-        .pdf-nav-marker.active { background: rgba(230,81,0,0.6); border-color: #e65100; color: #fff; font-weight: 700; transform: scaleX(1.3); }
-        /* PDFハイライトオーバーレイ */
-        .pdf-highlight-overlay { position: absolute; top: 0; left: 0; width: calc(100% - 28px); height: 100%; pointer-events: none; z-index: 5; }
-        .pdf-highlight-overlay.calibrating { pointer-events: auto; cursor: crosshair; }
-        .pdf-highlight-rect { position: absolute; background: rgba(255,235,59,0.3); border: 2px solid rgba(255,152,0,0.7); border-radius: 3px; transition: all 0.3s ease; animation: highlightPulse 1.5s ease-in-out; }
-        @keyframes highlightPulse { 0% { background: rgba(255,235,59,0.6); } 50% { background: rgba(255,235,59,0.15); } 100% { background: rgba(255,235,59,0.3); } }
-        .calibration-dot { position: absolute; width: 10px; height: 10px; background: #e65100; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 4px rgba(0,0,0,0.5); transform: translate(-50%, -50%); z-index: 20; pointer-events: none; }
-        .calibration-banner { position: absolute; top: 0; left: 0; right: 28px; background: rgba(230,81,0,0.9); color: #fff; padding: 8px 16px; font-size: 13px; font-weight: 600; z-index: 20; text-align: center; }
-        .btn-calibrate { background: none; border: 1px solid #ddd; border-radius: 4px; padding: 3px 8px; font-size: 10px; cursor: pointer; color: #555; margin-left: 8px; }
-        .btn-calibrate:hover { background: #f0f0f0; }
+        .pdf-nav-bar { position: absolute; top: 0; right: 0; width: 28px; height: 100%; background: rgba(0,0,0,0.03); border-left: 1px solid #e0e0e0; z-index: 10; }
+        .pdf-nav-marker { position: absolute; right: 2px; width: 22px; height: 14px; background: rgba(230,81,0,0.15); border: 1px solid rgba(230,81,0,0.3); border-radius: 2px; cursor: pointer; transition: background 0.2s, transform 0.2s; font-size: 7px; color: #e65100; display: flex; align-items: center; justify-content: center; line-height: 1; }
+        .pdf-nav-marker:hover { background: rgba(230,81,0,0.35); transform: scaleX(1.2); }
+        .pdf-nav-marker.active { background: rgba(230,81,0,0.6); border-color: #e65100; color: #fff; font-weight: 700; transform: scaleX(1.3); box-shadow: -2px 0 6px rgba(230,81,0,0.3); }
         .ocr-button-section { padding: 12px 20px; background: #fff; border-bottom: 1px solid #e0e0e0; text-align: center; flex-shrink: 0; }
         .btn-ocr { padding: 12px 40px; background: #e65100; color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
         .btn-ocr:hover { background: #bf360c; }
         .btn-ocr:disabled { background: #ccc; cursor: not-allowed; }
         .ocr-status { margin-top: 8px; font-size: 13px; color: #666; }
         .questions-area { padding: 12px 16px; overflow-y: auto; flex: 1; }
-        .q-block { background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 8px; padding: 12px 16px; display: flex; align-items: flex-start; gap: 12px; transition: border-color 0.2s, background 0.2s; cursor: pointer; }
+        .q-block { background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 8px; padding: 12px 16px; display: flex; align-items: flex-start; gap: 12px; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s; cursor: pointer; }
         .q-block.q-active { border-color: #ff9800; box-shadow: 0 0 0 2px rgba(255,152,0,0.25); }
         .q-block.confirmed { border-color: #a5d6a7; background: #f1f8e9; }
         .q-block.needs-check { border-color: #ffcc80; background: #fff8e1; }
         .q-content { flex: 1; }
-        .q-label { font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; }
+        .q-label { font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
         .q-label .confidence { font-weight: 400; color: #999; margin-left: 6px; }
         .q-label .confidence.low { color: #e65100; font-weight: 600; }
+        .q-pos-hint { font-size: 9px; font-weight: 400; color: #999; background: #f5f5f5; padding: 1px 5px; border-radius: 8px; white-space: nowrap; }
         .q-input { width: 100%; border: 1px solid #ddd; border-radius: 4px; padding: 6px 8px; font-size: 13px; font-family: inherit; resize: vertical; }
         .q-input:focus { border-color: #e65100; outline: none; box-shadow: 0 0 0 2px rgba(230,81,0,0.15); }
         .q-input:disabled { background: #f5f5f5; color: #333; }
@@ -133,13 +125,11 @@
                         <div class="pdf-preview-header">
                             <h3 id="pdfTitle">-</h3>
                             <span id="pageIndicator" style="display:none; font-size:11px; color:#e65100; font-weight:600; background:#fff3e0; padding:2px 8px; border-radius:10px;"></span>
-                            <button class="btn-calibrate" onclick="startCalibration()" title="PDFプレビュー上の基準点をクリックして位置合わせ">位置合わせ</button>
                             <button class="btn-toggle-preview" onclick="togglePreview()">プレビュー非表示</button>
                         </div>
                     </div>
                     <div class="pdf-iframe-wrapper" id="iframeWrapper">
                         <iframe id="pdfIframe" src="about:blank"></iframe>
-                        <div class="pdf-highlight-overlay" id="pdfHighlightOverlay"></div>
                         <div class="pdf-nav-bar" id="pdfNavBar"></div>
                     </div>
                 </div>
@@ -196,6 +186,27 @@
             '質問15_コメント': '質問15: コメント欄'
         };
 
+        // ========== 質問→PDF位置（ナビバー・位置ヒント用） ==========
+        var QUESTION_PDF_POSITIONS = {
+            '医療機関名':        { y1: 0.056, page: 1, hint: 'P1 最上部' },
+            '患者さんID':        { y1: 0.081, page: 1, hint: 'P1 上部' },
+            '質問1_名前':        { y1: 0.107, page: 1, hint: 'P1 上部' },
+            '質問2_生年月日':    { y1: 0.135, page: 1, hint: 'P1 上部' },
+            '質問3_性別':        { y1: 0.169, page: 1, hint: 'P1 上部' },
+            '質問4_血液型':      { y1: 0.201, page: 1, hint: 'P1 上部' },
+            '質問5_身体情報':    { y1: 0.231, page: 1, hint: 'P1 上〜中' },
+            '質問6_糖尿病':      { y1: 0.265, page: 1, hint: 'P1 中部' },
+            '質問7_脂質異常症':  { y1: 0.297, page: 1, hint: 'P1 中部' },
+            '質問8_兄弟糖尿病歴': { y1: 0.336, page: 1, hint: 'P1 中部' },
+            '質問9_両親糖尿病歴': { y1: 0.368, page: 1, hint: 'P1 中部' },
+            '質問10_運動':       { y1: 0.400, page: 1, hint: 'P1 中〜下' },
+            '質問11_飲み物':     { y1: 0.450, page: 1, hint: 'P1 中〜下' },
+            '質問12_お菓子':     { y1: 0.525, page: 1, hint: 'P1 下部' },
+            '質問13_飲酒習慣':   { y1: 0.570, page: 1, hint: 'P1 下部' },
+            '質問14_歯の抜去位置': { y1: 0.555, page: 2, hint: 'P2 中部' },
+            '質問15_コメント':   { y1: 0.655, page: 2, hint: 'P2 下部' }
+        };
+
         // ========== State ==========
         let currentUser = '';
         let pdfList = [];
@@ -205,6 +216,7 @@
         let questionStates = {};
         let jsonpCounter = 0;
         let previewVisible = true;
+        var activeQuestionIdx = -1;
 
         // ========== 初期化 ==========
         window.addEventListener('DOMContentLoaded', function() {
@@ -365,11 +377,9 @@
             gasCall('ocrFullPdfWithGemini', { fileId: currentFileId }, 180000).then(function(data) {
                 var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
                 if (data && data.ocrTempFileId) {
-                    // 2段階目: 一時ファイルからOCR結果を取得
                     status.textContent = 'OCR結果を読み込み中...';
                     return gasCall('getOcrTempResult', { tempFileId: data.ocrTempFileId }, 30000);
                 } else if (data && data.ocrData) {
-                    // 直接ocrDataが返された場合（フォールバック）
                     return { ocrData: data.ocrData };
                 } else {
                     throw new Error(data.message || '不明なエラー');
@@ -395,36 +405,10 @@
             });
         }
 
-        // ========== 質問→PDF位置マッピング (相対座標 0.0〜1.0) ==========
-        // config_new_format.py の座標を参照。y1, y2 はPDF全体に対する縦位置
-        // Google DriveプレビューのPDF表示領域はiframe内のため、
-        // オーバーレイで該当位置にハイライト矩形を表示する
-        var QUESTION_PDF_POSITIONS = {
-            '医療機関名':        { y1: 0.056, y2: 0.073, x1: 0.129, x2: 0.306, page: 1 },
-            '患者さんID':        { y1: 0.081, y2: 0.098, x1: 0.125, x2: 0.306, page: 1 },
-            '質問1_名前':        { y1: 0.107, y2: 0.126, x1: 0.151, x2: 0.363, page: 1 },
-            '質問2_生年月日':    { y1: 0.135, y2: 0.154, x1: 0.145, x2: 0.387, page: 1 },
-            '質問3_性別':        { y1: 0.169, y2: 0.185, x1: 0.147, x2: 0.315, page: 1 },
-            '質問4_血液型':      { y1: 0.201, y2: 0.217, x1: 0.147, x2: 0.484, page: 1 },
-            '質問5_身体情報':    { y1: 0.231, y2: 0.248, x1: 0.121, x2: 0.427, page: 1 },
-            '質問6_糖尿病':      { y1: 0.265, y2: 0.281, x1: 0.088, x2: 0.566, page: 1 },
-            '質問7_脂質異常症':  { y1: 0.297, y2: 0.312, x1: 0.088, x2: 0.566, page: 1 },
-            '質問8_兄弟糖尿病歴': { y1: 0.336, y2: 0.352, x1: 0.088, x2: 0.707, page: 1 },
-            '質問9_両親糖尿病歴': { y1: 0.368, y2: 0.384, x1: 0.088, x2: 0.707, page: 1 },
-            '質問10_運動':       { y1: 0.400, y2: 0.416, x1: 0.088, x2: 0.672, page: 1 },
-            '質問11_飲み物':     { y1: 0.450, y2: 0.514, x1: 0.089, x2: 0.500, page: 1 },
-            '質問12_お菓子':     { y1: 0.525, y2: 0.541, x1: 0.088, x2: 0.463, page: 1 },
-            '質問13_飲酒習慣':   { y1: 0.570, y2: 0.824, x1: 0.088, x2: 0.790, page: 1 },
-            '質問14_歯の抜去位置': { y1: 0.555, y2: 0.642, x1: 0.050, x2: 0.467, page: 2 },
-            '質問15_コメント':   { y1: 0.655, y2: 0.690, x1: 0.050, x2: 0.650, page: 2 }
-        };
-
-        var activeQuestionIdx = -1;
-
+        // ========== ナビゲーション ==========
         function highlightPdfPosition(idx) {
             var key = QUESTION_ORDER[idx];
             var pos = QUESTION_PDF_POSITIONS[key];
-            if (!pos) return;
 
             // 前のアクティブ状態をクリア
             var prevActive = document.querySelector('.q-block.q-active');
@@ -441,169 +425,13 @@
             var marker = document.getElementById('navMarker_' + idx);
             if (marker) marker.classList.add('active');
 
-            // ページ切替（質問14,15は2ページ目）
-            if (pos.page === 2 && currentFileId) {
-                // Google Driveプレビューは複数ページ対応 — ページ番号指定は不可だが
-                // ユーザーにページ情報を表示
-                document.getElementById('pageIndicator').textContent = '2ページ目 を確認してください';
+            // ページインジケーター
+            if (pos && pos.page === 2) {
+                document.getElementById('pageIndicator').textContent = '2ページ目を確認';
                 document.getElementById('pageIndicator').style.display = '';
             } else {
                 document.getElementById('pageIndicator').style.display = 'none';
             }
-
-            // ハイライト矩形を表示
-            showHighlightRect(pos);
-        }
-
-        // ========== キャリブレーション（位置合わせ） ==========
-        // 2点キャリブレーション: ユーザーが「質問1」と「質問13」のラベル位置をクリック
-        // これにより、PDFプレビュー内のPDF本体の正確な位置とスケールを算出
-        //
-        // 基準点のPDF相対座標（config_new_format.pyのanchor_q1, anchor_q13より）
-        var CALIB_POINT1 = { x: 0.047, y: 0.114 };  // 質問1ラベル中心
-        var CALIB_POINT2 = { x: 0.047, y: 0.579 };  // 質問13ラベル中心
-
-        // キャリブレーション結果（nullの場合はデフォルト推定値を使用）
-        var calibration = null;
-        var calibStep = 0; // 0=なし, 1=1点目待ち, 2=2点目待ち
-        var calibPoint1Px = null;
-
-        function startCalibration() {
-            calibStep = 1;
-            calibPoint1Px = null;
-            var overlay = document.getElementById('pdfHighlightOverlay');
-            overlay.classList.add('calibrating');
-            overlay.innerHTML = '<div class="calibration-banner">ステップ1/2: PDF上の「質問1」のラベルをクリックしてください</div>';
-            overlay.onclick = onCalibrationClick;
-        }
-
-        function onCalibrationClick(e) {
-            var overlay = document.getElementById('pdfHighlightOverlay');
-            var rect = overlay.getBoundingClientRect();
-            var clickX = e.clientX - rect.left;
-            var clickY = e.clientY - rect.top;
-
-            if (calibStep === 1) {
-                // 1点目: 質問1ラベル
-                calibPoint1Px = { x: clickX, y: clickY };
-                // ドットを表示
-                var dot = document.createElement('div');
-                dot.className = 'calibration-dot';
-                dot.style.left = clickX + 'px';
-                dot.style.top = clickY + 'px';
-                overlay.appendChild(dot);
-                overlay.querySelector('.calibration-banner').textContent =
-                    'ステップ2/2: PDF上の「質問13」のラベルをクリックしてください';
-                calibStep = 2;
-            } else if (calibStep === 2) {
-                // 2点目: 質問13ラベル
-                var p1 = calibPoint1Px;
-                var p2 = { x: clickX, y: clickY };
-
-                // 2点から PDF→ピクセル の変換パラメータを算出
-                // PDF相対座標(rx, ry) → ピクセル(px, py) の線形変換:
-                //   px = offsetX + rx * scaleX
-                //   py = offsetY + ry * scaleY
-                var scaleY = (p2.y - p1.y) / (CALIB_POINT2.y - CALIB_POINT1.y);
-                var offsetY = p1.y - CALIB_POINT1.y * scaleY;
-                // X方向は2点が同じX座標のため、Y方向のスケールからアスペクト比で推定
-                // A4比率: 幅/高さ ≈ 2480/3509 ≈ 0.707
-                var scaleX = scaleY * 0.707;
-                var offsetX = p1.x - CALIB_POINT1.x * scaleX;
-
-                calibration = { offsetX: offsetX, offsetY: offsetY, scaleX: scaleX, scaleY: scaleY };
-
-                // ローカルストレージに保存（同じ画面サイズなら再利用）
-                try {
-                    localStorage.setItem('webOcrCalib', JSON.stringify({
-                        calib: calibration,
-                        wrapperW: overlay.getBoundingClientRect().width,
-                        wrapperH: overlay.getBoundingClientRect().height
-                    }));
-                } catch(e) {}
-
-                // キャリブレーション終了
-                calibStep = 0;
-                overlay.classList.remove('calibrating');
-                overlay.onclick = null;
-                overlay.innerHTML = '';
-
-                // 現在のアクティブ質問を再ハイライト
-                if (activeQuestionIdx >= 0) {
-                    var key = QUESTION_ORDER[activeQuestionIdx];
-                    var pos = QUESTION_PDF_POSITIONS[key];
-                    if (pos) showHighlightRect(pos);
-                }
-            }
-        }
-
-        function getCalibrationOrDefault() {
-            // キャリブレーション済みならそれを使う
-            if (calibration) return calibration;
-
-            // ローカルストレージから復元
-            try {
-                var saved = JSON.parse(localStorage.getItem('webOcrCalib'));
-                if (saved && saved.calib) {
-                    var overlay = document.getElementById('pdfHighlightOverlay');
-                    var curW = overlay.getBoundingClientRect().width;
-                    var curH = overlay.getBoundingClientRect().height;
-                    // サイズが近ければ再利用（10%以内）
-                    if (Math.abs(curW - saved.wrapperW) / saved.wrapperW < 0.1 &&
-                        Math.abs(curH - saved.wrapperH) / saved.wrapperH < 0.1) {
-                        calibration = saved.calib;
-                        return calibration;
-                    }
-                }
-            } catch(e) {}
-
-            // デフォルト推定値
-            var overlay = document.getElementById('pdfHighlightOverlay');
-            var w = overlay.getBoundingClientRect().width;
-            var h = overlay.getBoundingClientRect().height;
-            // Google DriveプレビューはPDFをiframe内に表示。
-            // 上部にツールバー(約36px)、左右に若干の余白がある
-            var toolbarH = h * 0.055;  // ツールバー高さ推定
-            var pdfAreaH = h - toolbarH;
-            // PDF内でさらに上下に余白がある
-            var innerPadTop = pdfAreaH * 0.02;
-            var innerPadLeft = w * 0.03;
-            var pdfW = w * 0.94;
-            var pdfH = pdfAreaH * 0.96;
-            return {
-                offsetX: innerPadLeft,
-                offsetY: toolbarH + innerPadTop,
-                scaleX: pdfW,
-                scaleY: pdfH
-            };
-        }
-
-        function showHighlightRect(pos) {
-            var overlay = document.getElementById('pdfHighlightOverlay');
-            overlay.innerHTML = '';
-
-            var cal = getCalibrationOrDefault();
-
-            // 相対座標→ピクセル変換
-            var left = cal.offsetX + pos.x1 * cal.scaleX;
-            var top = cal.offsetY + pos.y1 * cal.scaleY;
-            var width = (pos.x2 - pos.x1) * cal.scaleX;
-            var height = (pos.y2 - pos.y1) * cal.scaleY;
-
-            // マージンを少し広げて見やすく
-            var pad = 4;
-            left = Math.max(0, left - pad);
-            top = Math.max(0, top - pad);
-            width = width + pad * 2;
-            height = height + pad * 2;
-
-            var rect = document.createElement('div');
-            rect.className = 'pdf-highlight-rect';
-            rect.style.left = left + 'px';
-            rect.style.top = top + 'px';
-            rect.style.width = width + 'px';
-            rect.style.height = height + 'px';
-            overlay.appendChild(rect);
         }
 
         function buildNavBar() {
@@ -617,15 +445,13 @@
                 var marker = document.createElement('div');
                 marker.className = 'pdf-nav-marker';
                 marker.id = 'navMarker_' + i;
-                // ナビバーの縦位置: PDFの相対Y座標をバーの高さに合わせる
+                // ナビバーの縦位置
                 var topPercent = pos.y1 * 100;
-                // 2ページ目の質問は下半分に配置
                 if (pos.page === 2) {
                     topPercent = 50 + pos.y1 * 50;
                 }
                 marker.style.top = topPercent + '%';
 
-                // 短い質問番号ラベル
                 var shortLabel = '';
                 if (key === '医療機関名') shortLabel = '機';
                 else if (key === '患者さんID') shortLabel = 'ID';
@@ -634,12 +460,10 @@
                     shortLabel = m ? 'Q' + m[1] : key.charAt(0);
                 }
                 marker.textContent = shortLabel;
-                marker.setAttribute('data-idx', i);
                 marker.onclick = (function(idx) {
                     return function(e) {
                         e.stopPropagation();
                         highlightPdfPosition(idx);
-                        // 右側の質問ブロックもスクロール
                         var block = document.getElementById('qblock_' + idx);
                         if (block) block.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     };
@@ -664,6 +488,10 @@
                     confHtml = '<span class="confidence' + (conf < 80 ? ' low' : '') + '">' + conf + '%</span>';
                 }
 
+                // 位置ヒント
+                var pos = QUESTION_PDF_POSITIONS[key];
+                var posHint = pos ? '<span class="q-pos-hint">' + escapeHtml(pos.hint) + '</span>' : '';
+
                 var isMultiLine = (key === '質問13_飲酒習慣' || key === '質問14_歯の抜去位置');
                 var isMedium = (key === '質問1_名前' || key === '質問2_生年月日' || key === '質問5_身体情報' || key === '質問15_コメント');
                 var inputHtml;
@@ -676,7 +504,7 @@
                 }
 
                 html += '<div class="q-block' + (needsCheck ? ' needs-check' : '') + '" id="qblock_' + idx + '">';
-                html += '<div class="q-content"><div class="q-label">' + escapeHtml(label) + confHtml + '</div>' + inputHtml + '</div>';
+                html += '<div class="q-content"><div class="q-label">' + escapeHtml(label) + posHint + confHtml + '</div>' + inputHtml + '</div>';
                 html += '<div class="q-actions">';
                 html += '<button class="btn-ok" id="okBtn_' + idx + '" onclick="confirmQuestion(' + idx + ', event)">OK</button>';
                 html += '<button class="btn-edit" onclick="editQuestion(' + idx + ')">編集</button>';
@@ -692,13 +520,12 @@
             // ナビバー構築
             buildNavBar();
 
-            // 質問ブロックにクリックイベントを追加（PDF位置ハイライト）
+            // 質問ブロックにクリックイベントを追加
             for (var j = 0; j < QUESTION_ORDER.length; j++) {
                 (function(idx) {
                     var block = document.getElementById('qblock_' + idx);
                     if (block) {
                         block.addEventListener('click', function(e) {
-                            // ボタンやinput/textareaクリックの場合はスキップ
                             if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
                             highlightPdfPosition(idx);
                         });
@@ -711,7 +538,6 @@
         }
 
         // ========== 表示値取得（フラットJSON対応） ==========
-        // キーマッピング: QUESTION_ORDER のキー → Geminiが返す可能性のあるキー
         var KEY_MAP = {
             '医療機関名': ['医療機関名'],
             '患者さんID': ['患者さんID'],
@@ -733,12 +559,9 @@
         };
 
         function findValue(ocrData, key) {
-            // 直接キー
             if (ocrData[key] !== undefined) return ocrData[key];
-            // 回答データ内
             var answData = ocrData['回答データ'];
             if (answData && answData[key] !== undefined) return answData[key];
-            // マッピング
             var candidates = KEY_MAP[key] || [];
             for (var i = 0; i < candidates.length; i++) {
                 if (ocrData[candidates[i]] !== undefined) return ocrData[candidates[i]];
@@ -748,7 +571,6 @@
         }
 
         function getDisplayValue(key, ocrData) {
-            // 質問5は2つのキーを結合
             if (key === '質問5_身体情報') {
                 var h = findValue(ocrData, '質問5_身長');
                 var w = findValue(ocrData, '質問5_体重');
@@ -764,28 +586,20 @@
             if (typeof val === 'string') return val;
             if (typeof val === 'number') return String(val);
             if (typeof val === 'object' && !Array.isArray(val)) {
-                // 患者さんID（オブジェクト形式の場合）
                 if (key === '患者さんID') return val['値'] || val['value'] || JSON.stringify(val);
-                // 質問1（オブジェクト形式の場合）
                 if (key === '質問1_名前') {
                     if (val['氏'] || val['名']) return (val['氏'] || '') + ' ' + (val['名'] || '');
                 }
-                // 質問2（オブジェクト形式の場合）
                 if (key === '質問2_生年月日') {
                     if (val['年号']) return val['年号'] + (val['年'] || '') + '年' + (val['月'] ? val['月'] + '月' : '') + (val['日'] ? val['日'] + '日' : '');
                 }
-                // 飲酒
                 if (key === '質問13_飲酒習慣') return formatAlcohol(val);
-                // 抜去位置
                 if (key === '質問14_歯の抜去位置') return formatTooth(val);
-                // 質問15
                 if (key === '質問15_コメント') {
                     if (val['内容'] !== undefined) return String(val['内容']);
                     if (val['その他'] !== undefined) return String(val['その他']);
                 }
-                // 汎用: 回答キー
                 if (val['回答'] !== undefined) return String(val['回答']);
-                // フォールバック
                 var parts = [];
                 for (var k in val) { var v = val[k]; if (v === null || v === undefined || v === '') continue; if (typeof v === 'object') v = JSON.stringify(v); parts.push(k + ': ' + v); }
                 return parts.join('\n');
@@ -812,7 +626,6 @@
         }
 
         function formatTooth(val) {
-            // 行1/行2/行3の構造
             if (val['行1'] || val['行2'] || val['行3']) {
                 var lines = [];
                 for (var r = 1; r <= 3; r++) {
@@ -826,7 +639,6 @@
                 }
                 return lines.join('\n');
             }
-            // 抜歯位置1/2/3の構造
             var posLines = [];
             for (var n = 1; n <= 3; n++) {
                 var pos = val['抜歯位置' + n];
@@ -841,7 +653,6 @@
                 if (val['その他']) posLines.push('その他: ' + val['その他']);
                 return posLines.join('\n');
             }
-            // シンプル構造
             var parts = [];
             if (val['左右']) parts.push(val['左右']);
             if (val['上下']) parts.push(val['上下']);
@@ -850,7 +661,7 @@
         }
 
         function getConfidence(key, ocrData) {
-            return null; // フラットJSON形式では信頼度なし
+            return null;
         }
 
         // ========== 確認・編集 ==========
@@ -945,7 +756,6 @@
                 document.getElementById('statusText').textContent = '保存完了! スプレッドシート追加・PDF移動完了。';
                 document.getElementById('statusText').style.color = '#2e7d32';
 
-                // リストから現在のPDFを除去
                 pdfList = pdfList.filter(function(p) { return p.fileId !== currentFileId; });
 
                 setTimeout(function() {
@@ -955,7 +765,6 @@
                     currentOcrData = null;
                     renderPdfList();
 
-                    // 次のPDFがあれば自動選択
                     if (pdfList.length > 0) {
                         selectPdf(pdfList[0].fileId, pdfList[0].fileName);
                     } else {
@@ -1028,23 +837,10 @@
             o['23. 普段、お菓子、スイーツなどは食べますか？'] = parseSweets(input['質問12_お菓子']) || '';
             var alc = parseAlcohol(input['質問13_飲酒習慣']);
             for (var k in alc) o[k] = alc[k];
-            // 質問14: 抜去位置
             o['抜去位置'] = input['質問14_歯の抜去位置'] || '';
-            // 質問15: コメント（自由回答）
             o['コメント'] = input['質問15_コメント'] || '';
             return o;
         }
-
-        // ========== リサイズ対応 ==========
-        window.addEventListener('resize', function() {
-            // リサイズ時はキャリブレーションをリセット（サイズが変わるため）
-            calibration = null;
-            if (activeQuestionIdx >= 0) {
-                var key = QUESTION_ORDER[activeQuestionIdx];
-                var pos = QUESTION_PDF_POSITIONS[key];
-                if (pos) showHighlightRect(pos);
-            }
-        });
 
         // ========== ユーティリティ ==========
         function escapeHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
