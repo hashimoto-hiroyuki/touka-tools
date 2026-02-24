@@ -40,22 +40,17 @@
         .pdf-preview-header h3 { font-size: 13px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .btn-toggle-preview { background: none; border: 1px solid #ddd; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: #555; flex-shrink: 0; }
         .btn-toggle-preview:hover { background: #f5f5f5; }
-        .pdf-iframe-wrapper { flex: 1; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; position: relative; }
-        .pdf-iframe-wrapper iframe { width: 100%; height: 100%; border: none; }
-        /* PDFナビゲーション用ミニマップ（左端に配置） */
-        .pdf-nav-bar { position: absolute; top: 0; left: 0; width: 36px; height: 100%; background: rgba(230,81,0,0.04); border-right: 1px solid #e0e0e0; z-index: 10; }
-        .pdf-nav-marker { position: absolute; left: 2px; width: 30px; height: 16px; background: rgba(230,81,0,0.12); border: 1px solid rgba(230,81,0,0.25); border-radius: 3px; cursor: pointer; transition: all 0.2s; font-size: 8px; color: #e65100; display: flex; align-items: center; justify-content: center; line-height: 1; }
-        .pdf-nav-marker:hover { background: rgba(230,81,0,0.35); }
-        .pdf-nav-marker.active { background: #e65100; border-color: #bf360c; color: #fff; font-weight: 700; box-shadow: 2px 0 8px rgba(230,81,0,0.5); }
-        /* 現在位置ポインター（PDFの横に表示） */
-        .pdf-position-pointer { position: absolute; left: 36px; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 14px solid #e65100; z-index: 11; transition: top 0.3s ease; display: none; filter: drop-shadow(2px 0 3px rgba(0,0,0,0.3)); }
-        /* PDFオーバーレイ（ハイライト矩形用） */
-        .pdf-highlight-overlay { position: absolute; top: 0; left: 36px; right: 0; bottom: 0; z-index: 9; pointer-events: none; }
-        .pdf-highlight-overlay.calibrating { pointer-events: auto; cursor: crosshair; background: rgba(0,0,0,0.08); }
-        .pdf-highlight-rect { position: absolute; border: 3px solid #e65100; background: rgba(255,152,0,0.18); border-radius: 3px; transition: all 0.3s ease; box-shadow: 0 0 12px rgba(230,81,0,0.35); }
+        .pdf-iframe-wrapper { flex: 1; border: 1px solid #ddd; border-radius: 4px; overflow: auto; position: relative; background: #e0e0e0; }
+        /* PDF画像表示（PDF.jsでcanvasにレンダリング） */
+        .pdf-pages-container { position: relative; display: inline-block; min-width: 100%; }
+        .pdf-page-wrapper { position: relative; margin-bottom: 4px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+        .pdf-page-wrapper canvas { display: block; width: 100%; height: auto; }
+        /* ハイライト矩形（各ページ内に%座標で配置、スクロール追従） */
+        .pdf-highlight-rect { position: absolute; border: 3px solid #e65100; background: rgba(255,152,0,0.18); border-radius: 3px; transition: all 0.3s ease; box-shadow: 0 0 12px rgba(230,81,0,0.35); z-index: 5; pointer-events: none; display: none; }
         .pdf-highlight-rect::before { content: ''; position: absolute; top: -6px; left: -6px; right: -6px; bottom: -6px; border: 1px solid rgba(230,81,0,0.25); border-radius: 5px; }
         .calib-dot { position: absolute; width: 12px; height: 12px; background: #d32f2f; border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); z-index: 20; box-shadow: 0 0 6px rgba(0,0,0,0.4); pointer-events: none; }
-        .calib-banner { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); background: #d32f2f; color: #fff; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; z-index: 20; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3); pointer-events: none; }
+        .calib-banner { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: #d32f2f; color: #fff; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; z-index: 100; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3); pointer-events: none; }
+        .pdf-loading { text-align: center; padding: 40px; color: #999; font-size: 14px; }
         .ocr-button-section { padding: 12px 20px; background: #fff; border-bottom: 1px solid #e0e0e0; text-align: center; flex-shrink: 0; }
         .btn-ocr { padding: 12px 40px; background: #e65100; color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
         .btn-ocr:hover { background: #bf360c; }
@@ -97,6 +92,7 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .empty-msg { text-align: center; padding: 40px; color: #999; font-size: 13px; }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
     <div class="header">
@@ -140,12 +136,9 @@
                         </div>
                     </div>
                     <div class="pdf-iframe-wrapper" id="iframeWrapper">
-                        <div class="pdf-nav-bar" id="pdfNavBar"></div>
-                        <div class="pdf-position-pointer" id="pdfPointer"></div>
-                        <div class="pdf-highlight-overlay" id="pdfOverlay">
-                            <div class="pdf-highlight-rect" id="pdfHighlightRect" style="display:none;"></div>
+                        <div class="pdf-pages-container" id="pdfPagesContainer">
+                            <div class="pdf-loading" id="pdfLoading">PDFを選択してください</div>
                         </div>
-                        <iframe id="pdfIframe" src="about:blank" style="margin-left: 36px; width: calc(100% - 36px);"></iframe>
                     </div>
                 </div>
                 <!-- 右: OCR結果・照合 -->
@@ -361,17 +354,91 @@
             document.getElementById('ocrStatus').textContent = '';
 
             document.getElementById('pdfTitle').textContent = fileName;
-            document.getElementById('pdfIframe').src = 'https://drive.google.com/file/d/' + fileId + '/preview';
+
+            // PDF.jsでレンダリング
+            loadPdfWithPdfJs(fileId);
 
             renderPdfList();
         }
 
+        var pdfPageWrappers = [];  // 各ページのwrapperDiv
+        var pdfDoc = null;
+
+        function loadPdfWithPdfJs(fileId) {
+            var container = document.getElementById('pdfPagesContainer');
+            container.innerHTML = '<div class="pdf-loading">PDF読み込み中...</div>';
+            pdfPageWrappers = [];
+
+            // GASからPDFのBase64を一時ファイル経由で取得
+            document.getElementById('ocrStatus').textContent = 'PDFを読み込み中...';
+            gasCall('getPdfPageImages', { fileId: fileId }, 120000).then(function(data) {
+                if (!data || !data.tempFileId) throw new Error(data.message || 'PDF取得失敗');
+                // 一時ファイルからBase64テキストを取得
+                return gasCall('getOcrTempResult', { tempFileId: data.tempFileId }, 60000).then(function(tempData) {
+                    // tempDataは{ ocrData: ... }形式で返るが、実際にはBase64テキスト
+                    // getOcrTempResultはJSON.parseするので、テキストを直接取得する別ルートが必要
+                    // → 一時ファイルのダウンロードURLを直接fetchする
+                    var downloadUrl = 'https://drive.google.com/uc?id=' + data.tempFileId + '&export=download';
+                    return fetch(downloadUrl).then(function(res) { return res.text(); });
+                });
+            }).then(function(base64Text) {
+                // Base64をArrayBufferに変換
+                var binary = atob(base64Text.trim());
+                var bytes = new Uint8Array(binary.length);
+                for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+                // PDF.jsでレンダリング
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                return pdfjsLib.getDocument({ data: bytes }).promise;
+            }).then(function(pdf) {
+                pdfDoc = pdf;
+                container.innerHTML = '';
+                var renderPromises = [];
+                for (var p = 1; p <= pdf.numPages; p++) {
+                    renderPromises.push(renderPage(pdf, p, container));
+                }
+                return Promise.all(renderPromises);
+            }).then(function() {
+                document.getElementById('ocrStatus').textContent = '';
+            }).catch(function(err) {
+                container.innerHTML = '<div class="pdf-loading">PDF読み込みエラー: ' + err.message + '</div>';
+                document.getElementById('ocrStatus').textContent = 'PDFプレビューエラー（OCRは実行可能です）';
+                // フォールバック: iframeプレビューに切り替え
+                container.innerHTML = '<iframe src="https://drive.google.com/file/d/' + fileId + '/preview" style="width:100%;height:800px;border:none;"></iframe>';
+            });
+        }
+
+        function renderPage(pdf, pageNum, container) {
+            return pdf.getPage(pageNum).then(function(page) {
+                var scale = 1.5;
+                var viewport = page.getViewport({ scale: scale });
+                var canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+
+                var wrapper = document.createElement('div');
+                wrapper.className = 'pdf-page-wrapper';
+                wrapper.id = 'pdfPage_' + pageNum;
+                wrapper.appendChild(canvas);
+
+                // ハイライト矩形要素を追加（各ページに1つ）
+                var highlightRect = document.createElement('div');
+                highlightRect.className = 'pdf-highlight-rect';
+                highlightRect.id = 'pdfHighlight_' + pageNum;
+                wrapper.appendChild(highlightRect);
+
+                container.appendChild(wrapper);
+                pdfPageWrappers[pageNum] = wrapper;
+
+                var ctx = canvas.getContext('2d');
+                return page.render({ canvasContext: ctx, viewport: viewport }).promise;
+            });
+        }
+
         function togglePreview() {
             var wrapper = document.getElementById('iframeWrapper');
-            var btn = document.querySelector('.btn-toggle-preview');
             previewVisible = !previewVisible;
             wrapper.style.display = previewVisible ? '' : 'none';
-            btn.textContent = previewVisible ? 'プレビュー非表示' : 'プレビュー表示';
         }
 
         // ========== OCR実行 ==========
@@ -434,27 +501,30 @@
             var marker = document.getElementById('navMarker_' + idx);
             if (marker) marker.classList.add('active');
 
-            // ポインター矢印を非表示（矩形定義がないときの目安として使う場合もある）
-            var pointer = document.getElementById('pdfPointer');
-            if (pointer) pointer.style.display = 'none';
+            // 全ページのハイライトを非表示
+            var allHighlights = document.querySelectorAll('.pdf-highlight-rect');
+            for (var h = 0; h < allHighlights.length; h++) allHighlights[h].style.display = 'none';
 
             // ハイライト矩形を表示（手動指定済みの場合のみ）
-            var rect = document.getElementById('pdfHighlightRect');
             var qr = questionRects[key];
-            if (qr && rect) {
-                rect.style.left = qr.x1 + '%';
-                rect.style.top = qr.y1 + '%';
-                rect.style.width = (qr.x2 - qr.x1) + '%';
-                rect.style.height = (qr.y2 - qr.y1) + '%';
-                rect.style.display = 'block';
-            } else if (rect) {
-                rect.style.display = 'none';
+            if (qr) {
+                var pageNum = qr.page || 1;
+                var rect = document.getElementById('pdfHighlight_' + pageNum);
+                if (rect) {
+                    rect.style.left = qr.x1 + '%';
+                    rect.style.top = qr.y1 + '%';
+                    rect.style.width = (qr.x2 - qr.x1) + '%';
+                    rect.style.height = (qr.y2 - qr.y1) + '%';
+                    rect.style.display = 'block';
+                    // ハイライト位置にスクロール
+                    rect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             }
 
             // ページインジケーター
             var hint = QUESTION_HINTS[key] || '';
             if (hint.indexOf('P2') >= 0) {
-                document.getElementById('pageIndicator').textContent = '2ページ目を確認 ▶ PDFを下にスクロール';
+                document.getElementById('pageIndicator').textContent = '2ページ目';
                 document.getElementById('pageIndicator').style.display = '';
             } else {
                 document.getElementById('pageIndicator').style.display = 'none';
@@ -533,6 +603,8 @@
             }
         }
 
+        var rectDefPageNum = 1;  // 定義中のページ番号
+
         function startRectDefine(idx) {
             var key = QUESTION_ORDER[idx];
             rectDefining = true;
@@ -540,8 +612,6 @@
             rectDefIdx = idx;
             rectFirstClick = null;
 
-            var overlay = document.getElementById('pdfOverlay');
-            overlay.classList.add('calibrating');
             // 既存バナー・ドットを消す
             var oldBanner = document.getElementById('calibBanner');
             if (oldBanner) oldBanner.remove();
@@ -553,42 +623,53 @@
             var banner = document.createElement('div');
             banner.className = 'calib-banner';
             banner.id = 'calibBanner';
-            banner.textContent = '① 「' + label + '」の回答欄の左上をクリック';
-            overlay.appendChild(banner);
+            banner.textContent = '① 「' + label + '」の回答欄の左上をクリック（Esc: キャンセル）';
+            document.body.appendChild(banner);
 
-            // ハイライト非表示
-            document.getElementById('pdfHighlightRect').style.display = 'none';
+            // 全ハイライトを非表示
+            var allH = document.querySelectorAll('.pdf-highlight-rect');
+            for (var h = 0; h < allH.length; h++) allH[h].style.display = 'none';
 
-            // クリックハンドラ
-            overlay.onclick = rectDefClick;
+            // 各ページのwrapperにクリックハンドラを追加
+            for (var p = 1; p <= (pdfDoc ? pdfDoc.numPages : 2); p++) {
+                var wrapper = document.getElementById('pdfPage_' + p);
+                if (wrapper) {
+                    wrapper.style.cursor = 'crosshair';
+                    wrapper.onclick = (function(pageNum) {
+                        return function(e) { rectDefClick(e, pageNum); };
+                    })(p);
+                }
+            }
         }
 
-        function rectDefClick(e) {
-            var overlay = document.getElementById('pdfOverlay');
-            var bounds = overlay.getBoundingClientRect();
+        function rectDefClick(e, pageNum) {
+            var wrapper = document.getElementById('pdfPage_' + pageNum);
+            if (!wrapper) return;
+            var bounds = wrapper.getBoundingClientRect();
             var clickXPct = ((e.clientX - bounds.left) / bounds.width) * 100;
             var clickYPct = ((e.clientY - bounds.top) / bounds.height) * 100;
 
             if (!rectFirstClick) {
                 // 1点目
                 rectFirstClick = { x: clickXPct, y: clickYPct };
+                rectDefPageNum = pageNum;
                 // ドット表示
                 var dot = document.createElement('div');
                 dot.className = 'calib-dot';
                 dot.id = 'calibDot1';
                 dot.style.left = clickXPct + '%';
                 dot.style.top = clickYPct + '%';
-                overlay.appendChild(dot);
+                wrapper.appendChild(dot);
                 // バナー更新
                 var label = QUESTION_LABELS[rectDefKey] || rectDefKey;
                 document.getElementById('calibBanner').textContent = '② 「' + label + '」の回答欄の右下をクリック';
             } else {
-                // 2点目 → 矩形を保存
+                // 2点目 → 矩形を保存（同じページ内で定義）
                 var x1 = Math.min(rectFirstClick.x, clickXPct);
                 var y1 = Math.min(rectFirstClick.y, clickYPct);
                 var x2 = Math.max(rectFirstClick.x, clickXPct);
                 var y2 = Math.max(rectFirstClick.y, clickYPct);
-                questionRects[rectDefKey] = { x1: x1, y1: y1, x2: x2, y2: y2 };
+                questionRects[rectDefKey] = { x1: x1, y1: y1, x2: x2, y2: y2, page: rectDefPageNum };
                 localStorage.setItem('webOcrQuestionRects', JSON.stringify(questionRects));
 
                 // 定義モード終了
@@ -604,7 +685,6 @@
                     if (!questionRects[QUESTION_ORDER[i]]) { nextUndefined = i; break; }
                 }
                 if (nextUndefined >= 0) {
-                    // 少し待ってから次の質問の定義を開始
                     setTimeout(function() {
                         highlightPdfPosition(nextUndefined);
                         var block = document.getElementById('qblock_' + nextUndefined);
@@ -618,9 +698,6 @@
         function finishRectDefine() {
             rectDefining = false;
             rectFirstClick = null;
-            var overlay = document.getElementById('pdfOverlay');
-            overlay.classList.remove('calibrating');
-            overlay.onclick = null;
             // バナー・ドット削除
             var banner = document.getElementById('calibBanner');
             if (banner) banner.remove();
@@ -628,6 +705,14 @@
                 var dot = document.getElementById('calibDot1');
                 if (dot) dot.remove();
             }, 300);
+            // カーソルリセット
+            for (var p = 1; p <= (pdfDoc ? pdfDoc.numPages : 2); p++) {
+                var wrapper = document.getElementById('pdfPage_' + p);
+                if (wrapper) {
+                    wrapper.style.cursor = '';
+                    wrapper.onclick = null;
+                }
+            }
         }
 
         // Escキーで定義モードキャンセル
