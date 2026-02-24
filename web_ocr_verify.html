@@ -245,7 +245,13 @@
                     buildNavBar();
                     console.log('矩形データをDriveから読み込み:', Object.keys(data).length + '件');
                 } else {
-                    console.log('Driveに矩形データなし。localStorageを使用:', Object.keys(questionRects).length + '件');
+                    // Driveにデータなし: localStorageにデータがあればDriveにアップロード
+                    if (Object.keys(questionRects).length > 0) {
+                        console.log('localStorageの矩形データをDriveにアップロード:', Object.keys(questionRects).length + '件');
+                        saveQuestionRectsToDrive();
+                    } else {
+                        console.log('矩形データなし（Drive・localStorage共に空）');
+                    }
                 }
             }).catch(function(err) {
                 console.log('矩形データ読み込みエラー（localStorageを使用）:', err.message);
@@ -400,10 +406,13 @@
         var currentScale = 1.5;  // PDF.jsの描画スケール
         var baseScale = 1.5;     // 100%に対応するスケール
 
+        var lastPdfBytes = null;  // PDF.jsフォールバック用にBase64デコード済みデータを保持
+
         function loadPdfWithPdfJs(fileId) {
             var container = document.getElementById('pdfPagesContainer');
             container.innerHTML = '<div class="pdf-loading">PDF読み込み中...</div>';
             pdfPageWrappers = [];
+            lastPdfBytes = null;
 
             // GASからPDFのBase64を一時ファイル経由で取得
             document.getElementById('ocrStatus').textContent = 'PDFを読み込み中...';
@@ -420,6 +429,7 @@
                 var binary = atob(base64Text.trim());
                 var bytes = new Uint8Array(binary.length);
                 for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                lastPdfBytes = bytes;
 
                 // PDF.jsでレンダリング
                 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -435,28 +445,43 @@
             }).then(function() {
                 document.getElementById('ocrStatus').textContent = '';
             }).catch(function(err) {
-                document.getElementById('ocrStatus').textContent = 'PDFプレビューエラー（OCRは実行可能です）';
-                // フォールバック: iframeプレビュー（ハイライト対応wrapper付き）
+                console.log('PDF.jsエラー:', err.message);
+                document.getElementById('ocrStatus').textContent = 'PDFプレビュー: Blob表示モード（OCRは実行可能です）';
+                // フォールバック: Blob URLでPDFを表示（CSPブロック回避）
                 container.innerHTML = '';
-                for (var p = 1; p <= 2; p++) {
+                if (lastPdfBytes) {
+                    // Base64デコード済みデータがある場合: Blob URLで表示
+                    var blob = new Blob([lastPdfBytes], { type: 'application/pdf' });
+                    var blobUrl = URL.createObjectURL(blob);
                     var wrapper = document.createElement('div');
                     wrapper.className = 'pdf-page-wrapper';
-                    wrapper.id = 'pdfPage_' + p;
+                    wrapper.id = 'pdfPage_1';
                     wrapper.style.position = 'relative';
-                    if (p === 1) {
-                        var iframe = document.createElement('iframe');
-                        iframe.src = 'https://drive.google.com/file/d/' + fileId + '/preview';
-                        iframe.style.cssText = 'width:100%;height:800px;border:none;display:block;';
-                        wrapper.appendChild(iframe);
-                    } else {
-                        wrapper.style.height = '800px';
-                    }
+                    var embed = document.createElement('embed');
+                    embed.src = blobUrl;
+                    embed.type = 'application/pdf';
+                    embed.style.cssText = 'width:100%;height:1200px;border:none;display:block;';
+                    wrapper.appendChild(embed);
                     var highlightRect = document.createElement('div');
                     highlightRect.className = 'pdf-highlight-rect';
-                    highlightRect.id = 'pdfHighlight_' + p;
+                    highlightRect.id = 'pdfHighlight_1';
                     wrapper.appendChild(highlightRect);
                     container.appendChild(wrapper);
-                    pdfPageWrappers[p] = wrapper;
+                    pdfPageWrappers[1] = wrapper;
+                    // 2ページ目用のハイライト要素（embed内は単一表示なのでダミー）
+                    var wrapper2 = document.createElement('div');
+                    wrapper2.className = 'pdf-page-wrapper';
+                    wrapper2.id = 'pdfPage_2';
+                    wrapper2.style.cssText = 'position:relative;height:0;overflow:hidden;';
+                    var highlightRect2 = document.createElement('div');
+                    highlightRect2.className = 'pdf-highlight-rect';
+                    highlightRect2.id = 'pdfHighlight_2';
+                    wrapper2.appendChild(highlightRect2);
+                    container.appendChild(wrapper2);
+                    pdfPageWrappers[2] = wrapper2;
+                } else {
+                    // Base64データも取得できなかった場合: エラーメッセージ表示
+                    container.innerHTML = '<div class="pdf-loading">PDFの読み込みに失敗しました。<br>OCRは実行可能です。</div>';
                 }
                 buildNavBar();
             });
