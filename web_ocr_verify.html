@@ -383,13 +383,11 @@
             document.getElementById('ocrStatus').textContent = 'PDFを読み込み中...';
             gasCall('getPdfPageImages', { fileId: fileId }, 120000).then(function(data) {
                 if (!data || !data.tempFileId) throw new Error(data.message || 'PDF取得失敗');
-                // 一時ファイルからBase64テキストを取得
-                return gasCall('getOcrTempResult', { tempFileId: data.tempFileId }, 60000).then(function(tempData) {
-                    // tempDataは{ ocrData: ... }形式で返るが、実際にはBase64テキスト
-                    // getOcrTempResultはJSON.parseするので、テキストを直接取得する別ルートが必要
-                    // → 一時ファイルのダウンロードURLを直接fetchする
-                    var downloadUrl = 'https://drive.google.com/uc?id=' + data.tempFileId + '&export=download';
-                    return fetch(downloadUrl).then(function(res) { return res.text(); });
+                document.getElementById('ocrStatus').textContent = 'PDFデータを取得中...';
+                // GAS経由でBase64テキストを直接取得（CORSフリー）
+                return gasCall('getRawTempFile', { tempFileId: data.tempFileId }, 120000).then(function(rawData) {
+                    if (!rawData || !rawData.content) throw new Error('Base64データ取得失敗');
+                    return rawData.content;
                 });
             }).then(function(base64Text) {
                 // Base64をArrayBufferに変換
