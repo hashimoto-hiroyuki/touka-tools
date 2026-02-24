@@ -409,6 +409,11 @@
                     <span class="item-label">OCR照合（共有版）</span>
                     <span class="tag tag-web">Web</span>
                 </div>
+                <div class="grid-item" data-detail="web-ocr-verify" onclick="showDetail('web-ocr-verify')">
+                    <div class="item-icon ic-blue" style="background: #e65100;"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg></div>
+                    <span class="item-label">Web OCR照合</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
                 <div class="grid-item disabled" data-detail="prefetch-verify" onclick="showDetail('prefetch-verify')">
                     <div class="item-icon ic-blue"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15"/></svg></div>
                     <span class="item-label">PDF先読み照合</span>
@@ -708,6 +713,44 @@
                         <li>Shift+OKで一括確認</li>
                         <li>画像クリックで拡大表示</li>
                         <li>照合完了後、元PDFを入力済みフォルダへ自動移動</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Web OCR照合 -->
+            <div class="detail" id="detail-web-ocr-verify">
+                <div class="detail-header">
+                    <div class="detail-icon ic-blue" style="background: #e65100;"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg></div>
+                    <div>
+                        <div class="detail-title">Web OCR照合</div>
+                        <div class="detail-subtitle">ブラウザだけでPDF読み取り・照合（Python不要）</div>
+                    </div>
+                <a class="btn-open" href="web_ocr_verify.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
+                </a>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>Python環境がなくてもブラウザだけでOCR照合ができるWeb版ツールです。Google Driveの「元PDFフォルダ」からPDFを選択し、Gemini APIでOCR処理した結果を照合・確認してスプレッドシートに保存します。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>ワークフロー</h3>
+                    <ul>
+                        <li>① 左サイドバーからPDFを選択</li>
+                        <li>② PDFプレビューで原本を確認</li>
+                        <li>③ 「OCR実行」でGemini APIによる全17項目の読み取り</li>
+                        <li>④ 各項目を確認・修正してOKボタン</li>
+                        <li>⑤ 「照合完了・保存」でスプレッドシート追加 + JSON保存 + PDF移動</li>
+                    </ul>
+                </div>
+                <div class="detail-section">
+                    <h3>主な機能</h3>
+                    <ul>
+                        <li>Python不要 — ブラウザだけで完結</li>
+                        <li>Gemini 3 FlashでPDFを直接OCR（画像処理不要）</li>
+                        <li>Shift+OKで一括確認 / 残り全てOKボタン</li>
+                        <li>保存時にPDFを自動で「入力済みPDF」フォルダへ移動</li>
                     </ul>
                 </div>
             </div>
