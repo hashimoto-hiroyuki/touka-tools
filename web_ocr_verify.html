@@ -408,6 +408,11 @@
 
         var lastPdfBytes = null;  // PDF.jsフォールバック用にBase64デコード済みデータを保持
 
+        // PDF.js Worker設定（早期初期化）
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
         function loadPdfWithPdfJs(fileId) {
             var container = document.getElementById('pdfPagesContainer');
             container.innerHTML = '<div class="pdf-loading">PDF読み込み中...</div>';
@@ -432,7 +437,6 @@
                 lastPdfBytes = bytes;
 
                 // PDF.jsでレンダリング
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
                 return pdfjsLib.getDocument({ data: bytes }).promise;
             }).then(function(pdf) {
                 pdfDoc = pdf;
@@ -640,6 +644,13 @@
             var wrapper = document.getElementById('iframeWrapper');
             if (!wrapper) return;
 
+            // embed表示（Blobフォールバック）の場合: embed内はスクロール制御不可なのでスキップ
+            var embed = wrapper.querySelector('embed');
+            if (embed) return;
+
+            var containerEl = document.getElementById('pdfPagesContainer');
+            var containerOffset = containerEl ? containerEl.offsetTop : 0;
+
             var targetY = 0;
             var qr = questionRects[key];
             if (qr) {
@@ -647,7 +658,7 @@
                 var pageNum = qr.page || 1;
                 var pageEl = document.getElementById('pdfPage_' + pageNum);
                 if (!pageEl) return;
-                targetY = pageEl.offsetTop + (pageEl.offsetHeight * qr.y1 / 100) - 20;
+                targetY = containerOffset + pageEl.offsetTop + (pageEl.offsetHeight * qr.y1 / 100) - 20;
             } else {
                 // 未定義: ページ内の質問順序から推定
                 var hint = QUESTION_HINTS[key] || '';
@@ -663,7 +674,7 @@
                 var posInPage = samePageKeys.indexOf(key);
                 var yRatio = (posInPage >= 0 && samePageKeys.length > 1) ? posInPage / samePageKeys.length : 0.5;
 
-                targetY = pageEl.offsetTop + (pageEl.offsetHeight * yRatio) - 20;
+                targetY = containerOffset + pageEl.offsetTop + (pageEl.offsetHeight * yRatio) - 20;
             }
 
             targetY = Math.max(0, targetY);
