@@ -640,11 +640,38 @@
             scrollPdfToQuestion(key, idx);
         }
 
+        // スクロール完了を検出するヘルパー（scrollendイベント or タイムアウト）
+        function waitForScrollEnd(el, timeout) {
+            return new Promise(function(resolve) {
+                var timer = null;
+                var done = false;
+                function finish() {
+                    if (done) return;
+                    done = true;
+                    el.removeEventListener('scroll', onScroll);
+                    resolve();
+                }
+                function onScroll() {
+                    clearTimeout(timer);
+                    timer = setTimeout(finish, 80);
+                }
+                el.addEventListener('scroll', onScroll);
+                // スクロール量が0の場合scrollイベントが発火しないためタイムアウト
+                setTimeout(finish, timeout || 400);
+            });
+        }
+
+        // PDF矩形の画面上Y座標を取得
+        function getPdfRectScreenY(wrapper, qr, pageEl) {
+            if (!pageEl || !qr) return null;
+            var pageRect = pageEl.getBoundingClientRect();
+            return pageRect.top + (pageEl.offsetHeight * qr.y1 / 100);
+        }
+
         function scrollPdfToQuestion(key, idx) {
             var wrapper = document.getElementById('iframeWrapper');
             if (!wrapper) return;
 
-            // embed表示（Blobフォールバック）の場合スキップ
             var embed = wrapper.querySelector('embed');
             if (embed) return;
 
@@ -652,68 +679,68 @@
             var block = document.getElementById('qblock_' + idx);
             if (!block || !questionsArea) return;
 
-            // ハイライト矩形の画面上の位置をgetBoundingClientRectで取得する方式
-            // まず矩形要素の参照を取得
             var qr = questionRects[key];
-            var highlightEl = null;
             var pageEl = null;
+            var pageNum = 1;
+
             if (qr) {
-                var pageNum = qr.page || 1;
+                pageNum = qr.page || 1;
                 pageEl = document.getElementById('pdfPage_' + pageNum);
-                highlightEl = document.getElementById('pdfHighlight_' + pageNum);
-            }
-
-            // ステップ1: 左パネルのPDF矩形上端をパネル上端にスクロール
-            if (pageEl && qr) {
-                // pageElの現在の画面位置から矩形の絶対位置を逆算
-                var pageRect = pageEl.getBoundingClientRect();
-                var wrapperRect = wrapper.getBoundingClientRect();
-                // 矩形上端の、wrapper表示領域上端からの距離
-                var rectScreenTop = pageRect.top + (pageEl.offsetHeight * qr.y1 / 100);
-                // それをwrapper上端に持っていくために必要なスクロール量
-                var pdfScrollDelta = rectScreenTop - wrapperRect.top;
-                var pdfDesiredScroll = wrapper.scrollTop + pdfScrollDelta;
-                var pdfMaxScroll = wrapper.scrollHeight - wrapper.clientHeight;
-                var pdfActualScroll = Math.min(Math.max(0, pdfDesiredScroll), Math.max(0, pdfMaxScroll));
-                wrapper.scrollTo({ top: pdfActualScroll, behavior: 'smooth' });
-
-                // スクロール後の矩形上端の画面Y座標を予測
-                var pdfRectScreenY = wrapperRect.top + (pdfDesiredScroll - pdfActualScroll);
-
-                // ステップ2: 右パネルのブロック上端を同じ画面Y座標に合わせる
-                var blockRect = block.getBoundingClientRect();
-                var qaRect = questionsArea.getBoundingClientRect();
-                var blockScrollDelta = blockRect.top - pdfRectScreenY;
-                var blockDesiredScroll = questionsArea.scrollTop + blockScrollDelta;
-                questionsArea.scrollTo({ top: Math.max(0, blockDesiredScroll), behavior: 'smooth' });
             } else {
-                // 矩形未定義: 推定位置でスクロール
                 var hint = QUESTION_HINTS[key] || '';
-                var estPageNum = hint.indexOf('P2') >= 0 ? 2 : 1;
-                var estPageEl = document.getElementById('pdfPage_' + estPageNum);
-                if (!estPageEl) return;
+                pageNum = hint.indexOf('P2') >= 0 ? 2 : 1;
+                pageEl = document.getElementById('pdfPage_' + pageNum);
+                if (!pageEl) return;
+                // 推定用の仮qrを作成
                 var samePageKeys = QUESTION_ORDER.filter(function(k) {
                     var h = QUESTION_HINTS[k] || '';
                     return (hint.indexOf('P2') >= 0) === (h.indexOf('P2') >= 0);
                 });
                 var posInPage = samePageKeys.indexOf(key);
                 var yRatio = (posInPage >= 0 && samePageKeys.length > 1) ? posInPage / samePageKeys.length : 0.5;
-
-                var estPageRect = estPageEl.getBoundingClientRect();
-                var wrapperRect = wrapper.getBoundingClientRect();
-                var estRectScreenTop = estPageRect.top + (estPageEl.offsetHeight * yRatio);
-                var pdfScrollDelta = estRectScreenTop - wrapperRect.top;
-                var pdfDesiredScroll = wrapper.scrollTop + pdfScrollDelta;
-                var pdfMaxScroll = wrapper.scrollHeight - wrapper.clientHeight;
-                var pdfActualScroll = Math.min(Math.max(0, pdfDesiredScroll), Math.max(0, pdfMaxScroll));
-                wrapper.scrollTo({ top: pdfActualScroll, behavior: 'smooth' });
-
-                var pdfRectScreenY = wrapperRect.top + (pdfDesiredScroll - pdfActualScroll);
-                var blockRect = block.getBoundingClientRect();
-                var blockScrollDelta = blockRect.top - pdfRectScreenY;
-                var blockDesiredScroll = questionsArea.scrollTop + blockScrollDelta;
-                questionsArea.scrollTo({ top: Math.max(0, blockDesiredScroll), behavior: 'smooth' });
+                qr = { y1: yRatio * 100, page: pageNum };
             }
+            if (!pageEl) return;
+
+            // ステップ1: 左パネル — PDF矩形上端をパネル上端にスクロール
+            var rectScreenY = getPdfRectScreenY(wrapper, qr, pageEl);
+            var wrapperRect = wrapper.getBoundingClientRect();
+            var pdfScrollDelta = rectScreenY - wrapperRect.top;
+            var pdfDesiredScroll = wrapper.scrollTop + pdfScrollDelta;
+            var pdfMaxScroll = wrapper.scrollHeight - wrapper.clientHeight;
+            wrapper.scrollTo({ top: Math.max(0, Math.min(pdfDesiredScroll, Math.max(0, pdfMaxScroll))), behavior: 'smooth' });
+
+            // ステップ2: 左パネルのスクロール完了を待ってから右パネルを合わせる
+            waitForScrollEnd(wrapper, 400).then(function() {
+                // 実際のPDF矩形画面Y座標を再取得
+                var actualRectY = getPdfRectScreenY(wrapper, qr, pageEl);
+
+                // 右パネルのブロック上端を同じ画面Y座標に合わせる
+                var blockY = block.getBoundingClientRect().top;
+                var blockDelta = blockY - actualRectY;
+                var blockScroll = questionsArea.scrollTop + blockDelta;
+                questionsArea.scrollTo({ top: Math.max(0, blockScroll), behavior: 'smooth' });
+
+                // ステップ3: 右パネルのスクロール完了後、最終補正
+                waitForScrollEnd(questionsArea, 400).then(function() {
+                    var finalRectY = getPdfRectScreenY(wrapper, qr, pageEl);
+                    var finalBlockY = block.getBoundingClientRect().top;
+                    var gap = finalBlockY - finalRectY;
+
+                    // 2px以上のズレがあれば補正
+                    if (Math.abs(gap) > 2) {
+                        // 右パネルで補正可能か確認
+                        var qaMaxScroll = questionsArea.scrollHeight - questionsArea.clientHeight;
+                        var qaNewScroll = questionsArea.scrollTop + gap;
+                        if (qaNewScroll >= 0 && qaNewScroll <= qaMaxScroll) {
+                            questionsArea.scrollTo({ top: qaNewScroll, behavior: 'smooth' });
+                        } else {
+                            // 右パネル限界 → 左パネルを逆方向に補正
+                            wrapper.scrollTo({ top: Math.max(0, wrapper.scrollTop - gap), behavior: 'smooth' });
+                        }
+                    }
+                });
+            });
         }
 
         function buildNavBar() {
