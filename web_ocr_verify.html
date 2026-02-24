@@ -49,6 +49,10 @@
         .pdf-nav-marker.active { background: #e65100; border-color: #bf360c; color: #fff; font-weight: 700; box-shadow: 2px 0 8px rgba(230,81,0,0.5); }
         /* 現在位置ポインター（PDFの横に表示） */
         .pdf-position-pointer { position: absolute; left: 36px; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 14px solid #e65100; z-index: 11; transition: top 0.3s ease; display: none; filter: drop-shadow(2px 0 3px rgba(0,0,0,0.3)); }
+        /* PDFオーバーレイ（ハイライト矩形用、クリック透過） */
+        .pdf-highlight-overlay { position: absolute; top: 0; left: 36px; right: 0; bottom: 0; z-index: 9; pointer-events: none; }
+        .pdf-highlight-rect { position: absolute; border: 3px solid #e65100; background: rgba(255,152,0,0.18); border-radius: 3px; transition: all 0.3s ease; box-shadow: 0 0 12px rgba(230,81,0,0.35); }
+        .pdf-highlight-rect::before { content: ''; position: absolute; top: -6px; left: -6px; right: -6px; bottom: -6px; border: 1px solid rgba(230,81,0,0.25); border-radius: 5px; }
         .ocr-button-section { padding: 12px 20px; background: #fff; border-bottom: 1px solid #e0e0e0; text-align: center; flex-shrink: 0; }
         .btn-ocr { padding: 12px 40px; background: #e65100; color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
         .btn-ocr:hover { background: #bf360c; }
@@ -127,12 +131,16 @@
                         <div class="pdf-preview-header">
                             <h3 id="pdfTitle">-</h3>
                             <span id="pageIndicator" style="display:none; font-size:11px; color:#e65100; font-weight:600; background:#fff3e0; padding:2px 8px; border-radius:10px;"></span>
+                            <button class="btn-toggle-preview" onclick="adjustHighlight()" title="ハイライト位置の微調整">位置合わせ</button>
                             <button class="btn-toggle-preview" onclick="togglePreview()">プレビュー非表示</button>
                         </div>
                     </div>
                     <div class="pdf-iframe-wrapper" id="iframeWrapper">
                         <div class="pdf-nav-bar" id="pdfNavBar"></div>
                         <div class="pdf-position-pointer" id="pdfPointer"></div>
+                        <div class="pdf-highlight-overlay" id="pdfOverlay">
+                            <div class="pdf-highlight-rect" id="pdfHighlightRect" style="display:none;"></div>
+                        </div>
                         <iframe id="pdfIframe" src="about:blank" style="margin-left: 36px; width: calc(100% - 36px);"></iframe>
                     </div>
                 </div>
@@ -189,25 +197,36 @@
             '質問15_コメント': '質問15: コメント欄'
         };
 
-        // ========== 質問→PDF位置（ナビバー・位置ヒント用） ==========
+        // ========== 質問→PDF位置（ハイライト矩形 + ナビバー用） ==========
+        // x1,y1,x2,y2: config_new_format.py の回答領域（相対座標 0.0〜1.0）
         var QUESTION_PDF_POSITIONS = {
-            '医療機関名':        { y1: 0.056, page: 1, hint: 'P1 最上部' },
-            '患者さんID':        { y1: 0.081, page: 1, hint: 'P1 上部' },
-            '質問1_名前':        { y1: 0.107, page: 1, hint: 'P1 上部' },
-            '質問2_生年月日':    { y1: 0.135, page: 1, hint: 'P1 上部' },
-            '質問3_性別':        { y1: 0.169, page: 1, hint: 'P1 上部' },
-            '質問4_血液型':      { y1: 0.201, page: 1, hint: 'P1 上部' },
-            '質問5_身体情報':    { y1: 0.231, page: 1, hint: 'P1 上〜中' },
-            '質問6_糖尿病':      { y1: 0.265, page: 1, hint: 'P1 中部' },
-            '質問7_脂質異常症':  { y1: 0.297, page: 1, hint: 'P1 中部' },
-            '質問8_兄弟糖尿病歴': { y1: 0.336, page: 1, hint: 'P1 中部' },
-            '質問9_両親糖尿病歴': { y1: 0.368, page: 1, hint: 'P1 中部' },
-            '質問10_運動':       { y1: 0.400, page: 1, hint: 'P1 中〜下' },
-            '質問11_飲み物':     { y1: 0.450, page: 1, hint: 'P1 中〜下' },
-            '質問12_お菓子':     { y1: 0.525, page: 1, hint: 'P1 下部' },
-            '質問13_飲酒習慣':   { y1: 0.570, page: 1, hint: 'P1 下部' },
-            '質問14_歯の抜去位置': { y1: 0.555, page: 2, hint: 'P2 中部' },
-            '質問15_コメント':   { y1: 0.655, page: 2, hint: 'P2 下部' }
+            '医療機関名':        { x1: 0.129, y1: 0.056, x2: 0.306, y2: 0.073, page: 1, hint: 'P1 最上部' },
+            '患者さんID':        { x1: 0.125, y1: 0.081, x2: 0.306, y2: 0.098, page: 1, hint: 'P1 上部' },
+            '質問1_名前':        { x1: 0.151, y1: 0.107, x2: 0.363, y2: 0.126, page: 1, hint: 'P1 上部' },
+            '質問2_生年月日':    { x1: 0.145, y1: 0.135, x2: 0.387, y2: 0.154, page: 1, hint: 'P1 上部' },
+            '質問3_性別':        { x1: 0.147, y1: 0.169, x2: 0.315, y2: 0.185, page: 1, hint: 'P1 上部' },
+            '質問4_血液型':      { x1: 0.147, y1: 0.201, x2: 0.484, y2: 0.217, page: 1, hint: 'P1 上部' },
+            '質問5_身体情報':    { x1: 0.121, y1: 0.231, x2: 0.427, y2: 0.248, page: 1, hint: 'P1 上〜中' },
+            '質問6_糖尿病':      { x1: 0.188, y1: 0.265, x2: 0.566, y2: 0.281, page: 1, hint: 'P1 中部' },
+            '質問7_脂質異常症':  { x1: 0.188, y1: 0.297, x2: 0.566, y2: 0.312, page: 1, hint: 'P1 中部' },
+            '質問8_兄弟糖尿病歴': { x1: 0.408, y1: 0.336, x2: 0.707, y2: 0.352, page: 1, hint: 'P1 中部' },
+            '質問9_両親糖尿病歴': { x1: 0.408, y1: 0.368, x2: 0.707, y2: 0.384, page: 1, hint: 'P1 中部' },
+            '質問10_運動':       { x1: 0.245, y1: 0.400, x2: 0.672, y2: 0.416, page: 1, hint: 'P1 中〜下' },
+            '質問11_飲み物':     { x1: 0.089, y1: 0.465, x2: 0.700, y2: 0.514, page: 1, hint: 'P1 中〜下' },
+            '質問12_お菓子':     { x1: 0.091, y1: 0.525, x2: 0.463, y2: 0.541, page: 1, hint: 'P1 下部' },
+            '質問13_飲酒習慣':   { x1: 0.091, y1: 0.570, x2: 0.790, y2: 0.824, page: 1, hint: 'P1 下部' },
+            '質問14_歯の抜去位置': { x1: 0.053, y1: 0.555, x2: 0.467, y2: 0.642, page: 2, hint: 'P2 中部' },
+            '質問15_コメント':   { x1: 0.050, y1: 0.655, x2: 0.650, y2: 0.690, page: 2, hint: 'P2 下部' }
+        };
+
+        // PDF表示キャリブレーション: Google Driveプレビューのオフセット補正
+        // iframe内のツールバーやパディングによるずれを補正する
+        // ユーザーが「位置合わせ」で調整可能
+        var pdfCalib = JSON.parse(localStorage.getItem('webOcrCalib') || 'null') || {
+            offsetX: 0.02,   // 左パディング（PDF描画開始位置）
+            offsetY: 0.04,   // 上ツールバー分
+            scaleX: 0.62,    // PDF描画幅 / オーバーレイ幅
+            scaleY: 0.48     // PDF描画高さ / オーバーレイ高さ（1ページ分）
         };
 
         // ========== State ==========
@@ -437,6 +456,27 @@
                 pointer.style.display = 'block';
             }
 
+            // ハイライト矩形を表示
+            var rect = document.getElementById('pdfHighlightRect');
+            if (pos && rect) {
+                var overlay = document.getElementById('pdfOverlay');
+                var ow = overlay.offsetWidth;
+                var oh = overlay.offsetHeight;
+                // ページオフセット: 2ページ目は下半分
+                var pageOffsetY = (pos.page === 2) ? 0.5 : 0;
+                var left = pdfCalib.offsetX * ow + pos.x1 * pdfCalib.scaleX * ow;
+                var top = (pdfCalib.offsetY + pageOffsetY) * oh + pos.y1 * pdfCalib.scaleY * oh;
+                var width = (pos.x2 - pos.x1) * pdfCalib.scaleX * ow;
+                var height = (pos.y2 - pos.y1) * pdfCalib.scaleY * oh;
+                // マージン追加（少し広めに囲む）
+                var mx = 4, my = 4;
+                rect.style.left = Math.max(0, left - mx) + 'px';
+                rect.style.top = Math.max(0, top - my) + 'px';
+                rect.style.width = (width + mx * 2) + 'px';
+                rect.style.height = (height + my * 2) + 'px';
+                rect.style.display = 'block';
+            }
+
             // ページインジケーター
             if (pos && pos.page === 2) {
                 document.getElementById('pageIndicator').textContent = '2ページ目を確認 ▶ PDFを下にスクロール';
@@ -482,6 +522,50 @@
                 })(i);
                 navBar.appendChild(marker);
             }
+        }
+
+        // ========== 位置合わせ ==========
+        function adjustHighlight() {
+            var msg = '現在のキャリブレーション値:\n' +
+                'offsetX=' + pdfCalib.offsetX.toFixed(3) + '  offsetY=' + pdfCalib.offsetY.toFixed(3) + '\n' +
+                'scaleX=' + pdfCalib.scaleX.toFixed(3) + '  scaleY=' + pdfCalib.scaleY.toFixed(3) + '\n\n' +
+                '方向キーで調整:\n' +
+                '← → : 左右位置 (offsetX)\n' +
+                '↑ ↓ : 上下位置 (offsetY)\n' +
+                '+  - : 横幅拡縮 (scaleX)\n' +
+                'W  S : 縦幅拡縮 (scaleY)\n' +
+                'R : リセット\n' +
+                'Enter/Esc : 完了\n\n' +
+                '調整を開始しますか？';
+            if (!confirm(msg)) return;
+
+            var adjustHandler = function(e) {
+                var step = 0.005;
+                switch(e.key) {
+                    case 'ArrowLeft':  pdfCalib.offsetX -= step; break;
+                    case 'ArrowRight': pdfCalib.offsetX += step; break;
+                    case 'ArrowUp':    pdfCalib.offsetY -= step; break;
+                    case 'ArrowDown':  pdfCalib.offsetY += step; break;
+                    case '+': case ';': pdfCalib.scaleX += step; break;
+                    case '-':          pdfCalib.scaleX -= step; break;
+                    case 'w': case 'W': pdfCalib.scaleY += step; break;
+                    case 's': case 'S': pdfCalib.scaleY -= step; break;
+                    case 'r': case 'R':
+                        pdfCalib = { offsetX: 0.02, offsetY: 0.04, scaleX: 0.62, scaleY: 0.48 };
+                        break;
+                    case 'Enter': case 'Escape':
+                        document.removeEventListener('keydown', adjustHandler);
+                        localStorage.setItem('webOcrCalib', JSON.stringify(pdfCalib));
+                        alert('キャリブレーション保存完了\noffsetX=' + pdfCalib.offsetX.toFixed(3) + ' offsetY=' + pdfCalib.offsetY.toFixed(3) +
+                            '\nscaleX=' + pdfCalib.scaleX.toFixed(3) + ' scaleY=' + pdfCalib.scaleY.toFixed(3));
+                        return;
+                    default: return;
+                }
+                e.preventDefault();
+                // ハイライト再描画
+                if (activeQuestionIdx >= 0) highlightPdfPosition(activeQuestionIdx);
+            };
+            document.addEventListener('keydown', adjustHandler);
         }
 
         // ========== 照合UI ==========
