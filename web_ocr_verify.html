@@ -957,9 +957,8 @@
                     nextIdx = (activeQuestionIdx < QUESTION_ORDER.length - 1) ? activeQuestionIdx + 1 : 0;
                 }
                 highlightPdfPosition(nextIdx);
-                // 移動先の入力欄にフォーカス
-                var input = document.getElementById('input_' + nextIdx);
-                if (input) input.focus();
+                // フォーカスを入力欄から外す（マウス選択と同じ動作）
+                document.activeElement && document.activeElement.blur();
                 return;
             }
 
@@ -971,8 +970,7 @@
                 if (QUESTION_ORDER.length === 0 || activeQuestionIdx <= 0) return;
                 var prevIdx = activeQuestionIdx - 1;
                 highlightPdfPosition(prevIdx);
-                var input = document.getElementById('input_' + prevIdx);
-                if (input) input.focus();
+                document.activeElement && document.activeElement.blur();
                 return;
             }
         });
