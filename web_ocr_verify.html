@@ -652,14 +652,15 @@
             var block = document.getElementById('qblock_' + idx);
             if (!block || !questionsArea) return;
 
-            // ステップ1: 右パネルを質問ブロック上端がパネル上端に来るようスクロール
-            var desiredScrollTop = block.offsetTop;
+            // ステップ1: 右パネルを質問ブロックがパネル上端から少し下に見えるようスクロール
+            var topMargin = 8; // パネル上端からの余白px（はみ出し防止）
+            var desiredScrollTop = block.offsetTop - topMargin;
             questionsArea.scrollTo({ top: Math.max(0, desiredScrollTop), behavior: 'smooth' });
 
             // ステップ2: 実際のスクロール位置を計算（スクロール限界の場合ブロックがパネル上端より下に残る）
             var maxScroll = questionsArea.scrollHeight - questionsArea.clientHeight;
             var actualScrollTop = Math.min(Math.max(0, desiredScrollTop), Math.max(0, maxScroll));
-            // ブロックのパネル上端からの実際のオフセット（限界到達時は0より大きくなる）
+            // ブロックのパネル上端からの実際のオフセット（限界到達時はtopMarginより大きくなる）
             var blockVisualOffset = block.offsetTop - actualScrollTop;
 
             // ステップ3: PDF上の対象Y座標を計算
