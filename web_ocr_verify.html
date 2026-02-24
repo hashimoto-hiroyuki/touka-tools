@@ -410,54 +410,91 @@
             updateProgress();
         }
 
-        // ========== 表示値取得 ==========
-        var META_KEYS = ['信頼度','confidence','候補','candidates','要確認','備考',
-            '氏_文字数','名_文字数','文字数','マーク種別',
-            '年_信頼度','年_候補','月_信頼度','月_候補','日_信頼度','日_候補',
-            '身長_信頼度','身長_候補','体重_信頼度','体重_候補'];
+        // ========== 表示値取得（フラットJSON対応） ==========
+        // キーマッピング: QUESTION_ORDER のキー → Geminiが返す可能性のあるキー
+        var KEY_MAP = {
+            '医療機関名': ['医療機関名'],
+            '患者さんID': ['患者さんID'],
+            '質問1_名前': ['質問1_名前', '質問1_名前_カタカナ'],
+            '質問2_生年月日': ['質問2_生年月日'],
+            '質問3_性別': ['質問3_性別'],
+            '質問4_血液型': ['質問4_血液型'],
+            '質問5_身体情報': ['質問5_身長', '質問5_体重'],
+            '質問6_糖尿病': ['質問6_糖尿病'],
+            '質問7_脂質異常症': ['質問7_脂質異常症'],
+            '質問8_兄弟糖尿病歴': ['質問8_兄弟糖尿病歴', '質問8_兄弟に糖尿病歴'],
+            '質問9_両親糖尿病歴': ['質問9_両親糖尿病歴', '質問9_両親に糖尿病歴'],
+            '質問10_運動': ['質問10_運動', '質問10_普段の運動'],
+            '質問11_飲み物': ['質問11_飲み物', '質問11_最もよく飲む飲み物'],
+            '質問12_お菓子': ['質問12_お菓子', '質問12_お菓子スイーツの頻度'],
+            '質問13_飲酒習慣': ['質問13_飲酒習慣'],
+            '質問14_歯の抜去位置': ['質問14_抜去位置', '質問14_歯の抜去位置', '医師記入欄'],
+            '質問15_コメント': ['質問15_コメント']
+        };
+
+        function findValue(ocrData, key) {
+            // 直接キー
+            if (ocrData[key] !== undefined) return ocrData[key];
+            // 回答データ内
+            var answData = ocrData['回答データ'];
+            if (answData && answData[key] !== undefined) return answData[key];
+            // マッピング
+            var candidates = KEY_MAP[key] || [];
+            for (var i = 0; i < candidates.length; i++) {
+                if (ocrData[candidates[i]] !== undefined) return ocrData[candidates[i]];
+                if (answData && answData[candidates[i]] !== undefined) return answData[candidates[i]];
+            }
+            return undefined;
+        }
 
         function getDisplayValue(key, ocrData) {
-            var answData = ocrData['回答データ'] || {};
-            if (key === '医療機関名') return ocrData['医療機関名'] || '';
-            if (key === '患者さんID') {
-                var idData = ocrData['患者さんID'];
-                if (idData && typeof idData === 'object') return idData['値'] || idData['value'] || '';
-                return String(idData || '');
+            // 質問5は2つのキーを結合
+            if (key === '質問5_身体情報') {
+                var h = findValue(ocrData, '質問5_身長');
+                var w = findValue(ocrData, '質問5_体重');
+                if (h || w) return '身長: ' + (h || '') + ' / 体重: ' + (w || '');
+                var body = findValue(ocrData, '質問5_身体情報');
+                if (body && typeof body === 'object') {
+                    return '身長: ' + (body['身長_cm'] || '') + 'cm / 体重: ' + (body['体重_kg'] || '') + 'kg';
+                }
+                return body ? String(body) : '';
             }
-            var val = answData[key];
+            var val = findValue(ocrData, key);
             if (val === undefined || val === null) return '';
             if (typeof val === 'string') return val;
             if (typeof val === 'number') return String(val);
             if (typeof val === 'object' && !Array.isArray(val)) {
+                // 患者さんID（オブジェクト形式の場合）
+                if (key === '患者さんID') return val['値'] || val['value'] || JSON.stringify(val);
+                // 質問1（オブジェクト形式の場合）
                 if (key === '質問1_名前') {
-                    var sei = val['氏'] || '', mei = val['名'] || '';
-                    return sei && mei ? '氏: ' + sei + ' / 名: ' + mei : (sei || mei || '');
+                    if (val['氏'] || val['名']) return (val['氏'] || '') + ' ' + (val['名'] || '');
                 }
+                // 質問2（オブジェクト形式の場合）
                 if (key === '質問2_生年月日') {
-                    var nengo = val['年号'] || '', y = val['年'] != null ? val['年'] : '', m = val['月'] != null ? val['月'] : '', d = val['日'] != null ? val['日'] : '';
-                    return (nengo && y) ? nengo + y + '年' + (m ? m + '月' : '') + (d ? d + '日' : '') : '';
+                    if (val['年号']) return val['年号'] + (val['年'] || '') + '年' + (val['月'] ? val['月'] + '月' : '') + (val['日'] ? val['日'] + '日' : '');
                 }
-                if (key === '質問5_身体情報') {
-                    var h = val['身長_cm'] != null ? val['身長_cm'] : '', w = val['体重_kg'] != null ? val['体重_kg'] : '';
-                    return '身長: ' + h + 'cm / 体重: ' + w + 'kg';
-                }
-                if (val['回答'] !== undefined) return String(val['回答']);
+                // 飲酒
                 if (key === '質問13_飲酒習慣') return formatAlcohol(val);
+                // 抜去位置
                 if (key === '質問14_歯の抜去位置') return formatTooth(val);
+                // 質問15
                 if (key === '質問15_コメント') {
                     if (val['内容'] !== undefined) return String(val['内容']);
-                    if (val['コメント'] !== undefined) return String(val['コメント']);
+                    if (val['その他'] !== undefined) return String(val['その他']);
                 }
-                if (val['値'] !== undefined) return String(val['値']);
+                // 汎用: 回答キー
+                if (val['回答'] !== undefined) return String(val['回答']);
+                // フォールバック
                 var parts = [];
-                for (var k in val) { if (META_KEYS.indexOf(k) >= 0) continue; var v = val[k]; if (v === null || v === undefined || v === '') continue; if (typeof v === 'object') v = JSON.stringify(v); parts.push(k + ': ' + v); }
+                for (var k in val) { var v = val[k]; if (v === null || v === undefined || v === '') continue; if (typeof v === 'object') v = JSON.stringify(v); parts.push(k + ': ' + v); }
                 return parts.join('\n');
             }
             return String(val);
         }
 
         function formatAlcohol(val) {
-            var sel = val['選択'] || '';
+            var sel = val['飲酒状況'] || val['選択'] || '';
             if (!sel || sel === '未回答') return '未回答';
             if (sel.indexOf('飲まない') >= 0 || sel === 'いいえ') return '飲まない';
             var lines = [sel.indexOf('飲む') >= 0 ? '飲む' : sel];
@@ -465,9 +502,9 @@
                 var block = val['回答' + i];
                 if (!block) continue;
                 var p = [];
-                if (block['酒の種類'] || block['酒類']) p.push('酒類: ' + (block['酒の種類'] || block['酒類']));
-                if (block['頻度_週回'] || block['頻度_週']) p.push('週' + (block['頻度_週回'] || block['頻度_週']) + '回');
-                if (block['サイズ']) p.push('サイズ: ' + block['サイズ']);
+                if (block['お酒の種類'] || block['酒類']) p.push('酒類: ' + (block['お酒の種類'] || block['酒類']));
+                if (block['週に何回'] || block['頻度_週']) p.push('週' + (block['週に何回'] || block['頻度_週']));
+                if (block['サイズ_飲み方'] || block['サイズ']) p.push('サイズ: ' + (block['サイズ_飲み方'] || block['サイズ']));
                 if (block['数量']) p.push('数量: ' + block['数量']);
                 if (p.length > 0) lines.push('回答' + i + ': ' + p.join(' / '));
             }
@@ -475,7 +512,7 @@
         }
 
         function formatTooth(val) {
-            // 行1/行2/行3の構造（新フォーマット）
+            // 行1/行2/行3の構造
             if (val['行1'] || val['行2'] || val['行3']) {
                 var lines = [];
                 for (var r = 1; r <= 3; r++) {
@@ -489,19 +526,31 @@
                 }
                 return lines.join('\n');
             }
+            // 抜歯位置1/2/3の構造
+            var posLines = [];
+            for (var n = 1; n <= 3; n++) {
+                var pos = val['抜歯位置' + n];
+                if (!pos) continue;
+                var pp = [];
+                if (pos['左右']) pp.push(pos['左右']);
+                if (pos['上下']) pp.push(pos['上下']);
+                if (pos['番号']) pp.push('番号: ' + pos['番号']);
+                if (pp.length > 0) posLines.push('位置' + n + ': ' + pp.join(' / '));
+            }
+            if (posLines.length > 0) {
+                if (val['その他']) posLines.push('その他: ' + val['その他']);
+                return posLines.join('\n');
+            }
+            // シンプル構造
             var parts = [];
             if (val['左右']) parts.push(val['左右']);
             if (val['上下']) parts.push(val['上下']);
             if (val['番号']) parts.push('番号: ' + val['番号']);
-            if (val['内容']) return String(val['内容']);
             return parts.length > 0 ? parts.join(' / ') : '';
         }
 
         function getConfidence(key, ocrData) {
-            var answData = ocrData['回答データ'] || {};
-            if (key === '患者さんID') { var d = ocrData['患者さんID']; return (d && typeof d === 'object') ? (d['信頼度'] || null) : null; }
-            var val = answData[key];
-            return (val && typeof val === 'object') ? (val['信頼度'] || null) : null;
+            return null; // フラットJSON形式では信頼度なし
         }
 
         // ========== 確認・編集 ==========
