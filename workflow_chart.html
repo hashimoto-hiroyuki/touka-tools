@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>フォーム入力ワークフロー</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Meiryo', 'Yu Gothic UI', sans-serif;
+            background: #f0f2f5;
+            padding: 30px 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            color: #1a237e;
+            margin-bottom: 6px;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 15px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        /* ステップカード */
+        .step-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            color: #fff;
+            font-weight: bold;
+            font-size: 17px;
+        }
+        .step-header .step-num {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: rgba(255,255,255,0.25);
+            border-radius: 50%;
+            font-size: 17px;
+            flex-shrink: 0;
+        }
+        .step-app-info {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 14px;
+            border-radius: 8px;
+        }
+        .step-app-icon {
+            width: 26px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+        .step-app-text {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+        .step-app-name {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .step-app-name a {
+            color: #fff;
+            text-decoration: none;
+            border-bottom: 1px dotted rgba(255,255,255,0.6);
+        }
+        .step-app-name a:hover {
+            border-bottom: 1px solid #fff;
+        }
+        .step-app-file {
+            font-size: 11px;
+            font-weight: normal;
+            opacity: 0.85;
+        }
+        .step1 .step-header { background: linear-gradient(135deg, #1976D2, #1565C0); }
+        .step2 .step-header { background: linear-gradient(135deg, #e65100, #d84315); }
+        .step3 .step-header { background: linear-gradient(135deg, #2e7d32, #1b5e20); }
+
+        .step-body {
+            padding: 14px 20px 18px;
+        }
+
+        /* フローテーブル */
+        .flow-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .flow-table th {
+            font-size: 13px;
+            color: #999;
+            text-align: left;
+            padding: 0 10px 10px;
+            border-bottom: 2px solid #e0e0e0;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .flow-table th:first-child { width: 44%; }
+        .flow-table th:nth-child(2) { width: 12%; text-align: center; }
+        .flow-table th:last-child { width: 44%; }
+
+        .flow-table td {
+            padding: 10px 10px;
+            font-size: 15px;
+            vertical-align: top;
+        }
+        .flow-table td:first-child {
+            border-right: 2px solid #e0e0e0;
+        }
+        .flow-table td:nth-child(2) {
+            text-align: center;
+            color: #bbb;
+            font-size: 20px;
+            border-right: 2px solid #e0e0e0;
+        }
+
+        .op-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 14px;
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+        .op-box .icon { font-size: 18px; }
+
+        .sys-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 14px;
+            background: #e8f5e9;
+            border: 1px solid #c8e6c9;
+            border-radius: 6px;
+            font-size: 15px;
+            color: #2e7d32;
+        }
+
+        .note {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        /* 自動処理リスト */
+        .auto-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .auto-list li {
+            padding: 3px 0;
+            font-size: 15px;
+            color: #2e7d32;
+        }
+        .auto-list li::before {
+            content: "✓ ";
+            font-weight: bold;
+        }
+
+        /* ステップ間の矢印 */
+        .step-arrow {
+            text-align: center;
+            padding: 6px 0;
+            font-size: 22px;
+            color: #ccc;
+        }
+
+        /* 完成状態 */
+        .result-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        .result-header {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #37474f, #263238);
+            color: #fff;
+            font-weight: bold;
+            font-size: 17px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .result-body {
+            padding: 14px 20px;
+        }
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 15px;
+        }
+        .result-table th {
+            background: #f5f5f5;
+            padding: 8px 10px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+            font-size: 13px;
+            color: #666;
+        }
+        .result-table td {
+            padding: 8px 10px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        .result-table .check {
+            color: #4CAF50;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .src-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            color: #fff;
+        }
+        .src-tag.s1 { background: #1976D2; }
+        .src-tag.s2 { background: #e65100; }
+        .src-tag.s3 { background: #2e7d32; }
+
+        .drive-move {
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: #fff3e0;
+            border: 1px solid #ffe0b2;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #e65100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>フォーム入力ワークフロー</h1>
+        <p class="subtitle">PDFを見ながらデータシートを完成させる手順（すべてブラウザのみ）</p>
+
+        <!-- A/B フロー説明（共通＋分岐レイアウト） -->
+        <div style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; overflow: hidden;">
+            <div style="padding: 14px 20px; background: linear-gradient(135deg, #455a64, #37474f); color: #fff; font-weight: bold; font-size: 17px; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px;">📋</span>
+                回答方法による2つのフロー
+            </div>
+            <div style="padding: 20px 24px; display: flex; gap: 20px; align-items: stretch;">
+
+                <!-- フロー本体 -->
+                <div style="flex: 1; min-width: 0;">
+
+                <!-- 共通: スキャン -->
+                <div style="text-align: center; margin-bottom: 6px;">
+                    <div style="display: inline-flex; align-items: center; gap: 10px; padding: 10px 28px; background: #f5f5f5; border: 2px solid #bdbdbd; border-radius: 10px; font-size: 16px; font-weight: bold; color: #333;">
+                        <span style="font-size: 20px;">📄</span>
+                        紙をスキャンしてPDF化 → 元PDFフォルダへ
+                    </div>
+                </div>
+
+                <!-- 下向き矢印（分岐） -->
+                <div style="text-align: center; font-size: 24px; color: #bbb; margin: 4px 0;">▼</div>
+
+                <!-- 分岐: A（スキップ） / B（フォーム入力） -->
+                <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 6px;">
+                    <!-- A: QRコード組 → スキップ -->
+                    <div style="flex: 1; max-width: 440px; text-align: center; padding: 14px 16px; background: #fff3e0; border: 2px solid #e65100; border-radius: 10px;">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px;">
+                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: #e65100; color: #fff; border-radius: 50%; font-size: 16px; font-weight: bold;">A</span>
+                            <span style="font-size: 16px; font-weight: bold; color: #e65100;">QRコードで回答した人</span>
+                        </div>
+                        <div style="padding: 8px 12px; background: #fff; border-radius: 6px; font-size: 14px; color: #e65100; font-weight: bold;">
+                            ⚠️ ①アンケート入力はスキップ
+                        </div>
+                        <div style="font-size: 12px; color: #999; margin-top: 4px;">フォーム回答済みのため不要</div>
+                    </div>
+                    <!-- B: 紙回答組 → フォーム入力 -->
+                    <div style="flex: 1; max-width: 440px; text-align: center; padding: 14px 16px; background: #e3f2fd; border: 2px solid #1976D2; border-radius: 10px;">
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px;">
+                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: #1976D2; color: #fff; border-radius: 50%; font-size: 16px; font-weight: bold;">B</span>
+                            <span style="font-size: 16px; font-weight: bold; color: #1976D2;">紙で回答した人</span>
+                        </div>
+                        <div style="padding: 8px 12px; background: #fff; border-radius: 6px; font-size: 14px; color: #1565C0; font-weight: bold;">
+                            📝 PDFを見ながらフォームで質問1〜13を入力
+                        </div>
+                        <div style="font-size: 12px; color: #999; margin-top: 4px;">ステップ①</div>
+                    </div>
+                </div>
+
+                <!-- 下向き矢印（合流） -->
+                <div style="text-align: center; font-size: 24px; color: #bbb; margin: 4px 0;">▼</div>
+
+                <!-- 共通: PDF紐づけ -->
+                <div style="text-align: center; margin-bottom: 6px;">
+                    <div style="display: inline-flex; align-items: center; gap: 10px; padding: 10px 28px; background: #f5f5f5; border: 2px solid #bdbdbd; border-radius: 10px; font-size: 16px; font-weight: bold; color: #333;">
+                        <span style="font-size: 20px;">🔗</span>
+                        PDF紐づけ ＋ 質問14（抜歯位置）入力
+                        <span style="font-size: 13px; color: #999; font-weight: normal;">ステップ②</span>
+                    </div>
+                </div>
+
+                <!-- 下向き矢印 -->
+                <div style="text-align: center; font-size: 24px; color: #bbb; margin: 4px 0;">▼</div>
+
+                <!-- 共通: 検体番号 -->
+                <div style="text-align: center;">
+                    <div style="display: inline-flex; align-items: center; gap: 10px; padding: 10px 28px; background: #f5f5f5; border: 2px solid #bdbdbd; border-radius: 10px; font-size: 16px; font-weight: bold; color: #333;">
+                        <span style="font-size: 20px;">🔎</span>
+                        検体番号の紐づけ
+                        <span style="font-size: 13px; color: #999; font-weight: normal;">ステップ③</span>
+                    </div>
+                </div>
+
+                </div><!-- /フロー本体 -->
+
+                <!-- 管理支援ツール（サイドパネル） -->
+                <div style="width: 180px; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; gap: 10px; padding-left: 16px; border-left: 2px dashed #e0e0e0;">
+                    <div style="font-size: 12px; font-weight: bold; color: #78909c; text-align: center; margin-bottom: 4px; letter-spacing: 0.5px;">
+                        🛠️ 管理支援ツール
+                    </div>
+                    <a href="view_data.html" target="_blank"
+                       style="display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 8px; font-size: 12px; font-weight: bold; color: #7b1fa2; text-decoration: none;">
+                        <span style="font-size: 15px;">📊</span>
+                        <span>データ閲覧</span>
+                    </a>
+                    <a href="pdf_arrival_status.html" target="_blank"
+                       style="display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 8px; font-size: 12px; font-weight: bold; color: #7b1fa2; text-decoration: none;">
+                        <span style="font-size: 15px;">⏱️</span>
+                        <span>PDF到着状況</span>
+                    </a>
+                    <a href="check_pdf_status.html" target="_blank"
+                       style="display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 8px; font-size: 12px; font-weight: bold; color: #7b1fa2; text-decoration: none;">
+                        <span style="font-size: 15px;">📋</span>
+                        <span>PDF処理状況チェック</span>
+                    </a>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="step-arrow">▼</div>
+
+        <!-- ステップ1 -->
+        <div class="step-card step1">
+            <div class="step-header">
+                <span class="step-num">1</span>
+                アンケート入力（紙回答のみ）
+                <div class="step-app-info">
+                    <svg class="step-app-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 11l3 3L22 4"/>
+                        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                    </svg>
+                    <div class="step-app-text">
+                        <span class="step-app-name"><a href="https://forms.gle/4gmJpKRGBNspNryw9" target="_blank">アンケートフォーム</a></span>
+                        <span class="step-app-file">Google Forms</span>
+                    </div>
+                </div>
+            </div>
+            <div class="step-body">
+                <table class="flow-table">
+                    <tr><th>操作</th><th></th><th>内部の動き</th></tr>
+                    <tr>
+                        <td><span class="op-box"><span class="icon">✏️</span>質問1〜13を入力して送信</span></td>
+                        <td>→</td>
+                        <td>
+                            <span class="sys-box">スプレッドシートに行を自動追加</span>
+                            <div class="note">※PDF紐づけなし・質問14は空</div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="step-arrow">▼</div>
+
+        <!-- ステップ2 -->
+        <div class="step-card step2">
+            <div class="step-header">
+                <span class="step-num">2</span>
+                PDF紐づけ ＋ 質問14入力
+                <div class="step-app-info">
+                    <svg class="step-app-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="9" y1="15" x2="15" y2="15"/>
+                    </svg>
+                    <div class="step-app-text">
+                        <span class="step-app-name"><a href="https://hashimoto-hiroyuki.github.io/touka-tools/link_pdf.html" target="_blank">PDF紐づけ</a></span>
+                        <span class="step-app-file">link_pdf.html</span>
+                    </div>
+                </div>
+            </div>
+            <div class="step-body">
+                <table class="flow-table">
+                    <tr><th>操作</th><th></th><th>内部の動き</th></tr>
+                    <tr>
+                        <td><span class="op-box"><span class="icon">📃</span>「一覧を読み込む」</span></td>
+                        <td>→</td>
+                        <td><span class="sys-box">未紐づけデータ一覧を取得</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="op-box"><span class="icon">👆</span>データ行を選択</span></td>
+                        <td>→</td>
+                        <td><span class="sys-box">アンケート内容表示 ＋ PDF自動候補</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="op-box"><span class="icon">📂</span>「Drive PDF一覧を読み込む」</span></td>
+                        <td>→</td>
+                        <td><span class="sys-box">元PDFフォルダのPDF一覧を取得</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="op-box"><span class="icon">🔍</span>PDFを選択（自動候補 or 手動）</span></td>
+                        <td>→</td>
+                        <td><span class="sys-box">PDFプレビュー表示</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="op-box"><span class="icon">🦷</span>質問14（□右□左□上□下＋番号）</span></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td><span class="op-box"><span class="icon">🔗</span>「紐づける」をクリック</span></td>
+                        <td>→</td>
+                        <td>
+                            <ul class="auto-list">
+                                <li>元PDFファイル名を記録</li>
+                                <li>質問14（抜去位置）を記録</li>
+                                <li>Source列を「OCR」に変更</li>
+                                <li>PDFを入力済みフォルダへ自動移動</li>
+                            </ul>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="step-arrow">▼</div>
+
+        <!-- ステップ3 -->
+        <div class="step-card step3">
+            <div class="step-header">
+                <span class="step-num">3</span>
+                検体番号の紐づけ
+                <div class="step-app-info">
+                    <svg class="step-app-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <div class="step-app-text">
+                        <span class="step-app-name"><a href="https://hashimoto-hiroyuki.github.io/touka-tools/search_sample.html" target="_blank">検体番号検索</a></span>
+                        <span class="step-app-file">search_sample.html</span>
+                    </div>
+                </div>
+            </div>
+            <div class="step-body">
+                <table class="flow-table">
+                    <tr><th>操作</th><th></th><th>内部の動き</th></tr>
+                    <tr>
+                        <td><span class="op-box"><span class="icon">🔎</span>氏名 or 生年月日を入力</span></td>
+                        <td>→</td>
+                        <td><span class="sys-box">検体データを横断あいまい検索</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="op-box"><span class="icon">👆</span>候補をクリック</span></td>
+                        <td>→</td>
+                        <td><span class="sys-box">検体No.をクリップボードにコピー</span></td>
+                    </tr>
+                    <tr>
+                        <td><span class="op-box"><span class="icon">📋</span>データシートに検体No.を反映</span></td>
+                        <td>→</td>
+                        <td><span class="sys-box">データ行が完成</span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="step-arrow">▼</div>
+
+        <!-- 完成状態 -->
+        <div class="result-card">
+            <div class="result-header">
+                <span>✅</span> 完成状態
+            </div>
+            <div class="result-body">
+                <table class="result-table">
+                    <tr>
+                        <th>No.</th>
+                        <th>質問1〜13</th>
+                        <th>元PDFファイル名</th>
+                        <th>質問14（抜去位置）</th>
+                        <th>検体No.</th>
+                    </tr>
+                    <tr>
+                        <td><strong>35</strong></td>
+                        <td><span class="check">✔</span><br><span class="src-tag s1">ステップ1</span></td>
+                        <td><span class="check">✔</span><br><span class="src-tag s2">ステップ2</span></td>
+                        <td><span class="check">✔</span><br><span class="src-tag s2">ステップ2</span></td>
+                        <td><span class="check">✔</span><br><span class="src-tag s3">ステップ3</span></td>
+                    </tr>
+                </table>
+                <div class="drive-move">
+                    <span>📁</span>
+                    <span>元PDFフォルダ → <strong>入力済みPDFフォルダ</strong> へ自動移動済み（ステップ2で完了）</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
