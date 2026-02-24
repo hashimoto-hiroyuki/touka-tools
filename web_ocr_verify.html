@@ -559,6 +559,54 @@
             } else {
                 document.getElementById('pageIndicator').style.display = 'none';
             }
+
+            // PDF自動スクロール
+            scrollPdfToQuestion(key, idx);
+        }
+
+        function scrollPdfToQuestion(key, idx) {
+            var wrapper = document.getElementById('iframeWrapper');
+            if (!wrapper) return;
+
+            var qr = questionRects[key];
+            if (qr) {
+                // 矩形定義済み: その位置にスクロール
+                var pageNum = qr.page || 1;
+                var pageEl = document.getElementById('pdfPage_' + pageNum);
+                if (!pageEl) return;
+                // 矩形の中央Y位置を計算（ページ内の%→wrapper内のpx）
+                var centerYPct = (qr.y1 + qr.y2) / 2;
+                var targetY = pageEl.offsetTop + (pageEl.offsetHeight * centerYPct / 100) - wrapper.clientHeight / 3;
+                wrapper.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+            } else {
+                // 未定義: ヒントのページ・位置情報から推定スクロール
+                var hint = QUESTION_HINTS[key] || '';
+                var pageNum = hint.indexOf('P2') >= 0 ? 2 : 1;
+                var pageEl = document.getElementById('pdfPage_' + pageNum);
+                if (!pageEl) return;
+
+                // 位置ヒントからY比率を推定
+                var yRatio = 0.5;
+                if (hint.indexOf('最上部') >= 0) yRatio = 0.0;
+                else if (hint.indexOf('上部') >= 0) yRatio = 0.15;
+                else if (hint.indexOf('上〜中') >= 0) yRatio = 0.3;
+                else if (hint.indexOf('中〜下') >= 0) yRatio = 0.6;
+                else if (hint.indexOf('中部') >= 0) yRatio = 0.45;
+                else if (hint.indexOf('下部') >= 0) yRatio = 0.8;
+
+                // 同ページ内の質問順序で微調整
+                var samePageKeys = QUESTION_ORDER.filter(function(k) {
+                    var h = QUESTION_HINTS[k] || '';
+                    return (hint.indexOf('P2') >= 0) === (h.indexOf('P2') >= 0);
+                });
+                var posInPage = samePageKeys.indexOf(key);
+                if (posInPage >= 0 && samePageKeys.length > 1) {
+                    yRatio = posInPage / samePageKeys.length;
+                }
+
+                var targetY = pageEl.offsetTop + (pageEl.offsetHeight * yRatio) - wrapper.clientHeight / 3;
+                wrapper.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+            }
         }
 
         function buildNavBar() {
