@@ -648,42 +648,45 @@
             var embed = wrapper.querySelector('embed');
             if (embed) return;
 
-            // 右パネル: 質問ブロックをパネル上部（少し余裕を持たせて）にスクロール
             var questionsArea = document.getElementById('questionsArea');
             var block = document.getElementById('qblock_' + idx);
-            var targetOffset = 40; // パネル上端からの余白px
-            if (block && questionsArea) {
-                var blockTop = block.offsetTop - targetOffset;
-                questionsArea.scrollTo({ top: Math.max(0, blockTop), behavior: 'smooth' });
-            }
+            if (!block || !questionsArea) return;
 
-            // PDF上の対象Y座標（wrapper内の絶対スクロール位置）を計算
+            // ステップ1: 右パネルを質問ブロック上端がパネル上端に来るようスクロール
+            var desiredScrollTop = block.offsetTop;
+            questionsArea.scrollTo({ top: Math.max(0, desiredScrollTop), behavior: 'smooth' });
+
+            // ステップ2: 実際のスクロール位置を計算（スクロール限界の場合ブロックがパネル上端より下に残る）
+            var maxScroll = questionsArea.scrollHeight - questionsArea.clientHeight;
+            var actualScrollTop = Math.min(Math.max(0, desiredScrollTop), Math.max(0, maxScroll));
+            // ブロックのパネル上端からの実際のオフセット（限界到達時は0より大きくなる）
+            var blockVisualOffset = block.offsetTop - actualScrollTop;
+
+            // ステップ3: PDF上の対象Y座標を計算
             var pdfAbsY = 0;
             var qr = questionRects[key];
             if (qr) {
                 var pageNum = qr.page || 1;
                 var pageEl = document.getElementById('pdfPage_' + pageNum);
                 if (!pageEl) return;
-                var pageTop = pageEl.offsetTop;
-                // 矩形の上端Y位置（中心ではなく上端で合わせる）
-                pdfAbsY = pageTop + (pageEl.offsetHeight * qr.y1 / 100);
+                pdfAbsY = pageEl.offsetTop + (pageEl.offsetHeight * qr.y1 / 100);
             } else {
                 var hint = QUESTION_HINTS[key] || '';
                 var pageNum = hint.indexOf('P2') >= 0 ? 2 : 1;
                 var pageEl = document.getElementById('pdfPage_' + pageNum);
                 if (!pageEl) return;
-                var pageTop = pageEl.offsetTop;
                 var samePageKeys = QUESTION_ORDER.filter(function(k) {
                     var h = QUESTION_HINTS[k] || '';
                     return (hint.indexOf('P2') >= 0) === (h.indexOf('P2') >= 0);
                 });
                 var posInPage = samePageKeys.indexOf(key);
                 var yRatio = (posInPage >= 0 && samePageKeys.length > 1) ? posInPage / samePageKeys.length : 0.5;
-                pdfAbsY = pageTop + (pageEl.offsetHeight * yRatio);
+                pdfAbsY = pageEl.offsetTop + (pageEl.offsetHeight * yRatio);
             }
 
-            // 左パネル: PDF矩形をパネル上部（同じ余白位置）にスクロール
-            var pdfTargetY = pdfAbsY - targetOffset;
+            // ステップ4: 左パネルのPDF矩形を右パネルのブロックと同じ視覚位置に合わせる
+            // PDF矩形がパネル上端からblockVisualOffsetの位置に来るようにスクロール
+            var pdfTargetY = pdfAbsY - blockVisualOffset;
             wrapper.scrollTo({ top: Math.max(0, pdfTargetY), behavior: 'smooth' });
         }
 
