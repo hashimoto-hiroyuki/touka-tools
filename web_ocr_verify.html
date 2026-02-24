@@ -337,6 +337,18 @@
 
             gasCall('ocrFullPdfWithGemini', { fileId: currentFileId }, 180000).then(function(data) {
                 var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                if (data && data.ocrTempFileId) {
+                    // 2段階目: 一時ファイルからOCR結果を取得
+                    status.textContent = 'OCR結果を読み込み中...';
+                    return gasCall('getOcrTempResult', { tempFileId: data.ocrTempFileId }, 30000);
+                } else if (data && data.ocrData) {
+                    // 直接ocrDataが返された場合（フォールバック）
+                    return { ocrData: data.ocrData };
+                } else {
+                    throw new Error(data.message || '不明なエラー');
+                }
+            }).then(function(data) {
+                var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
                 if (data && data.ocrData) {
                     currentOcrData = data.ocrData;
                     status.textContent = 'OCR完了 (' + elapsed + '秒)';
@@ -344,7 +356,7 @@
                     document.getElementById('ocrSection').style.display = 'none';
                     renderQuestions(currentOcrData);
                 } else {
-                    status.textContent = 'OCR失敗: ' + (data.message || '不明なエラー');
+                    status.textContent = 'OCR失敗: OCR結果データなし';
                     btn.disabled = false;
                     btn.textContent = 'OCR再実行';
                 }
