@@ -648,23 +648,31 @@
             var embed = wrapper.querySelector('embed');
             if (embed) return;
 
-            var containerEl = document.getElementById('pdfPagesContainer');
-            var containerOffset = containerEl ? containerEl.offsetTop : 0;
-
             var targetY = 0;
             var qr = questionRects[key];
             if (qr) {
-                // 矩形定義済み: 矩形の上端をPDF表示欄の上端付近に合わせる
+                // 矩形定義済み: ハイライト要素の実際の位置を基準にスクロール
                 var pageNum = qr.page || 1;
+                var highlightEl = document.getElementById('pdfHighlight_' + pageNum);
                 var pageEl = document.getElementById('pdfPage_' + pageNum);
                 if (!pageEl) return;
-                targetY = containerOffset + pageEl.offsetTop + (pageEl.offsetHeight * qr.y1 / 100) - 20;
+
+                // ハイライト要素がページ内にあるので、ページの絶対位置 + %位置で計算
+                // getBoundingClientRectを使い、wrapper内の正確な位置を取得
+                var pageRect = pageEl.getBoundingClientRect();
+                var wrapperRect = wrapper.getBoundingClientRect();
+                var relativeTop = pageRect.top - wrapperRect.top + wrapper.scrollTop;
+                targetY = relativeTop + (pageEl.offsetHeight * qr.y1 / 100) - 30;
             } else {
                 // 未定義: ページ内の質問順序から推定
                 var hint = QUESTION_HINTS[key] || '';
                 var pageNum = hint.indexOf('P2') >= 0 ? 2 : 1;
                 var pageEl = document.getElementById('pdfPage_' + pageNum);
                 if (!pageEl) return;
+
+                var pageRect = pageEl.getBoundingClientRect();
+                var wrapperRect = wrapper.getBoundingClientRect();
+                var relativeTop = pageRect.top - wrapperRect.top + wrapper.scrollTop;
 
                 // 同ページ内の質問順序で位置を計算
                 var samePageKeys = QUESTION_ORDER.filter(function(k) {
@@ -674,7 +682,7 @@
                 var posInPage = samePageKeys.indexOf(key);
                 var yRatio = (posInPage >= 0 && samePageKeys.length > 1) ? posInPage / samePageKeys.length : 0.5;
 
-                targetY = containerOffset + pageEl.offsetTop + (pageEl.offsetHeight * yRatio) - 20;
+                targetY = relativeTop + (pageEl.offsetHeight * yRatio) - 30;
             }
 
             targetY = Math.max(0, targetY);
@@ -683,7 +691,6 @@
             var currentY = wrapper.scrollTop;
             var diff = Math.abs(currentY - targetY);
             if (diff < 30) {
-                // 差が小さい場合: 一度ずらしてからスクロール（視覚的フィードバック）
                 wrapper.scrollTop = targetY + 60;
             }
             wrapper.scrollTo({ top: targetY, behavior: 'smooth' });
