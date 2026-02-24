@@ -1,6 +1,6 @@
 // ========== 設定セクション ==========
 const SPREADSHEET_ID = '1znspyaI-wj70aBkDfOPPrmYjPSSn3mFELW6VNfOSIbM';
-const RESPONSE_SHEET_NAME = '回答データ1';  // 回答データ用（フォーム＋照合アプリ）
+const RESPONSE_SHEET_NAME = 'フォームの回答 1';  // 回答データ用（フォーム＋照合アプリ）
 const HOSPITAL_LIST_SHEET_NAME = '医療機関リスト';  // 医療機関リスト用
 const HOSPITAL_QUESTION_TITLE = '1. 受診中の歯科医院を選んでください。';
 const JSON_FOLDER_NAME = 'アンケートJSON';  // JSON保存フォルダ名
@@ -106,6 +106,24 @@ function doGet(e) {
       case 'indexPdfWithGemini':
         result = { success: true, data: indexPdfWithGemini(e.parameter.fileId) };
         break;
+      case 'ocrFullPdfWithGemini':
+        result = { success: true, data: ocrFullPdfWithGemini(e.parameter.fileId) };
+        break;
+      case 'getPdfPageImages':
+        result = { success: true, data: getPdfPageImages(e.parameter.fileId) };
+        break;
+      case 'getOcrTempResult':
+        var tempFile = DriveApp.getFileById(e.parameter.tempFileId);
+        var rawText = tempFile.getBlob().getDataAsString();
+        var tempContent;
+        try { tempContent = JSON.parse(rawText); } catch(jsonErr) { tempContent = rawText; }
+        result = { success: true, data: { ocrData: tempContent } };
+        break;
+      case 'getRawTempFile':
+        var rawFile = DriveApp.getFileById(e.parameter.tempFileId);
+        var rawContent = rawFile.getBlob().getDataAsString();
+        result = { success: true, data: { content: rawContent } };
+        break;
       case 'indexAllPdfs':
         result = { success: true, data: indexAllPdfs() };
         break;
@@ -146,6 +164,10 @@ function doGet(e) {
         } else {
           result = { success: false, error: 'パスワードが正しくありません' };
         }
+        break;
+      // ========== アノテーション矩形データ（質問ハイライト座標） ==========
+      case 'getQuestionRects':
+        result = { success: true, data: getQuestionRects() };
         break;
       default:
         result = { success: false, error: 'Unknown action' };
@@ -361,7 +383,7 @@ function rebuildFullForm() {
   // 性別（Q9）
   const q9 = form.addMultipleChoiceItem()
     .setTitle('9. 性別')
-    .setChoiceValues(['男性', '女性', 'その他', '回答しない'])
+    .setChoiceValues(['男', '女', '回答しない'])
     .setRequired(true);
   // 血液型（Q10）
   const q10 = form.addMultipleChoiceItem()
@@ -390,9 +412,9 @@ function rebuildFullForm() {
   // --- 生活習慣セクション ---
   const sec13 = form.addPageBreakItem().setTitle('生活習慣について');
   form.addMultipleChoiceItem().setTitle('21. 普段、運動をしてますか？').setChoiceValues(['ほぼ毎日', '週2～3回', '週1回以下', 'しない']).setRequired(true);
-  form.addCheckboxItem().setTitle('22. 普段、飲む物は何ですか？').setChoiceValues(['有糖飲料(ジュース、炭酸飲料、スポーツドリンク、加糖コーヒーなど)', '無糖飲料(お茶、水、炭酸水、無糖コーヒーなど)']).setRequired(true);
-  form.addMultipleChoiceItem().setTitle('23. 普段、お菓子、スイーツなどは食べますか？').setChoiceValues(['ほぼ毎日', '週2～3回', '週1回以下', '食べない']).setRequired(true);
-  const q24 = form.addMultipleChoiceItem().setTitle('24. お酒（ビール、ワイン、焼酎、ウイスキーなど）を習慣的に飲みますか？').setRequired(true);
+  form.addCheckboxItem().setTitle('22. 最もよく飲む飲み物は何ですか？').setChoiceValues(['有糖飲料(ジュース、炭酸飲料、スポーツドリンク、加糖コーヒーなど)', '無糖飲料(お茶、水、炭酸水、無糖コーヒーなど)']).setRequired(true);
+  form.addMultipleChoiceItem().setTitle('23. お菓子、スイーツなどを週何回食べますか').setChoiceValues(['ほぼ毎日', '週2～3回', '週1回以下', '食べない']).setRequired(true);
+  const q24 = form.addMultipleChoiceItem().setTitle('24. 飲酒習慣についてご質問致します。').setRequired(true);
   // --- 飲酒詳細セクション生成関数 ---
   function createDrinkingSec(title, baseNum) {
     const sec = form.addPageBreakItem().setTitle(title);
@@ -424,8 +446,8 @@ function rebuildFullForm() {
   // --- 5. 条件分岐の設定 ---
   q13.setChoices([q13.createChoice('はい', sec6), q13.createChoice('いいえ', sec7)]);
   q15.setChoices([q15.createChoice('はい', sec8), q15.createChoice('いいえ', sec9)]);
-  q17.setChoices([q17.createChoice('はい', sec11), q17.createChoice('いいえ', sec11)]);  // Q18削除のため、はい/いいえ両方sec11へ
-  q19.setChoices([q19.createChoice('はい', sec13), q19.createChoice('いいえ', sec13)]);  // Q20削除のため、はい/いいえ両方sec13へ
+  q17.setChoices([q17.createChoice('はい', sec11), q17.createChoice('いいえ', sec11), q17.createChoice('わからない', sec11)]);  // Q18削除のため、全選択肢sec11へ
+  q19.setChoices([q19.createChoice('はい', sec13), q19.createChoice('いいえ', sec13), q19.createChoice('わからない', sec13)]);  // Q20削除のため、全選択肢sec13へ
   sec6.setGoToPage(sec7);
   sec8.setGoToPage(sec9);
   q24.setChoices([
@@ -499,6 +521,13 @@ function doPost(e) {
         break;
       case 'saveIndexJson':
         result = { success: true, data: saveIndexJsonToDrive(body.indexData) };
+        break;
+      case 'saveWebOcrResult':
+        result = { success: true, data: saveWebOcrResult(body) };
+        break;
+      // ========== アノテーション矩形データ ==========
+      case 'saveQuestionRects':
+        result = { success: true, data: saveQuestionRects(body.rects) };
         break;
       default:
         result = { success: false, error: 'Unknown action: ' + action };
@@ -765,85 +794,46 @@ function saveJsonToGoogleDrive(jsonData, rowNumber, noValueDirect) {
  * JSONファイルと同じフォルダに同じ命名規則（拡張子だけ.pdf）で保存
  */
 function savePdfToGoogleDrive(pdfBase64, rowNumber, idNumber, duplicateCount, originalFilename) {
-  const folder = getOrCreateJsonFolder();
-  // No.を取得（スプレッドシートから）
-  let noStr = '';
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet = ss.getSheetByName(RESPONSE_SHEET_NAME);
-    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    const noColIndex = headers.indexOf('No.');
-    if (noColIndex >= 0 && rowNumber >= 2) {
-      const noValue = sheet.getRange(rowNumber, noColIndex + 1).getValue();
-      if (noValue) noStr = String(noValue).padStart(3, '0');
-    }
-  } catch (e) {
-    // No.取得失敗時はrow番号で代替
+  // 入力済みPDFフォルダに保存（元のファイル名を使用）
+  const doneFolder = DriveApp.getFolderById(DONE_PDF_FOLDER_ID);
+
+  // ファイル名: 元のファイル名をそのまま使用
+  let fileName = originalFilename || 'unknown.pdf';
+  // .pdf拡張子がなければ付与
+  if (!fileName.toLowerCase().endsWith('.pdf')) {
+    fileName += '.pdf';
   }
-  if (!noStr) noStr = String(rowNumber).padStart(3, '0');
-  // タイムスタンプを取得（データシートのタイムスタンプ優先、なければ現在時刻）
-  let tsDate = null;
-  try {
-    const ss2 = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet2 = ss2.getSheetByName(RESPONSE_SHEET_NAME);
-    const headers2 = sheet2.getRange(1, 1, 1, sheet2.getLastColumn()).getValues()[0];
-    const tsColIndex = headers2.indexOf('タイムスタンプ');
-    if (tsColIndex >= 0 && rowNumber >= 2) {
-      const tsValue = sheet2.getRange(rowNumber, tsColIndex + 1).getValue();
-      if (tsValue) tsDate = new Date(tsValue);
-    }
-  } catch (e) {}
-  if (!tsDate || isNaN(tsDate.getTime())) tsDate = new Date();
-  const tsStr = tsDate.getFullYear()
-    + String(tsDate.getMonth() + 1).padStart(2, '0')
-    + String(tsDate.getDate()).padStart(2, '0')
-    + '_'
-    + String(tsDate.getHours()).padStart(2, '0')
-    + String(tsDate.getMinutes()).padStart(2, '0')
-    + String(tsDate.getSeconds()).padStart(2, '0');
-  const baseName = noStr + '_' + tsStr;
-  // 同じファイル名のPDFが既にあれば (2), (3)... を付与
-  const escapedBase = baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const allFiles = folder.getFiles();
+
+  // 同じファイル名が既にあれば (2), (3)... を付与
+  const baseName = fileName.replace(/\.pdf$/i, '');
+  const allFiles = doneFolder.getFilesByName(fileName);
   let samePdfCount = 0;
-  while (allFiles.hasNext()) {
-    const f = allFiles.next();
-    const name = f.getName();
-    if (name === baseName + '.pdf' || new RegExp('^' + escapedBase + '\\(\\d+\\)\\.pdf$').test(name)) {
-      samePdfCount++;
+  if (allFiles.hasNext()) {
+    samePdfCount = 1;
+    // さらに (2), (3)... も確認
+    for (let i = 2; i <= 100; i++) {
+      const checkName = baseName + '(' + i + ').pdf';
+      const checkFiles = doneFolder.getFilesByName(checkName);
+      if (checkFiles.hasNext()) {
+        samePdfCount = i;
+      } else {
+        break;
+      }
     }
   }
-  let fileName;
   if (samePdfCount > 0) {
     fileName = baseName + '(' + (samePdfCount + 1) + ').pdf';
-  } else {
-    fileName = baseName + '.pdf';
   }
+
   // Base64デコードしてPDFファイルとして保存
   const pdfBlob = Utilities.newBlob(Utilities.base64Decode(pdfBase64), 'application/pdf', fileName);
-  folder.createFile(pdfBlob);
-  Logger.log('PDFコピー作成: ' + fileName + ' (元: ' + originalFilename + ')');
-  // 元PDFをスキャンPDFフォルダから入力済みPDFフォルダへ移動
-  let movedOriginal = false;
-  if (originalFilename) {
-    try {
-      const scanFolder = DriveApp.getFolderById(SCAN_PDF_FOLDER_ID);
-      const doneFolder = DriveApp.getFolderById(DONE_PDF_FOLDER_ID);
-      const matchFiles = scanFolder.getFilesByName(originalFilename);
-      if (matchFiles.hasNext()) {
-        const origFile = matchFiles.next();
-        origFile.moveTo(doneFolder);
-        movedOriginal = true;
-        Logger.log('元PDF移動: ' + originalFilename + ' → 入力済みPDFフォルダ');
-      }
-    } catch (moveErr) {
-      Logger.log('元PDF移動エラー（PDFコピーは成功）: ' + moveErr.toString());
-    }
-  }
+  doneFolder.createFile(pdfBlob);
+  Logger.log('PDF保存: ' + fileName + ' → 入力済みPDFフォルダ');
+
   return {
     fileName: fileName,
     originalFilename: originalFilename,
-    movedOriginal: movedOriginal
+    movedOriginal: false
   };
 }
 /**
@@ -2404,6 +2394,207 @@ function saveVerifiedOcrResult(fileId, data) {
     surveyResult: surveyResult
   };
 }
+// ========== Web OCR照合 ==========
+/**
+ * PDFの各ページを画像化してBase64で返す
+ * Google DriveのサムネイルAPIを使用
+ */
+function getPdfPageImages(fileId) {
+  if (!fileId) return { success: false, message: 'fileIdが必要です' };
+  var file;
+  try { file = DriveApp.getFileById(fileId); } catch (e) {
+    return { success: false, message: 'ファイルが見つかりません' };
+  }
+  // PDFバイナリをBase64で返す（ブラウザ側のPDF.jsでレンダリング用）
+  // 直接返すとJSONPサイズ制限に引っかかるため、一時ファイル経由
+  var blob = file.getBlob();
+  var base64 = Utilities.base64Encode(blob.getBytes());
+  var tempFolder = getOrCreateOcrFolder();
+  var tempFileName = 'web_pdf_b64_' + fileId + '.txt';
+  var existingTemp = tempFolder.getFilesByName(tempFileName);
+  var tempFile;
+  if (existingTemp.hasNext()) {
+    tempFile = existingTemp.next();
+    tempFile.setContent(base64);
+  } else {
+    tempFile = tempFolder.createFile(tempFileName, base64, MimeType.PLAIN_TEXT);
+  }
+  // 一時ファイルを誰でも閲覧可能に設定（GAS Web AppのCORS回避）
+  tempFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return {
+    success: true,
+    tempFileId: tempFile.getId(),
+    fileName: file.getName()
+  };
+}
+
+/**
+ * PDFをGemini APIで全17項目フルOCR
+ * indexPdfWithGeminiの拡張版（5項目→全質問）
+ */
+function ocrFullPdfWithGemini(fileId) {
+  if (!fileId) return { success: false, message: 'fileIdが必要です' };
+  if (!GEMINI_API_KEY) return { success: false, message: 'GEMINI_API_KEYが未設定' };
+  var file;
+  try { file = DriveApp.getFileById(fileId); } catch (e) {
+    return { success: false, message: 'ファイルが見つかりません: ' + e.toString() };
+  }
+  var fileName = file.getName();
+  var blob = file.getBlob();
+  var base64Data = Utilities.base64Encode(blob.getBytes());
+  // フルOCRプロンプト（verify_survey.pyから移植）
+  var prompt = 'あなたは紙のアンケート用紙を読み込むエキスパートです。\n' +
+    'このPDFはスキャンされた手書きアンケートです。全質問の回答をJSONで返してください。\n\n' +
+    '【注意事項】\n' +
+    '- 患者さんIDは1文字ずつ枠で区切られています。枠線を文字と誤認しないでください\n' +
+    '- 最初の文字はアルファベット（A,B,C等）の可能性が高いです\n' +
+    '- 名前はカタカナです。氏と名をスペースで区切ってください\n' +
+    '- 生年月日は昭和・平成・令和の丸囲み＋手書き数字です\n' +
+    '- 空欄・未記入は null または "" にしてください\n' +
+    '- 質問13の飲酒は最大3種類の回答欄があります\n' +
+    '- 質問14（歯の抜去位置）と質問15（コメント）は2ページ目にある場合があります\n\n' +
+    '以下のフラットなJSON形式で出力してください。ネストは質問13と質問14のみ。\n' +
+    'JSONのみ出力し、説明文は不要です。\n\n' +
+    '```json\n' +
+    '{\n' +
+    '  "医療機関名": "○○医院",\n' +
+    '  "患者さんID": "A1234",\n' +
+    '  "質問1_名前": "ヤマダ タロウ",\n' +
+    '  "質問2_生年月日": "昭和50年1月15日",\n' +
+    '  "質問3_性別": "男",\n' +
+    '  "質問4_血液型": "A型",\n' +
+    '  "質問5_身長": "170cm",\n' +
+    '  "質問5_体重": "65kg",\n' +
+    '  "質問6_糖尿病": "なし",\n' +
+    '  "質問7_脂質異常症": "なし",\n' +
+    '  "質問8_兄弟糖尿病歴": "いいえ",\n' +
+    '  "質問9_両親糖尿病歴": "いいえ",\n' +
+    '  "質問10_運動": "しない",\n' +
+    '  "質問11_飲み物": "無糖飲料",\n' +
+    '  "質問12_お菓子": "週1回以下",\n' +
+    '  "質問13_飲酒習慣": {\n' +
+    '    "飲酒状況": "飲む",\n' +
+    '    "回答1": {"お酒の種類":"ビール","週に何回":"3回","サイズ_飲み方":"350ml缶","数量":"2"},\n' +
+    '    "回答2": null,\n' +
+    '    "回答3": null\n' +
+    '  },\n' +
+    '  "質問14_抜去位置": {\n' +
+    '    "行1": {"左右":"右","上下":"上","番号":"6"},\n' +
+    '    "行2": null,\n' +
+    '    "行3": null\n' +
+    '  },\n' +
+    '  "質問15_コメント": ""\n' +
+    '}\n' +
+    '```\n\n' +
+    '【質問6の選択肢】なし / 5年未満 / 5〜10年前 / 10年以上前 / わからない\n' +
+    '【質問7の選択肢】なし / 5年未満 / 5〜10年前 / 10年以上前 / わからない\n' +
+    '【質問8,9の選択肢】はい / いいえ / わからない\n' +
+    '【質問10の選択肢】ほぼ毎日 / 週2〜3回 / 週1回以下 / しない\n' +
+    '【質問11の選択肢】有糖飲料 / 無糖飲料\n' +
+    '【質問12の選択肢】ほぼ毎日 / 週2〜3回 / 週1回以下 / 食べない';
+  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=' + GEMINI_API_KEY;
+  var payload = {
+    contents: [{
+      parts: [
+        { text: prompt },
+        { inline_data: { mime_type: 'application/pdf', data: base64Data } }
+      ]
+    }],
+    generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+  };
+  var options = { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true };
+  var response = UrlFetchApp.fetch(apiUrl, options);
+  if (response.getResponseCode() !== 200) {
+    return { success: false, message: 'Gemini APIエラー (' + response.getResponseCode() + '): ' + response.getContentText().substring(0, 300) };
+  }
+  var geminiResult = JSON.parse(response.getContentText());
+  var textContent = '';
+  try { textContent = geminiResult.candidates[0].content.parts[0].text; } catch (e) {
+    return { success: false, message: 'Gemini APIレスポンス解析エラー' };
+  }
+  // JSON抽出
+  var jsonText = textContent.trim();
+  if (jsonText.indexOf('```json') >= 0) {
+    jsonText = jsonText.split('```json')[1].split('```')[0].trim();
+  } else if (jsonText.indexOf('```') >= 0) {
+    jsonText = jsonText.split('```')[1].split('```')[0].trim();
+  }
+  var firstBrace = jsonText.indexOf('{');
+  var lastBrace = jsonText.lastIndexOf('}');
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    jsonText = jsonText.substring(firstBrace, lastBrace + 1);
+  }
+  jsonText = jsonText.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
+  // 制御文字を除去（Geminiが稀に出力する不正文字対策）
+  jsonText = jsonText.replace(/[\x00-\x1F\x7F]/g, function(c) {
+    if (c === '\n' || c === '\r' || c === '\t') return c;
+    return '';
+  });
+  var ocrData;
+  try { ocrData = JSON.parse(jsonText); } catch (e) {
+    // 修復試行1: コメント除去（// ...）
+    var cleaned = jsonText.replace(/\/\/[^\n]*/g, '');
+    try { ocrData = JSON.parse(cleaned); } catch (e2) {
+      // 修復試行2: 行末コンマ修正 + シングルクォート置換
+      cleaned = cleaned.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']').replace(/'/g, '"');
+      try { ocrData = JSON.parse(cleaned); } catch (e3) {
+        // 修復試行3: JSONを一時ファイルに保存してデバッグ用に返す
+        return { success: false, message: 'OCR結果JSON解析エラー: ' + e.message + ' | ' + jsonText.substring(0, 500) };
+      }
+    }
+  }
+  // JSONP転送時の二重エスケープ問題を防ぐため、ocrDataを一時ファイルに保存して参照IDを返す
+  var tempFolder = getOrCreateOcrFolder();
+  var tempFileName = 'web_ocr_temp_' + fileId + '.json';
+  var existingTemp = tempFolder.getFilesByName(tempFileName);
+  if (existingTemp.hasNext()) {
+    existingTemp.next().setContent(JSON.stringify(ocrData, null, 2));
+  } else {
+    tempFolder.createFile(tempFileName, JSON.stringify(ocrData, null, 2), MimeType.PLAIN_TEXT);
+  }
+  var tempFiles = tempFolder.getFilesByName(tempFileName);
+  var tempFileId = tempFiles.hasNext() ? tempFiles.next().getId() : '';
+  return { success: true, ocrTempFileId: tempFileId, fileName: fileName };
+}
+
+/**
+ * Web OCR照合の保存処理
+ * スプレッドシート追加 + PDF移動（JSONはaddSurveyResponse内で自動保存）
+ */
+function saveWebOcrResult(body) {
+  // 1. スプレッドシートに追加（JSON自動保存含む）
+  var surveyResult = addSurveyResponse(body.surveyData);
+  // 2. 元PDFファイル名をスプレッドシートに記録
+  if (body.fileName && surveyResult.row) {
+    try {
+      var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+      var sheet = ss.getSheetByName(RESPONSE_SHEET_NAME);
+      var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      var pdfColIdx = headers.indexOf('元PDFファイル名');
+      if (pdfColIdx >= 0) {
+        sheet.getRange(surveyResult.row, pdfColIdx + 1).setValue(body.fileName);
+      }
+    } catch (e) { Logger.log('元PDFファイル名記録エラー: ' + e.toString()); }
+  }
+  // 3. PDFを元PDFフォルダ→入力済みPDFフォルダへ移動
+  var movedPdf = false;
+  if (body.fileId) {
+    try {
+      var pdfFile = DriveApp.getFileById(body.fileId);
+      var doneFolder = DriveApp.getFolderById(DONE_PDF_FOLDER_ID);
+      pdfFile.moveTo(doneFolder);
+      movedPdf = true;
+      Logger.log('PDF移動完了: ' + pdfFile.getName() + ' → 入力済みPDFフォルダ');
+    } catch (e) { Logger.log('PDF移動エラー: ' + e.toString()); }
+  }
+  return {
+    success: true,
+    message: surveyResult.message,
+    row: surveyResult.row,
+    movedPdf: movedPdf
+  };
+}
+
 // ========== PDFインデックス（Gemini OCR） ==========
 /**
  * Google Drive上のPDFをGemini APIでOCRし、インデックスに登録
@@ -2751,4 +2942,33 @@ function restoreFromJson(fileIds) {
     errors: errors.length,
     details: results
   };
+}
+
+// ========== アノテーション矩形データ（質問ハイライト座標の保存・取得） ==========
+/**
+ * 質問ハイライト矩形データを取得
+ * ScriptPropertiesに保存された座標データを返す
+ * @returns {Object} 矩形データ { key: { x1, y1, x2, y2, page } }
+ */
+function getQuestionRects() {
+  var props = PropertiesService.getScriptProperties();
+  var rectsJson = props.getProperty('webOcrQuestionRects');
+  if (!rectsJson) return {};
+  try {
+    return JSON.parse(rectsJson);
+  } catch (e) {
+    return {};
+  }
+}
+
+/**
+ * 質問ハイライト矩形データを保存
+ * @param {Object} rects - 矩形データ { key: { x1, y1, x2, y2, page } }
+ * @returns {Object} 結果
+ */
+function saveQuestionRects(rects) {
+  var props = PropertiesService.getScriptProperties();
+  var rectsJson = JSON.stringify(rects || {});
+  props.setProperty('webOcrQuestionRects', rectsJson);
+  return { saved: true, count: Object.keys(rects || {}).length };
 }

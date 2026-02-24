@@ -201,9 +201,10 @@
             '質問15_コメント': '質問15: コメント欄'
         };
 
-        // ========== 質問ごとのハイライト矩形（手動指定、localStorage保存） ==========
+        // ========== 質問ごとのハイライト矩形（手動指定、GAS+localStorage保存） ==========
         // 各質問の矩形をPDF上で対角2点クリックで定義
         // 保存形式: { key: { x1%, y1%, x2%, y2% } } (overlay内の%座標)
+        // GAS ScriptPropertiesに保存し、localStorageはキャッシュとして使用
         var questionRects = JSON.parse(localStorage.getItem('webOcrQuestionRects') || '{}');
         var QUESTION_HINTS = {
             '医療機関名': 'P1 最上部', '患者さんID': 'P1 上部',
@@ -232,7 +233,33 @@
         window.addEventListener('DOMContentLoaded', function() {
             initUser();
             loadPdfList();
+            loadQuestionRectsFromDrive();
         });
+
+        // GASから矩形データを読み込み（localStorage更新 + ナビバー再構築）
+        function loadQuestionRectsFromDrive() {
+            gasCall('getQuestionRects', null, 15000).then(function(data) {
+                if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+                    questionRects = data;
+                    localStorage.setItem('webOcrQuestionRects', JSON.stringify(questionRects));
+                    buildNavBar();
+                    console.log('矩形データをDriveから読み込み:', Object.keys(data).length + '件');
+                } else {
+                    console.log('Driveに矩形データなし。localStorageを使用:', Object.keys(questionRects).length + '件');
+                }
+            }).catch(function(err) {
+                console.log('矩形データ読み込みエラー（localStorageを使用）:', err.message);
+            });
+        }
+
+        // GASに矩形データを保存
+        function saveQuestionRectsToDrive() {
+            gasPost({ action: 'saveQuestionRects', rects: questionRects }).then(function() {
+                console.log('矩形データをDriveに保存完了');
+            }).catch(function(err) {
+                console.log('矩形データ保存エラー:', err.message);
+            });
+        }
 
         function initUser() {
             currentUser = localStorage.getItem('webOcrUser') || '';
@@ -408,10 +435,30 @@
             }).then(function() {
                 document.getElementById('ocrStatus').textContent = '';
             }).catch(function(err) {
-                container.innerHTML = '<div class="pdf-loading">PDF読み込みエラー: ' + err.message + '</div>';
                 document.getElementById('ocrStatus').textContent = 'PDFプレビューエラー（OCRは実行可能です）';
-                // フォールバック: iframeプレビューに切り替え
-                container.innerHTML = '<iframe src="https://drive.google.com/file/d/' + fileId + '/preview" style="width:100%;height:800px;border:none;"></iframe>';
+                // フォールバック: iframeプレビュー（ハイライト対応wrapper付き）
+                container.innerHTML = '';
+                for (var p = 1; p <= 2; p++) {
+                    var wrapper = document.createElement('div');
+                    wrapper.className = 'pdf-page-wrapper';
+                    wrapper.id = 'pdfPage_' + p;
+                    wrapper.style.position = 'relative';
+                    if (p === 1) {
+                        var iframe = document.createElement('iframe');
+                        iframe.src = 'https://drive.google.com/file/d/' + fileId + '/preview';
+                        iframe.style.cssText = 'width:100%;height:800px;border:none;display:block;';
+                        wrapper.appendChild(iframe);
+                    } else {
+                        wrapper.style.height = '800px';
+                    }
+                    var highlightRect = document.createElement('div');
+                    highlightRect.className = 'pdf-highlight-rect';
+                    highlightRect.id = 'pdfHighlight_' + p;
+                    wrapper.appendChild(highlightRect);
+                    container.appendChild(wrapper);
+                    pdfPageWrappers[p] = wrapper;
+                }
+                buildNavBar();
             });
         }
 
@@ -665,6 +712,7 @@
                 if (confirm(msg)) {
                     questionRects = {};
                     localStorage.removeItem('webOcrQuestionRects');
+                    saveQuestionRectsToDrive();
                     var allH = document.querySelectorAll('.pdf-highlight-rect');
                     for (var h = 0; h < allH.length; h++) allH[h].style.display = 'none';
                     buildNavBar();
@@ -781,6 +829,7 @@
                 var y2 = Math.max(rectFirstClick.y, clickYPct);
                 questionRects[rectDefKey] = { x1: x1, y1: y1, x2: x2, y2: y2, page: rectDefPageNum };
                 localStorage.setItem('webOcrQuestionRects', JSON.stringify(questionRects));
+                saveQuestionRectsToDrive();
 
                 // 定義モード終了
                 finishRectDefine();
