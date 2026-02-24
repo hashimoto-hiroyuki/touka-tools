@@ -653,7 +653,7 @@
             if (!block || !questionsArea) return;
 
             // ステップ1: 右パネルを質問ブロックがパネル上端から少し下に見えるようスクロール
-            var topMargin = 8; // パネル上端からの余白px（はみ出し防止）
+            var topMargin = 50; // パネル上端からの余白px（はみ出し防止）
             var desiredScrollTop = block.offsetTop - topMargin;
             questionsArea.scrollTo({ top: Math.max(0, desiredScrollTop), behavior: 'smooth' });
 
