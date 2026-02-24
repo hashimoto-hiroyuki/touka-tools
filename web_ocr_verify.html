@@ -516,10 +516,7 @@
         }
 
         // ========== ナビゲーション ==========
-        // options: { scrollPdf: bool } - PDF側もスクロールするか（デフォルトtrue）
-        function highlightPdfPosition(idx, options) {
-            var opts = options || {};
-            var scrollPdf = opts.scrollPdf !== false;  // デフォルトtrue
+        function highlightPdfPosition(idx) {
             var key = QUESTION_ORDER[idx];
 
             // 前のアクティブ状態をクリア
@@ -552,10 +549,6 @@
                     rect.style.width = (qr.x2 - qr.x1) + '%';
                     rect.style.height = (qr.y2 - qr.y1) + '%';
                     rect.style.display = 'block';
-                    // PDF側スクロール（質問クリック時のみ、OK押下時はスキップ）
-                    if (scrollPdf) {
-                        rect.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
                 }
             }
 
@@ -1005,7 +998,7 @@
                     if (questionStates[i] !== 'confirmed') { nextIdx = i; break; }
                 }
                 if (nextIdx >= 0) {
-                    highlightPdfPosition(nextIdx, { scrollPdf: false });
+                    highlightPdfPosition(nextIdx);
                 }
             }
             updateProgress();
