@@ -928,6 +928,23 @@
             return String(val);
         }
 
+        // 酒類・サイズの番号⇔名前マッピング
+        var ALCOHOL_TYPE_LIST = ['ビール','日本酒','焼酎','チューハイ','ワイン','ウイスキー','ブランデー','梅酒','泡盛'];
+        var ALCOHOL_SIZE_LIST = ['350ml缶','500ml缶','750mlビン','375mlビン','コップ','水割り','お湯割り','ロック','小ジョッキ','中ジョッキ','大ジョッキ'];
+
+        function appendAlcoholNum(value, list) {
+            if (!value) return '';
+            var idx = -1;
+            for (var i = 0; i < list.length; i++) {
+                if (list[i] === value || value.indexOf(list[i]) >= 0 || list[i].indexOf(value) >= 0) { idx = i; break; }
+            }
+            if (idx >= 0) return value + '(' + (idx + 1) + ')';
+            // 値が番号の場合
+            var num = parseInt(value, 10);
+            if (!isNaN(num) && num >= 1 && num <= list.length) return list[num - 1] + '(' + num + ')';
+            return value;
+        }
+
         function formatAlcohol(val) {
             var sel = val['飲酒状況'] || val['選択'] || '';
             if (!sel || sel === '未回答') return '未回答';
@@ -937,9 +954,11 @@
                 var block = val['回答' + i];
                 if (!block) continue;
                 var p = [];
-                if (block['お酒の種類'] || block['酒類']) p.push('酒類: ' + (block['お酒の種類'] || block['酒類']));
+                var typeVal = block['お酒の種類'] || block['酒類'] || '';
+                if (typeVal) p.push('酒類: ' + appendAlcoholNum(typeVal, ALCOHOL_TYPE_LIST));
                 if (block['週に何回'] || block['頻度_週']) p.push('週' + (block['週に何回'] || block['頻度_週']));
-                if (block['サイズ_飲み方'] || block['サイズ']) p.push('サイズ: ' + (block['サイズ_飲み方'] || block['サイズ']));
+                var sizeVal = block['サイズ_飲み方'] || block['サイズ'] || '';
+                if (sizeVal) p.push('サイズ: ' + appendAlcoholNum(sizeVal, ALCOHOL_SIZE_LIST));
                 if (block['数量']) p.push('数量: ' + block['数量']);
                 if (p.length > 0) lines.push('回答' + i + ': ' + p.join(' / '));
             }
