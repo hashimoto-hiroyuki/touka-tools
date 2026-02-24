@@ -134,7 +134,8 @@
                         <div class="pdf-preview-header">
                             <h3 id="pdfTitle">-</h3>
                             <span id="pageIndicator" style="display:none; font-size:11px; color:#e65100; font-weight:600; background:#fff3e0; padding:2px 8px; border-radius:10px;"></span>
-                            <button class="btn-toggle-preview" onclick="adjustHighlight()" title="ハイライト位置の微調整">位置合わせ</button>
+                            <button class="btn-toggle-preview" onclick="startCurrentRectDefine()" title="現在の質問のハイライト矩形を定義" id="btnRectDefine">矩形定義</button>
+                            <button class="btn-toggle-preview" onclick="adjustHighlight()" title="全矩形のリセット" style="font-size:10px;">リセット</button>
                             <button class="btn-toggle-preview" onclick="togglePreview()">プレビュー非表示</button>
                         </div>
                     </div>
@@ -200,72 +201,21 @@
             '質問15_コメント': '質問15: コメント欄'
         };
 
-        // ========== 質問→PDF位置（ハイライト矩形 + ナビバー用） ==========
-        // x1,y1,x2,y2: config_new_format.py の回答領域（相対座標 0.0〜1.0）
-        var QUESTION_PDF_POSITIONS = {
-            '医療機関名':        { x1: 0.129, y1: 0.056, x2: 0.306, y2: 0.073, page: 1, hint: 'P1 最上部' },
-            '患者さんID':        { x1: 0.125, y1: 0.081, x2: 0.306, y2: 0.098, page: 1, hint: 'P1 上部' },
-            '質問1_名前':        { x1: 0.151, y1: 0.107, x2: 0.363, y2: 0.126, page: 1, hint: 'P1 上部' },
-            '質問2_生年月日':    { x1: 0.145, y1: 0.135, x2: 0.387, y2: 0.154, page: 1, hint: 'P1 上部' },
-            '質問3_性別':        { x1: 0.147, y1: 0.169, x2: 0.315, y2: 0.185, page: 1, hint: 'P1 上部' },
-            '質問4_血液型':      { x1: 0.147, y1: 0.201, x2: 0.484, y2: 0.217, page: 1, hint: 'P1 上部' },
-            '質問5_身体情報':    { x1: 0.121, y1: 0.231, x2: 0.427, y2: 0.248, page: 1, hint: 'P1 上〜中' },
-            '質問6_糖尿病':      { x1: 0.188, y1: 0.265, x2: 0.566, y2: 0.281, page: 1, hint: 'P1 中部' },
-            '質問7_脂質異常症':  { x1: 0.188, y1: 0.297, x2: 0.566, y2: 0.312, page: 1, hint: 'P1 中部' },
-            '質問8_兄弟糖尿病歴': { x1: 0.408, y1: 0.336, x2: 0.707, y2: 0.352, page: 1, hint: 'P1 中部' },
-            '質問9_両親糖尿病歴': { x1: 0.408, y1: 0.368, x2: 0.707, y2: 0.384, page: 1, hint: 'P1 中部' },
-            '質問10_運動':       { x1: 0.245, y1: 0.400, x2: 0.672, y2: 0.416, page: 1, hint: 'P1 中〜下' },
-            '質問11_飲み物':     { x1: 0.089, y1: 0.465, x2: 0.700, y2: 0.514, page: 1, hint: 'P1 中〜下' },
-            '質問12_お菓子':     { x1: 0.091, y1: 0.525, x2: 0.463, y2: 0.541, page: 1, hint: 'P1 下部' },
-            '質問13_飲酒習慣':   { x1: 0.091, y1: 0.570, x2: 0.790, y2: 0.824, page: 1, hint: 'P1 下部' },
-            '質問14_歯の抜去位置': { x1: 0.053, y1: 0.555, x2: 0.467, y2: 0.642, page: 2, hint: 'P2 中部' },
-            '質問15_コメント':   { x1: 0.050, y1: 0.655, x2: 0.650, y2: 0.690, page: 2, hint: 'P2 下部' }
+        // ========== 質問ごとのハイライト矩形（手動指定、localStorage保存） ==========
+        // 各質問の矩形をPDF上で対角2点クリックで定義
+        // 保存形式: { key: { x1%, y1%, x2%, y2% } } (overlay内の%座標)
+        var questionRects = JSON.parse(localStorage.getItem('webOcrQuestionRects') || '{}');
+        var QUESTION_HINTS = {
+            '医療機関名': 'P1 最上部', '患者さんID': 'P1 上部',
+            '質問1_名前': 'P1 上部', '質問2_生年月日': 'P1 上部',
+            '質問3_性別': 'P1 上部', '質問4_血液型': 'P1 上部',
+            '質問5_身体情報': 'P1 上〜中', '質問6_糖尿病': 'P1 中部',
+            '質問7_脂質異常症': 'P1 中部', '質問8_兄弟糖尿病歴': 'P1 中部',
+            '質問9_両親糖尿病歴': 'P1 中部', '質問10_運動': 'P1 中〜下',
+            '質問11_飲み物': 'P1 中〜下', '質問12_お菓子': 'P1 下部',
+            '質問13_飲酒習慣': 'P1 下部',
+            '質問14_歯の抜去位置': 'P2 中部', '質問15_コメント': 'P2 下部'
         };
-
-        // 2点キャリブレーション: PDF上の2点のクリック座標から変換パラメータを自動算出
-        // 基準点: 医療機関名の左上 (0.129, 0.056) と 質問13ラベルの左上 (0.022, 0.570)
-        var CALIB_REF1 = { x: 0.129, y: 0.056 };  // 「医療機関名」テキストの先頭
-        var CALIB_REF2 = { x: 0.022, y: 0.570 };  // 「質問13」ラベルの先頭
-        var pdfCalib = JSON.parse(localStorage.getItem('webOcrCalib2pt') || 'null') || null;
-        // pdfCalib = { p1x, p1y, p2x, p2y } (ピクセル比率: overlay内の0〜1)
-        // → toPixel(relX, relY) で相対座標→オーバーレイ内ピクセルに変換
-
-        function toPixel(relX, relY, page) {
-            var overlay = document.getElementById('pdfOverlay');
-            if (!overlay) return { x: 0, y: 0 };
-            var ow = overlay.offsetWidth;
-            var oh = overlay.offsetHeight;
-            if (!pdfCalib) {
-                // キャリブレーション未実施: 推定値で表示
-                var estOffX = 0.02, estOffY = 0.045, estScX = 0.63, estScY = 0.46;
-                var pageOff = (page === 2) ? 0.5 : 0;
-                return {
-                    x: (estOffX + relX * estScX) * ow,
-                    y: (estOffY + pageOff + relY * estScY) * oh
-                };
-            }
-            // 2点から線形補間
-            var c = pdfCalib;
-            // 基準点1,2のオーバーレイ内ピクセル
-            var px1 = c.p1x * ow, py1 = c.p1y * oh;
-            var px2 = c.p2x * ow, py2 = c.p2y * oh;
-            // 基準点1,2の相対座標
-            var rx1 = CALIB_REF1.x, ry1 = CALIB_REF1.y;
-            var rx2 = CALIB_REF2.x, ry2 = CALIB_REF2.y;
-            // scaleとoffsetを算出
-            var scX = (px2 - px1) / ((rx2 - rx1) * ow);  // 不正確（x方向は2点が近い）
-            var scY = (py2 - py1) / ((ry2 - ry1) * oh);
-            // x方向: 縦横比がほぼ同じと仮定してscYから推定
-            scX = scY * (ow / oh) * (3509 / 2480);  // A4縦横比補正
-            var offX = px1 - rx1 * scX * ow;
-            var offY = py1 - ry1 * scY * oh;
-            // ページ2は1ページ分下にオフセット
-            var pageOffPx = (page === 2) ? (1.0 * scY * oh) : 0;
-            return {
-                x: offX + relX * scX * ow,
-                y: offY + relY * scY * oh + pageOffPx
-            };
-        }
 
         // ========== State ==========
         let currentUser = '';
@@ -468,7 +418,6 @@
         // ========== ナビゲーション ==========
         function highlightPdfPosition(idx) {
             var key = QUESTION_ORDER[idx];
-            var pos = QUESTION_PDF_POSITIONS[key];
 
             // 前のアクティブ状態をクリア
             var prevActive = document.querySelector('.q-block.q-active');
@@ -485,30 +434,26 @@
             var marker = document.getElementById('navMarker_' + idx);
             if (marker) marker.classList.add('active');
 
-            // ポインター矢印を移動
+            // ポインター矢印を非表示（矩形定義がないときの目安として使う場合もある）
             var pointer = document.getElementById('pdfPointer');
-            if (pos && pointer) {
-                var topPercent = pos.y1 * 100;
-                if (pos.page === 2) topPercent = 50 + pos.y1 * 50;
-                pointer.style.top = 'calc(' + topPercent + '% - 10px)';
-                pointer.style.display = 'block';
-            }
+            if (pointer) pointer.style.display = 'none';
 
-            // ハイライト矩形を表示
+            // ハイライト矩形を表示（手動指定済みの場合のみ）
             var rect = document.getElementById('pdfHighlightRect');
-            if (pos && rect) {
-                var topLeft = toPixel(pos.x1, pos.y1, pos.page);
-                var bottomRight = toPixel(pos.x2, pos.y2, pos.page);
-                var mx = 4, my = 4;
-                rect.style.left = Math.max(0, topLeft.x - mx) + 'px';
-                rect.style.top = Math.max(0, topLeft.y - my) + 'px';
-                rect.style.width = (bottomRight.x - topLeft.x + mx * 2) + 'px';
-                rect.style.height = (bottomRight.y - topLeft.y + my * 2) + 'px';
+            var qr = questionRects[key];
+            if (qr && rect) {
+                rect.style.left = qr.x1 + '%';
+                rect.style.top = qr.y1 + '%';
+                rect.style.width = (qr.x2 - qr.x1) + '%';
+                rect.style.height = (qr.y2 - qr.y1) + '%';
                 rect.style.display = 'block';
+            } else if (rect) {
+                rect.style.display = 'none';
             }
 
             // ページインジケーター
-            if (pos && pos.page === 2) {
+            var hint = QUESTION_HINTS[key] || '';
+            if (hint.indexOf('P2') >= 0) {
                 document.getElementById('pageIndicator').textContent = '2ページ目を確認 ▶ PDFを下にスクロール';
                 document.getElementById('pageIndicator').style.display = '';
             } else {
@@ -521,17 +466,11 @@
             navBar.innerHTML = '';
             for (var i = 0; i < QUESTION_ORDER.length; i++) {
                 var key = QUESTION_ORDER[i];
-                var pos = QUESTION_PDF_POSITIONS[key];
-                if (!pos) continue;
-
                 var marker = document.createElement('div');
                 marker.className = 'pdf-nav-marker';
                 marker.id = 'navMarker_' + i;
-                // ナビバーの縦位置
-                var topPercent = pos.y1 * 100;
-                if (pos.page === 2) {
-                    topPercent = 50 + pos.y1 * 50;
-                }
+                // 均等配置
+                var topPercent = (i / QUESTION_ORDER.length) * 95 + 1;
                 marker.style.top = topPercent + '%';
 
                 var shortLabel = '';
@@ -540,6 +479,13 @@
                 else {
                     var m = key.match(/質問(\d+)/);
                     shortLabel = m ? 'Q' + m[1] : key.charAt(0);
+                }
+                // 矩形定義済みなら色を変える
+                if (questionRects[key]) {
+                    marker.title = shortLabel + ' (定義済み)';
+                } else {
+                    marker.style.opacity = '0.4';
+                    marker.title = shortLabel + ' (未定義)';
                 }
                 marker.textContent = shortLabel;
                 marker.onclick = (function(idx) {
@@ -554,96 +500,151 @@
             }
         }
 
-        // ========== 2点キャリブレーション ==========
-        var calibStep = 0;  // 0=未開始, 1=1点目待ち, 2=2点目待ち
+        // ========== 矩形定義モード ==========
+        var rectDefining = false;   // 定義中フラグ
+        var rectDefKey = '';        // 定義中の質問キー
+        var rectDefIdx = -1;        // 定義中の質問インデックス
+        var rectFirstClick = null;  // 1点目座標 {x%, y%}
 
         function adjustHighlight() {
-            // リセット確認
-            if (pdfCalib) {
-                var choice = confirm('位置合わせ済みです。\nOK: 再設定する\nキャンセル: リセット（初期値に戻す）');
-                if (!choice) {
-                    pdfCalib = null;
-                    localStorage.removeItem('webOcrCalib2pt');
-                    if (activeQuestionIdx >= 0) highlightPdfPosition(activeQuestionIdx);
-                    alert('位置合わせをリセットしました');
-                    return;
+            var definedCount = Object.keys(questionRects).length;
+            var totalCount = QUESTION_ORDER.length;
+            var msg = '現在 ' + definedCount + '/' + totalCount + ' 質問の矩形が定義済みです。\n\n';
+            msg += '【操作方法】\n';
+            msg += '・右側の質問パネルをクリックして質問を選択\n';
+            msg += '・「位置合わせ」→ PDF上で回答欄の左上と右下をクリック\n\n';
+            if (definedCount > 0) {
+                msg += '全てリセットしますか？\n';
+                msg += 'OK: 全リセット\nキャンセル: そのまま続ける';
+                if (confirm(msg)) {
+                    questionRects = {};
+                    localStorage.removeItem('webOcrQuestionRects');
+                    document.getElementById('pdfHighlightRect').style.display = 'none';
+                    buildNavBar();
+                    alert('全ての矩形定義をリセットしました');
+                }
+            } else {
+                // 定義済みがゼロならすぐに現在選択中の質問の定義を開始
+                if (activeQuestionIdx >= 0) {
+                    startRectDefine(activeQuestionIdx);
+                } else {
+                    alert(msg + '質問を選択してから「位置合わせ」を押してください');
                 }
             }
-            startCalibration();
         }
 
-        function startCalibration() {
-            calibStep = 1;
+        function startRectDefine(idx) {
+            var key = QUESTION_ORDER[idx];
+            rectDefining = true;
+            rectDefKey = key;
+            rectDefIdx = idx;
+            rectFirstClick = null;
+
             var overlay = document.getElementById('pdfOverlay');
             overlay.classList.add('calibrating');
+            // 既存バナー・ドットを消す
+            var oldBanner = document.getElementById('calibBanner');
+            if (oldBanner) oldBanner.remove();
+            var oldDot = document.getElementById('calibDot1');
+            if (oldDot) oldDot.remove();
+
             // バナー表示
+            var label = QUESTION_LABELS[key] || key;
             var banner = document.createElement('div');
             banner.className = 'calib-banner';
             banner.id = 'calibBanner';
-            banner.textContent = '① PDF上の「医療機関名」の文字の先頭をクリック';
+            banner.textContent = '① 「' + label + '」の回答欄の左上をクリック';
             overlay.appendChild(banner);
+
             // ハイライト非表示
             document.getElementById('pdfHighlightRect').style.display = 'none';
+
             // クリックハンドラ
-            overlay.onclick = calibClick;
+            overlay.onclick = rectDefClick;
         }
 
-        function calibClick(e) {
+        function rectDefClick(e) {
             var overlay = document.getElementById('pdfOverlay');
-            var rect = overlay.getBoundingClientRect();
-            var clickX = (e.clientX - rect.left) / rect.width;   // 0〜1
-            var clickY = (e.clientY - rect.top) / rect.height;   // 0〜1
+            var bounds = overlay.getBoundingClientRect();
+            var clickXPct = ((e.clientX - bounds.left) / bounds.width) * 100;
+            var clickYPct = ((e.clientY - bounds.top) / bounds.height) * 100;
 
-            if (calibStep === 1) {
-                // 1点目: 医療機関名の先頭
-                pdfCalib = pdfCalib || {};
-                pdfCalib.p1x = clickX;
-                pdfCalib.p1y = clickY;
+            if (!rectFirstClick) {
+                // 1点目
+                rectFirstClick = { x: clickXPct, y: clickYPct };
                 // ドット表示
                 var dot = document.createElement('div');
                 dot.className = 'calib-dot';
                 dot.id = 'calibDot1';
-                dot.style.left = (clickX * 100) + '%';
-                dot.style.top = (clickY * 100) + '%';
+                dot.style.left = clickXPct + '%';
+                dot.style.top = clickYPct + '%';
                 overlay.appendChild(dot);
-                // 次のステップへ
-                calibStep = 2;
-                document.getElementById('calibBanner').textContent = '② PDF上の「質問13」の「質」の文字の左上をクリック';
-            } else if (calibStep === 2) {
-                // 2点目: 質問13ラベルの先頭
-                pdfCalib.p2x = clickX;
-                pdfCalib.p2y = clickY;
-                // ドット表示
-                var dot = document.createElement('div');
-                dot.className = 'calib-dot';
-                dot.id = 'calibDot2';
-                dot.style.left = (clickX * 100) + '%';
-                dot.style.top = (clickY * 100) + '%';
-                overlay.appendChild(dot);
-                // 完了
-                finishCalibration();
+                // バナー更新
+                var label = QUESTION_LABELS[rectDefKey] || rectDefKey;
+                document.getElementById('calibBanner').textContent = '② 「' + label + '」の回答欄の右下をクリック';
+            } else {
+                // 2点目 → 矩形を保存
+                var x1 = Math.min(rectFirstClick.x, clickXPct);
+                var y1 = Math.min(rectFirstClick.y, clickYPct);
+                var x2 = Math.max(rectFirstClick.x, clickXPct);
+                var y2 = Math.max(rectFirstClick.y, clickYPct);
+                questionRects[rectDefKey] = { x1: x1, y1: y1, x2: x2, y2: y2 };
+                localStorage.setItem('webOcrQuestionRects', JSON.stringify(questionRects));
+
+                // 定義モード終了
+                finishRectDefine();
+
+                // ハイライト表示
+                highlightPdfPosition(rectDefIdx);
+                buildNavBar();
+
+                // 次の未定義質問に自動移動
+                var nextUndefined = -1;
+                for (var i = rectDefIdx + 1; i < QUESTION_ORDER.length; i++) {
+                    if (!questionRects[QUESTION_ORDER[i]]) { nextUndefined = i; break; }
+                }
+                if (nextUndefined >= 0) {
+                    // 少し待ってから次の質問の定義を開始
+                    setTimeout(function() {
+                        highlightPdfPosition(nextUndefined);
+                        var block = document.getElementById('qblock_' + nextUndefined);
+                        if (block) block.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        startRectDefine(nextUndefined);
+                    }, 500);
+                }
             }
         }
 
-        function finishCalibration() {
-            calibStep = 0;
+        function finishRectDefine() {
+            rectDefining = false;
+            rectFirstClick = null;
             var overlay = document.getElementById('pdfOverlay');
             overlay.classList.remove('calibrating');
             overlay.onclick = null;
-            // バナーとドットを削除
+            // バナー・ドット削除
             var banner = document.getElementById('calibBanner');
             if (banner) banner.remove();
-            // ドットは1秒後に消す
             setTimeout(function() {
-                var d1 = document.getElementById('calibDot1');
-                var d2 = document.getElementById('calibDot2');
-                if (d1) d1.remove();
-                if (d2) d2.remove();
-            }, 1000);
-            // 保存
-            localStorage.setItem('webOcrCalib2pt', JSON.stringify(pdfCalib));
-            // ハイライト再描画
-            if (activeQuestionIdx >= 0) highlightPdfPosition(activeQuestionIdx);
+                var dot = document.getElementById('calibDot1');
+                if (dot) dot.remove();
+            }, 300);
+        }
+
+        // Escキーで定義モードキャンセル
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && rectDefining) {
+                finishRectDefine();
+                if (activeQuestionIdx >= 0) highlightPdfPosition(activeQuestionIdx);
+            }
+        });
+
+        // 現在選択中の質問の矩形定義を開始
+        function startCurrentRectDefine() {
+            if (activeQuestionIdx < 0) {
+                alert('質問を選択してから押してください');
+                return;
+            }
+            startRectDefine(activeQuestionIdx);
         }
 
         // ========== 照合UI ==========
@@ -663,8 +664,9 @@
                 }
 
                 // 位置ヒント
-                var pos = QUESTION_PDF_POSITIONS[key];
-                var posHint = pos ? '<span class="q-pos-hint">' + escapeHtml(pos.hint) + '</span>' : '';
+                var hint = QUESTION_HINTS[key] || '';
+                var defined = questionRects[key] ? '✓' : '';
+                var posHint = hint ? '<span class="q-pos-hint">' + defined + escapeHtml(hint) + '</span>' : '';
 
                 var isMultiLine = (key === '質問13_飲酒習慣' || key === '質問14_歯の抜去位置');
                 var isMedium = (key === '質問1_名前' || key === '質問2_生年月日' || key === '質問5_身体情報' || key === '質問15_コメント');
