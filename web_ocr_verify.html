@@ -648,12 +648,14 @@
             var embed = wrapper.querySelector('embed');
             if (embed) return;
 
-            // 右パネルの質問ブロックの画面上の位置を取得
+            // 右パネル: 質問ブロックをパネル上部（少し余裕を持たせて）にスクロール
+            var questionsArea = document.getElementById('questionsArea');
             var block = document.getElementById('qblock_' + idx);
-            var wrapperRect = wrapper.getBoundingClientRect();
-
-            // 質問ブロックの画面上Y座標（ビューポート基準）
-            var blockScreenY = block ? block.getBoundingClientRect().top : wrapperRect.top + 30;
+            var targetOffset = 40; // パネル上端からの余白px
+            if (block && questionsArea) {
+                var blockTop = block.offsetTop - targetOffset;
+                questionsArea.scrollTo({ top: Math.max(0, blockTop), behavior: 'smooth' });
+            }
 
             // PDF上の対象Y座標（wrapper内の絶対スクロール位置）を計算
             var pdfAbsY = 0;
@@ -662,11 +664,9 @@
                 var pageNum = qr.page || 1;
                 var pageEl = document.getElementById('pdfPage_' + pageNum);
                 if (!pageEl) return;
-                // ページのwrapper内での絶対位置
                 var pageTop = pageEl.offsetTop;
-                // 矩形の中心Y位置
-                var rectCenterY = pageTop + (pageEl.offsetHeight * (qr.y1 + qr.y2) / 2 / 100);
-                pdfAbsY = rectCenterY;
+                // 矩形の上端Y位置（中心ではなく上端で合わせる）
+                pdfAbsY = pageTop + (pageEl.offsetHeight * qr.y1 / 100);
             } else {
                 var hint = QUESTION_HINTS[key] || '';
                 var pageNum = hint.indexOf('P2') >= 0 ? 2 : 1;
@@ -682,14 +682,9 @@
                 pdfAbsY = pageTop + (pageEl.offsetHeight * yRatio);
             }
 
-            // 質問ブロックの画面Y位置と同じ位置にPDF矩形が来るようスクロール
-            // blockScreenY = pdfAbsY - scrollTop + wrapperRect.top
-            // → scrollTop = pdfAbsY - (blockScreenY - wrapperRect.top)
-            var offsetFromWrapperTop = blockScreenY - wrapperRect.top;
-            var targetY = pdfAbsY - offsetFromWrapperTop;
-            targetY = Math.max(0, targetY);
-
-            wrapper.scrollTo({ top: targetY, behavior: 'smooth' });
+            // 左パネル: PDF矩形をパネル上部（同じ余白位置）にスクロール
+            var pdfTargetY = pdfAbsY - targetOffset;
+            wrapper.scrollTo({ top: Math.max(0, pdfTargetY), behavior: 'smooth' });
         }
 
         function buildNavBar() {
