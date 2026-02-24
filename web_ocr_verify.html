@@ -929,11 +929,51 @@
             for (var oi = 0; oi < overlays.length; oi++) overlays[oi].remove();
         }
 
-        // Escキーで定義モードキャンセル
+        // キーボードショートカット
         document.addEventListener('keydown', function(e) {
+            // Escキーで定義モードキャンセル
             if (e.key === 'Escape' && rectDefining) {
                 finishRectDefine();
                 if (activeQuestionIdx >= 0) highlightPdfPosition(activeQuestionIdx);
+                return;
+            }
+
+            // 矩形定義中・テキスト入力中はTab/Ctrl+Zを処理しない
+            var tag = e.target.tagName;
+            if (rectDefining) return;
+
+            // Tab: 次の質問へ進む（Shift+Tab: 前の質問へ戻る）
+            if (e.key === 'Tab') {
+                // テキスト入力中はShift+Tabのみブロック移動（Tabは通常のフォーカス移動を許可しない）
+                if (tag === 'INPUT' || tag === 'TEXTAREA') {
+                    e.preventDefault();
+                }
+                e.preventDefault();
+                if (QUESTION_ORDER.length === 0) return;
+                var nextIdx;
+                if (e.shiftKey) {
+                    nextIdx = (activeQuestionIdx > 0) ? activeQuestionIdx - 1 : QUESTION_ORDER.length - 1;
+                } else {
+                    nextIdx = (activeQuestionIdx < QUESTION_ORDER.length - 1) ? activeQuestionIdx + 1 : 0;
+                }
+                highlightPdfPosition(nextIdx);
+                // 移動先の入力欄にフォーカス
+                var input = document.getElementById('input_' + nextIdx);
+                if (input) input.focus();
+                return;
+            }
+
+            // Ctrl+Z: 前の質問へ戻る
+            if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+                // テキスト入力中はブラウザ標準のundo動作を優先
+                if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+                e.preventDefault();
+                if (QUESTION_ORDER.length === 0 || activeQuestionIdx <= 0) return;
+                var prevIdx = activeQuestionIdx - 1;
+                highlightPdfPosition(prevIdx);
+                var input = document.getElementById('input_' + prevIdx);
+                if (input) input.focus();
+                return;
             }
         });
 
