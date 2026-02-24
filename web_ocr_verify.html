@@ -1006,8 +1006,6 @@
                 }
                 if (nextIdx >= 0) {
                     highlightPdfPosition(nextIdx, { scrollPdf: false });
-                    var nextBlock = document.getElementById('qblock_' + nextIdx);
-                    if (nextBlock) nextBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }
             updateProgress();
