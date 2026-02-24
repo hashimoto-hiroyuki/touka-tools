@@ -644,7 +644,7 @@
             var wrapper = document.getElementById('iframeWrapper');
             if (!wrapper) return;
 
-            // embed表示（Blobフォールバック）の場合: embed内はスクロール制御不可なのでスキップ
+            // embed表示（Blobフォールバック）の場合スキップ
             var embed = wrapper.querySelector('embed');
             if (embed) return;
 
@@ -652,18 +652,7 @@
             var block = document.getElementById('qblock_' + idx);
             if (!block || !questionsArea) return;
 
-            // ステップ1: 右パネルを質問ブロックがパネル上端から少し下に見えるようスクロール
-            var topMargin = 50; // パネル上端からの余白px（はみ出し防止）
-            var desiredScrollTop = block.offsetTop - topMargin;
-            questionsArea.scrollTo({ top: Math.max(0, desiredScrollTop), behavior: 'smooth' });
-
-            // ステップ2: 実際のスクロール位置を計算（スクロール限界の場合ブロックがパネル上端より下に残る）
-            var maxScroll = questionsArea.scrollHeight - questionsArea.clientHeight;
-            var actualScrollTop = Math.min(Math.max(0, desiredScrollTop), Math.max(0, maxScroll));
-            // ブロックのパネル上端からの実際のオフセット（限界到達時はtopMarginより大きくなる）
-            var blockVisualOffset = block.offsetTop - actualScrollTop;
-
-            // ステップ3: PDF上の対象Y座標を計算
+            // ステップ1: PDF上の矩形Y座標（上端）を計算
             var pdfAbsY = 0;
             var qr = questionRects[key];
             if (qr) {
@@ -685,10 +674,19 @@
                 pdfAbsY = pageEl.offsetTop + (pageEl.offsetHeight * yRatio);
             }
 
-            // ステップ4: 左パネルのPDF矩形を右パネルのブロックと同じ視覚位置に合わせる
-            // PDF矩形がパネル上端からblockVisualOffsetの位置に来るようにスクロール
-            var pdfTargetY = pdfAbsY - blockVisualOffset;
-            wrapper.scrollTo({ top: Math.max(0, pdfTargetY), behavior: 'smooth' });
+            // ステップ2: 左パネルを先にスクロール（PDF矩形上端をパネル上端に）
+            var pdfDesiredScroll = pdfAbsY;
+            var pdfMaxScroll = wrapper.scrollHeight - wrapper.clientHeight;
+            var pdfActualScroll = Math.min(Math.max(0, pdfDesiredScroll), Math.max(0, pdfMaxScroll));
+            wrapper.scrollTo({ top: pdfActualScroll, behavior: 'smooth' });
+
+            // PDF矩形のパネル上端からの実際のオフセット（スクロール限界時は0より大きくなる）
+            var pdfVisualOffset = pdfAbsY - pdfActualScroll;
+
+            // ステップ3: 右パネルの質問ブロックをPDF矩形と同じ画面高さに合わせる
+            // ブロックの左上角がパネル上端からpdfVisualOffsetの位置に来るようスクロール
+            var blockDesiredScroll = block.offsetTop - pdfVisualOffset;
+            questionsArea.scrollTo({ top: Math.max(0, blockDesiredScroll), behavior: 'smooth' });
         }
 
         function buildNavBar() {
