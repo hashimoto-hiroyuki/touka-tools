@@ -651,20 +651,16 @@
             var targetY = 0;
             var qr = questionRects[key];
             if (qr) {
-                // 矩形定義済み: ハイライト要素の実際の位置を基準にスクロール
                 var pageNum = qr.page || 1;
-                var highlightEl = document.getElementById('pdfHighlight_' + pageNum);
                 var pageEl = document.getElementById('pdfPage_' + pageNum);
                 if (!pageEl) return;
 
-                // ハイライト要素がページ内にあるので、ページの絶対位置 + %位置で計算
-                // getBoundingClientRectを使い、wrapper内の正確な位置を取得
                 var pageRect = pageEl.getBoundingClientRect();
                 var wrapperRect = wrapper.getBoundingClientRect();
                 var relativeTop = pageRect.top - wrapperRect.top + wrapper.scrollTop;
                 targetY = relativeTop + (pageEl.offsetHeight * qr.y1 / 100) - 30;
+                console.log('scroll:', key, 'page:', pageNum, 'pageTop:', relativeTop, 'pageH:', pageEl.offsetHeight, 'y1%:', qr.y1, 'targetY:', targetY, 'wrapperScrollTop:', wrapper.scrollTop);
             } else {
-                // 未定義: ページ内の質問順序から推定
                 var hint = QUESTION_HINTS[key] || '';
                 var pageNum = hint.indexOf('P2') >= 0 ? 2 : 1;
                 var pageEl = document.getElementById('pdfPage_' + pageNum);
@@ -674,7 +670,6 @@
                 var wrapperRect = wrapper.getBoundingClientRect();
                 var relativeTop = pageRect.top - wrapperRect.top + wrapper.scrollTop;
 
-                // 同ページ内の質問順序で位置を計算
                 var samePageKeys = QUESTION_ORDER.filter(function(k) {
                     var h = QUESTION_HINTS[k] || '';
                     return (hint.indexOf('P2') >= 0) === (h.indexOf('P2') >= 0);
@@ -683,6 +678,7 @@
                 var yRatio = (posInPage >= 0 && samePageKeys.length > 1) ? posInPage / samePageKeys.length : 0.5;
 
                 targetY = relativeTop + (pageEl.offsetHeight * yRatio) - 30;
+                console.log('scroll(est):', key, 'pageTop:', relativeTop, 'pageH:', pageEl.offsetHeight, 'ratio:', yRatio, 'targetY:', targetY);
             }
 
             targetY = Math.max(0, targetY);
