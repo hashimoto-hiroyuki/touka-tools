@@ -49,10 +49,13 @@
         .pdf-nav-marker.active { background: #e65100; border-color: #bf360c; color: #fff; font-weight: 700; box-shadow: 2px 0 8px rgba(230,81,0,0.5); }
         /* 現在位置ポインター（PDFの横に表示） */
         .pdf-position-pointer { position: absolute; left: 36px; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 14px solid #e65100; z-index: 11; transition: top 0.3s ease; display: none; filter: drop-shadow(2px 0 3px rgba(0,0,0,0.3)); }
-        /* PDFオーバーレイ（ハイライト矩形用、クリック透過） */
+        /* PDFオーバーレイ（ハイライト矩形用） */
         .pdf-highlight-overlay { position: absolute; top: 0; left: 36px; right: 0; bottom: 0; z-index: 9; pointer-events: none; }
+        .pdf-highlight-overlay.calibrating { pointer-events: auto; cursor: crosshair; background: rgba(0,0,0,0.08); }
         .pdf-highlight-rect { position: absolute; border: 3px solid #e65100; background: rgba(255,152,0,0.18); border-radius: 3px; transition: all 0.3s ease; box-shadow: 0 0 12px rgba(230,81,0,0.35); }
         .pdf-highlight-rect::before { content: ''; position: absolute; top: -6px; left: -6px; right: -6px; bottom: -6px; border: 1px solid rgba(230,81,0,0.25); border-radius: 5px; }
+        .calib-dot { position: absolute; width: 12px; height: 12px; background: #d32f2f; border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); z-index: 20; box-shadow: 0 0 6px rgba(0,0,0,0.4); pointer-events: none; }
+        .calib-banner { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); background: #d32f2f; color: #fff; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; z-index: 20; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3); pointer-events: none; }
         .ocr-button-section { padding: 12px 20px; background: #fff; border-bottom: 1px solid #e0e0e0; text-align: center; flex-shrink: 0; }
         .btn-ocr { padding: 12px 40px; background: #e65100; color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
         .btn-ocr:hover { background: #bf360c; }
@@ -219,15 +222,50 @@
             '質問15_コメント':   { x1: 0.050, y1: 0.655, x2: 0.650, y2: 0.690, page: 2, hint: 'P2 下部' }
         };
 
-        // PDF表示キャリブレーション: Google Driveプレビューのオフセット補正
-        // iframe内のツールバーやパディングによるずれを補正する
-        // ユーザーが「位置合わせ」で調整可能
-        var pdfCalib = JSON.parse(localStorage.getItem('webOcrCalib') || 'null') || {
-            offsetX: 0.02,   // 左パディング（PDF描画開始位置）
-            offsetY: 0.04,   // 上ツールバー分
-            scaleX: 0.62,    // PDF描画幅 / オーバーレイ幅
-            scaleY: 0.48     // PDF描画高さ / オーバーレイ高さ（1ページ分）
-        };
+        // 2点キャリブレーション: PDF上の2点のクリック座標から変換パラメータを自動算出
+        // 基準点: 医療機関名の左上 (0.129, 0.056) と 質問13ラベルの左上 (0.022, 0.570)
+        var CALIB_REF1 = { x: 0.129, y: 0.056 };  // 「医療機関名」テキストの先頭
+        var CALIB_REF2 = { x: 0.022, y: 0.570 };  // 「質問13」ラベルの先頭
+        var pdfCalib = JSON.parse(localStorage.getItem('webOcrCalib2pt') || 'null') || null;
+        // pdfCalib = { p1x, p1y, p2x, p2y } (ピクセル比率: overlay内の0〜1)
+        // → toPixel(relX, relY) で相対座標→オーバーレイ内ピクセルに変換
+
+        function toPixel(relX, relY, page) {
+            var overlay = document.getElementById('pdfOverlay');
+            if (!overlay) return { x: 0, y: 0 };
+            var ow = overlay.offsetWidth;
+            var oh = overlay.offsetHeight;
+            if (!pdfCalib) {
+                // キャリブレーション未実施: 推定値で表示
+                var estOffX = 0.02, estOffY = 0.045, estScX = 0.63, estScY = 0.46;
+                var pageOff = (page === 2) ? 0.5 : 0;
+                return {
+                    x: (estOffX + relX * estScX) * ow,
+                    y: (estOffY + pageOff + relY * estScY) * oh
+                };
+            }
+            // 2点から線形補間
+            var c = pdfCalib;
+            // 基準点1,2のオーバーレイ内ピクセル
+            var px1 = c.p1x * ow, py1 = c.p1y * oh;
+            var px2 = c.p2x * ow, py2 = c.p2y * oh;
+            // 基準点1,2の相対座標
+            var rx1 = CALIB_REF1.x, ry1 = CALIB_REF1.y;
+            var rx2 = CALIB_REF2.x, ry2 = CALIB_REF2.y;
+            // scaleとoffsetを算出
+            var scX = (px2 - px1) / ((rx2 - rx1) * ow);  // 不正確（x方向は2点が近い）
+            var scY = (py2 - py1) / ((ry2 - ry1) * oh);
+            // x方向: 縦横比がほぼ同じと仮定してscYから推定
+            scX = scY * (ow / oh) * (3509 / 2480);  // A4縦横比補正
+            var offX = px1 - rx1 * scX * ow;
+            var offY = py1 - ry1 * scY * oh;
+            // ページ2は1ページ分下にオフセット
+            var pageOffPx = (page === 2) ? (1.0 * scY * oh) : 0;
+            return {
+                x: offX + relX * scX * ow,
+                y: offY + relY * scY * oh + pageOffPx
+            };
+        }
 
         // ========== State ==========
         let currentUser = '';
@@ -459,21 +497,13 @@
             // ハイライト矩形を表示
             var rect = document.getElementById('pdfHighlightRect');
             if (pos && rect) {
-                var overlay = document.getElementById('pdfOverlay');
-                var ow = overlay.offsetWidth;
-                var oh = overlay.offsetHeight;
-                // ページオフセット: 2ページ目は下半分
-                var pageOffsetY = (pos.page === 2) ? 0.5 : 0;
-                var left = pdfCalib.offsetX * ow + pos.x1 * pdfCalib.scaleX * ow;
-                var top = (pdfCalib.offsetY + pageOffsetY) * oh + pos.y1 * pdfCalib.scaleY * oh;
-                var width = (pos.x2 - pos.x1) * pdfCalib.scaleX * ow;
-                var height = (pos.y2 - pos.y1) * pdfCalib.scaleY * oh;
-                // マージン追加（少し広めに囲む）
+                var topLeft = toPixel(pos.x1, pos.y1, pos.page);
+                var bottomRight = toPixel(pos.x2, pos.y2, pos.page);
                 var mx = 4, my = 4;
-                rect.style.left = Math.max(0, left - mx) + 'px';
-                rect.style.top = Math.max(0, top - my) + 'px';
-                rect.style.width = (width + mx * 2) + 'px';
-                rect.style.height = (height + my * 2) + 'px';
+                rect.style.left = Math.max(0, topLeft.x - mx) + 'px';
+                rect.style.top = Math.max(0, topLeft.y - my) + 'px';
+                rect.style.width = (bottomRight.x - topLeft.x + mx * 2) + 'px';
+                rect.style.height = (bottomRight.y - topLeft.y + my * 2) + 'px';
                 rect.style.display = 'block';
             }
 
@@ -524,48 +554,96 @@
             }
         }
 
-        // ========== 位置合わせ ==========
-        function adjustHighlight() {
-            var msg = '現在のキャリブレーション値:\n' +
-                'offsetX=' + pdfCalib.offsetX.toFixed(3) + '  offsetY=' + pdfCalib.offsetY.toFixed(3) + '\n' +
-                'scaleX=' + pdfCalib.scaleX.toFixed(3) + '  scaleY=' + pdfCalib.scaleY.toFixed(3) + '\n\n' +
-                '方向キーで調整:\n' +
-                '← → : 左右位置 (offsetX)\n' +
-                '↑ ↓ : 上下位置 (offsetY)\n' +
-                '+  - : 横幅拡縮 (scaleX)\n' +
-                'W  S : 縦幅拡縮 (scaleY)\n' +
-                'R : リセット\n' +
-                'Enter/Esc : 完了\n\n' +
-                '調整を開始しますか？';
-            if (!confirm(msg)) return;
+        // ========== 2点キャリブレーション ==========
+        var calibStep = 0;  // 0=未開始, 1=1点目待ち, 2=2点目待ち
 
-            var adjustHandler = function(e) {
-                var step = 0.005;
-                switch(e.key) {
-                    case 'ArrowLeft':  pdfCalib.offsetX -= step; break;
-                    case 'ArrowRight': pdfCalib.offsetX += step; break;
-                    case 'ArrowUp':    pdfCalib.offsetY -= step; break;
-                    case 'ArrowDown':  pdfCalib.offsetY += step; break;
-                    case '+': case ';': pdfCalib.scaleX += step; break;
-                    case '-':          pdfCalib.scaleX -= step; break;
-                    case 'w': case 'W': pdfCalib.scaleY += step; break;
-                    case 's': case 'S': pdfCalib.scaleY -= step; break;
-                    case 'r': case 'R':
-                        pdfCalib = { offsetX: 0.02, offsetY: 0.04, scaleX: 0.62, scaleY: 0.48 };
-                        break;
-                    case 'Enter': case 'Escape':
-                        document.removeEventListener('keydown', adjustHandler);
-                        localStorage.setItem('webOcrCalib', JSON.stringify(pdfCalib));
-                        alert('キャリブレーション保存完了\noffsetX=' + pdfCalib.offsetX.toFixed(3) + ' offsetY=' + pdfCalib.offsetY.toFixed(3) +
-                            '\nscaleX=' + pdfCalib.scaleX.toFixed(3) + ' scaleY=' + pdfCalib.scaleY.toFixed(3));
-                        return;
-                    default: return;
+        function adjustHighlight() {
+            // リセット確認
+            if (pdfCalib) {
+                var choice = confirm('位置合わせ済みです。\nOK: 再設定する\nキャンセル: リセット（初期値に戻す）');
+                if (!choice) {
+                    pdfCalib = null;
+                    localStorage.removeItem('webOcrCalib2pt');
+                    if (activeQuestionIdx >= 0) highlightPdfPosition(activeQuestionIdx);
+                    alert('位置合わせをリセットしました');
+                    return;
                 }
-                e.preventDefault();
-                // ハイライト再描画
-                if (activeQuestionIdx >= 0) highlightPdfPosition(activeQuestionIdx);
-            };
-            document.addEventListener('keydown', adjustHandler);
+            }
+            startCalibration();
+        }
+
+        function startCalibration() {
+            calibStep = 1;
+            var overlay = document.getElementById('pdfOverlay');
+            overlay.classList.add('calibrating');
+            // バナー表示
+            var banner = document.createElement('div');
+            banner.className = 'calib-banner';
+            banner.id = 'calibBanner';
+            banner.textContent = '① PDF上の「医療機関名」の文字の先頭をクリック';
+            overlay.appendChild(banner);
+            // ハイライト非表示
+            document.getElementById('pdfHighlightRect').style.display = 'none';
+            // クリックハンドラ
+            overlay.onclick = calibClick;
+        }
+
+        function calibClick(e) {
+            var overlay = document.getElementById('pdfOverlay');
+            var rect = overlay.getBoundingClientRect();
+            var clickX = (e.clientX - rect.left) / rect.width;   // 0〜1
+            var clickY = (e.clientY - rect.top) / rect.height;   // 0〜1
+
+            if (calibStep === 1) {
+                // 1点目: 医療機関名の先頭
+                pdfCalib = pdfCalib || {};
+                pdfCalib.p1x = clickX;
+                pdfCalib.p1y = clickY;
+                // ドット表示
+                var dot = document.createElement('div');
+                dot.className = 'calib-dot';
+                dot.id = 'calibDot1';
+                dot.style.left = (clickX * 100) + '%';
+                dot.style.top = (clickY * 100) + '%';
+                overlay.appendChild(dot);
+                // 次のステップへ
+                calibStep = 2;
+                document.getElementById('calibBanner').textContent = '② PDF上の「質問13」の「質」の文字の左上をクリック';
+            } else if (calibStep === 2) {
+                // 2点目: 質問13ラベルの先頭
+                pdfCalib.p2x = clickX;
+                pdfCalib.p2y = clickY;
+                // ドット表示
+                var dot = document.createElement('div');
+                dot.className = 'calib-dot';
+                dot.id = 'calibDot2';
+                dot.style.left = (clickX * 100) + '%';
+                dot.style.top = (clickY * 100) + '%';
+                overlay.appendChild(dot);
+                // 完了
+                finishCalibration();
+            }
+        }
+
+        function finishCalibration() {
+            calibStep = 0;
+            var overlay = document.getElementById('pdfOverlay');
+            overlay.classList.remove('calibrating');
+            overlay.onclick = null;
+            // バナーとドットを削除
+            var banner = document.getElementById('calibBanner');
+            if (banner) banner.remove();
+            // ドットは1秒後に消す
+            setTimeout(function() {
+                var d1 = document.getElementById('calibDot1');
+                var d2 = document.getElementById('calibDot2');
+                if (d1) d1.remove();
+                if (d2) d2.remove();
+            }, 1000);
+            // 保存
+            localStorage.setItem('webOcrCalib2pt', JSON.stringify(pdfCalib));
+            // ハイライト再描画
+            if (activeQuestionIdx >= 0) highlightPdfPosition(activeQuestionIdx);
         }
 
         // ========== 照合UI ==========
