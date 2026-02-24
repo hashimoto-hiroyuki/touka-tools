@@ -40,7 +40,7 @@
         .pdf-preview-header h3 { font-size: 13px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .btn-toggle-preview { background: none; border: 1px solid #ddd; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: #555; flex-shrink: 0; }
         .btn-toggle-preview:hover { background: #f5f5f5; }
-        .pdf-iframe-wrapper { flex: 1; border: 1px solid #ddd; border-radius: 4px; overflow: auto; position: relative; background: #e0e0e0; }
+        .pdf-iframe-wrapper { flex: 1; border: 1px solid #ddd; border-radius: 4px; overflow: auto; position: relative; background: #e0e0e0; overscroll-behavior: contain; }
         /* PDF画像表示（PDF.jsでcanvasにレンダリング） */
         .pdf-pages-container { position: relative; display: inline-block; min-width: 100%; }
         .pdf-page-wrapper { position: relative; margin-bottom: 4px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
@@ -56,7 +56,7 @@
         .btn-ocr:hover { background: #bf360c; }
         .btn-ocr:disabled { background: #ccc; cursor: not-allowed; }
         .ocr-status { margin-top: 8px; font-size: 13px; color: #666; }
-        .questions-area { padding: 12px 16px; overflow-y: auto; flex: 1; }
+        .questions-area { padding: 12px 16px; overflow-y: auto; flex: 1; overscroll-behavior: contain; }
         .q-block { background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 8px; padding: 12px 16px; display: flex; align-items: flex-start; gap: 12px; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s; cursor: pointer; }
         .q-block.q-active { border-color: #ff9800; box-shadow: 0 0 0 2px rgba(255,152,0,0.25); }
         .q-block.confirmed { border-color: #a5d6a7; background: #f1f8e9; }
