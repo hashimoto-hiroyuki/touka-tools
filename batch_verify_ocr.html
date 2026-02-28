@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR照合ツール</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231565c0'/><path d='M7 10h18M7 16h18M7 22h12' stroke='white' stroke-width='2' stroke-linecap='round'/><circle cx='24' cy='22' r='4' fill='%2343a047' stroke='white' stroke-width='1.5'/><path d='M22.5 22l1 1 2-2' stroke='white' stroke-width='1.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', 'Yu Gothic UI', 'Meiryo', sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ========== ヘッダー ========== */
+        .header {
+            background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            flex-shrink: 0;
+            color: #fff;
+        }
+        .header h1 { font-size: 17px; font-weight: 700; }
+        .header .subtitle { font-size: 11px; color: rgba(255,255,255,0.7); }
+        .header-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header-info {
+            font-size: 12px;
+            color: rgba(255,255,255,0.8);
+        }
+        .btn-header {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: #fff;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-header:hover { background: rgba(255,255,255,0.35); }
+
+        /* ========== メインレイアウト ========== */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* サイドバー */
+        .sidebar {
+            width: 280px;
+            background: #1e293b;
+            color: #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .sidebar-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            font-size: 12px;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+        }
+        .file-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px 0;
+        }
+        .file-group-label {
+            padding: 8px 16px 4px;
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #64748b;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        .file-item {
+            padding: 8px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            transition: background 0.15s;
+            border-left: 3px solid transparent;
+        }
+        .file-item:hover { background: rgba(255,255,255,0.06); }
+        .file-item.active {
+            background: rgba(59,130,246,0.15);
+            border-left-color: #3b82f6;
+        }
+        .file-item.verified {
+            color: #86efac;
+        }
+        .file-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+        .file-icon.unverified { color: #94a3b8; }
+        .file-icon.verified { color: #4ade80; }
+        .file-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .file-badge {
+            font-size: 9px;
+            padding: 1px 6px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        .file-badge.unverified { background: #475569; color: #94a3b8; }
+        .file-badge.verified { background: #166534; color: #86efac; }
+
+        /* ========== メインエリア ========== */
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .main-toolbar {
+            padding: 8px 20px;
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .toolbar-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        .toolbar-meta {
+            font-size: 11px;
+            color: #64748b;
+        }
+        .toolbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .progress-text {
+            font-size: 12px;
+            color: #64748b;
+        }
+        .progress-bar-wrapper {
+            width: 120px;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: #3b82f6;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+        .btn-nav {
+            padding: 5px 12px;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #374151;
+        }
+        .btn-nav:hover { background: #f3f4f6; }
+        .btn-nav:disabled { opacity: 0.4; cursor: default; }
+
+        /* 質問ブロックエリア */
+        .questions-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px 120px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+        .empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.4; }
+
+        /* 質問ブロック */
+        .q-block {
+            display: flex;
+            gap: 16px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .q-block.needs-check {
+            border-left: 4px solid #f59e0b;
+        }
+        .q-block.confirmed {
+            border-left: 4px solid #22c55e;
+            background: #f0fdf4;
+        }
+        .q-block.confirmed .q-input { background: #f0fdf4; color: #166534; }
+        .q-image {
+            width: 340px;
+            flex-shrink: 0;
+        }
+        .q-image img {
+            width: 100%;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: zoom-in;
+        }
+        .q-image .img-placeholder {
+            padding: 20px;
+            text-align: center;
+            color: #cbd5e1;
+            font-size: 12px;
+            border: 1px dashed #e2e8f0;
+            border-radius: 6px;
+        }
+        .q-content {
+            flex: 1;
+            min-width: 0;
+        }
+        .q-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .q-label .check-warn { color: #f59e0b; font-size: 12px; }
+        .q-input {
+            width: 100%;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 7px 10px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.2s;
+        }
+        .q-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.15); }
+        .q-input:disabled { background: #f8fafc; }
+        .q-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .btn-ok {
+            padding: 4px 14px;
+            border: 1px solid #22c55e;
+            background: #f0fdf4;
+            color: #15803d;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .btn-ok:hover { background: #dcfce7; }
+        .btn-ok.active { background: #22c55e; color: #fff; }
+        .btn-edit {
+            padding: 4px 14px;
+            border: 1px solid #d1d5db;
+            background: #fff;
+            color: #6b7280;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-edit:hover { background: #f3f4f6; }
+
+        /* 下部バー */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 280px;
+            right: 0;
+            background: #fff;
+            border-top: 1px solid #e2e8f0;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+            z-index: 100;
+        }
+        .bottom-bar .status-msg {
+            flex: 1;
+            font-size: 12px;
+            color: #64748b;
+        }
+        .btn-save {
+            padding: 8px 24px;
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .btn-save:hover { background: #1d4ed8; }
+        .btn-save:disabled { background: #93c5fd; cursor: default; }
+        .btn-save-next {
+            padding: 8px 20px;
+            background: #059669;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .btn-save-next:hover { background: #047857; }
+
+        /* 画像オーバーレイ */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            cursor: zoom-out;
+            justify-content: center;
+            align-items: center;
+        }
+        .overlay.show { display: flex; }
+        .overlay img {
+            max-width: 95%;
+            max-height: 95%;
+            border-radius: 8px;
+        }
+
+        /* スクロールバー */
+        .file-list::-webkit-scrollbar,
+        .questions-area::-webkit-scrollbar { width: 6px; }
+        .file-list::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        .questions-area::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<div class="header">
+    <div>
+        <h1>OCR照合ツール</h1>
+        <div class="subtitle">OCR_Results内のJSONファイルを照合・修正</div>
+    </div>
+    <div class="header-right">
+        <span class="header-info" id="totalStatus">読込中...</span>
+        <button class="btn-header" onclick="loadFileList()">&#x21bb; 更新</button>
+    </div>
+</div>
+
+<!-- メインレイアウト -->
+<div class="main-layout">
+
+    <!-- サイドバー -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <span>ファイル一覧</span>
+            <span id="fileCount">-</span>
+        </div>
+        <div class="file-list" id="fileList">
+            <div class="empty-state" style="padding:40px 16px;">読込中...</div>
+        </div>
+    </div>
+
+    <!-- メインエリア -->
+    <div class="main-area">
+        <div class="main-toolbar" id="mainToolbar" style="display:none;">
+            <div>
+                <div class="toolbar-title" id="toolbarTitle">-</div>
+                <div class="toolbar-meta" id="toolbarMeta">-</div>
+            </div>
+            <div class="toolbar-right">
+                <span class="progress-text" id="progressText">0/0</span>
+                <div class="progress-bar-wrapper">
+                    <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+                </div>
+                <button class="btn-nav" id="btnPrev" onclick="navigateFile(-1)" disabled>&larr; 前</button>
+                <button class="btn-nav" id="btnNext" onclick="navigateFile(1)" disabled>次 &rarr;</button>
+            </div>
+        </div>
+
+        <div class="questions-area" id="questionsArea">
+            <div class="empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>
+                <div>左のファイル一覧からファイルを選択してください</div>
+            </div>
+        </div>
+
+        <div class="bottom-bar" id="bottomBar" style="display:none;">
+            <div class="status-msg" id="statusMsg">全ての項目を確認してください</div>
+            <button class="btn-save" id="btnSave" onclick="saveVerified()" disabled>照合完了・保存</button>
+            <button class="btn-save-next" id="btnSaveNext" onclick="saveAndNext()" style="display:none;">保存して次へ &rarr;</button>
+        </div>
+    </div>
+</div>
+
+<!-- 画像オーバーレイ -->
+<div class="overlay" id="overlay" onclick="hideOverlay()">
+    <img id="overlayImg" src="">
+</div>
+
+<script>
+// ========== 定数 ==========
+var QUESTION_ORDER = [
+    "医療機関名", "患者さんID",
+    "質問1_名前", "質問2_生年月日", "質問2_QRコード回答",
+    "質問3_性別", "質問4_血液型", "質問5_身体情報",
+    "質問6_糖尿病", "質問7_脂質異常症", "質問8_兄弟糖尿病歴", "質問9_両親糖尿病歴",
+    "質問10_運動", "質問11_お菓子", "質問12_飲み物", "質問13_飲酒習慣",
+    "質問14_歯の抜去位置"
+];
+
+var QUESTION_LABELS = {
+    "医療機関名": "医療機関名",
+    "患者さんID": "患者さんID",
+    "質問1_名前": "質問1 名前（カタカナ）",
+    "質問2_生年月日": "質問2 生年月日",
+    "質問2_QRコード回答": "質問2 QRコード回答",
+    "質問3_性別": "質問3 性別",
+    "質問4_血液型": "質問4 血液型",
+    "質問5_身体情報": "質問5 身長・体重",
+    "質問6_糖尿病": "質問6 糖尿病診断",
+    "質問7_脂質異常症": "質問7 脂質異常症",
+    "質問8_兄弟糖尿病歴": "質問8 兄弟に糖尿病",
+    "質問9_両親糖尿病歴": "質問9 両親に糖尿病",
+    "質問10_運動": "質問10 運動習慣",
+    "質問11_お菓子": "質問11 お菓子・スイーツ",
+    "質問12_飲み物": "質問12 飲み物",
+    "質問13_飲酒習慣": "質問13 飲酒習慣",
+    "質問14_歯の抜去位置": "質問14 歯の抜去位置"
+};
+
+// ========== 状態 ==========
+var filesList = [];
+var currentFileIndex = -1;
+var currentData = null;
+var questionStates = {};  // idx -> 'editing' | 'confirmed'
+
+// ========== ユーティリティ ==========
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showOverlay(src) {
+    document.getElementById('overlayImg').src = src;
+    document.getElementById('overlay').classList.add('show');
+}
+function hideOverlay() {
+    document.getElementById('overlay').classList.remove('show');
+}
+
+// ========== API通信 ==========
+function apiGet(path) {
+    return fetch(path).then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    });
+}
+
+function apiPost(path, data) {
+    return fetch(path, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    }).then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    });
+}
+
+// ========== ファイル一覧 ==========
+function loadFileList() {
+    apiGet('/api/files').then(function(result) {
+        filesList = result.files || [];
+        renderFileList();
+        updateTotalStatus();
+    }).catch(function(err) {
+        document.getElementById('fileList').innerHTML =
+            '<div class="empty-state" style="padding:20px;color:#f87171;">読込エラー: ' + escapeHtml(err.message) + '</div>';
+    });
+}
+
+function renderFileList() {
+    var html = '';
+    var unverified = filesList.filter(function(f) { return f.status !== 'verified'; });
+    var verified = filesList.filter(function(f) { return f.status === 'verified'; });
+
+    if (unverified.length > 0) {
+        html += '<div class="file-group-label">未照合 (' + unverified.length + ')</div>';
+        for (var i = 0; i < filesList.length; i++) {
+            if (filesList[i].status !== 'verified') {
+                html += renderFileItem(i, filesList[i]);
+            }
+        }
+    }
+    if (verified.length > 0) {
+        html += '<div class="file-group-label">照合済み (' + verified.length + ')</div>';
+        for (var i = 0; i < filesList.length; i++) {
+            if (filesList[i].status === 'verified') {
+                html += renderFileItem(i, filesList[i]);
+            }
+        }
+    }
+
+    if (filesList.length === 0) {
+        html = '<div class="empty-state" style="padding:40px 16px;">OCR結果ファイルがありません</div>';
+    }
+
+    document.getElementById('fileList').innerHTML = html;
+    document.getElementById('fileCount').textContent = filesList.length + '件';
+}
+
+function renderFileItem(idx, file) {
+    var isVerified = file.status === 'verified';
+    var isActive = idx === currentFileIndex;
+    var cls = 'file-item' + (isActive ? ' active' : '') + (isVerified ? ' verified' : '');
+    var iconCls = isVerified ? 'verified' : 'unverified';
+    var badgeCls = isVerified ? 'verified' : 'unverified';
+    var badgeText = isVerified ? '済' : '未';
+    var icon = isVerified ?
+        '<svg class="file-icon verified" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"/></svg>' :
+        '<svg class="file-icon unverified" viewBox="0 0 20 20" fill="currentColor"><path d="M3 3.5A1.5 1.5 0 014.5 2h6.879a1.5 1.5 0 011.06.44l4.122 4.12A1.5 1.5 0 0117 7.622V16.5a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 013 16.5v-13z"/></svg>';
+
+    // ファイル名を短縮: xxxx_ocr.json → xxxx
+    var displayName = file.source_pdf || file.filename.replace('_ocr.json', '');
+    var subtitle = file.hospital ? file.hospital : '';
+    if (file.patient_id) subtitle += (subtitle ? ' / ' : '') + file.patient_id;
+
+    return '<div class="' + cls + '" onclick="selectFile(' + idx + ')" title="' + escapeHtml(file.filename) + '">' +
+        icon +
+        '<div class="file-name">' +
+            '<div style="font-size:12px;">' + escapeHtml(displayName) + '</div>' +
+            (subtitle ? '<div style="font-size:10px;color:#64748b;margin-top:1px;">' + escapeHtml(subtitle) + '</div>' : '') +
+        '</div>' +
+        '<span class="file-badge ' + badgeCls + '">' + badgeText + '</span>' +
+    '</div>';
+}
+
+function updateTotalStatus() {
+    var total = filesList.length;
+    var verified = filesList.filter(function(f) { return f.status === 'verified'; }).length;
+    document.getElementById('totalStatus').textContent =
+        '照合済み: ' + verified + ' / ' + total + '件';
+}
+
+// ========== ファイル選択 ==========
+function selectFile(idx) {
+    if (idx < 0 || idx >= filesList.length) return;
+    currentFileIndex = idx;
+    var file = filesList[idx];
+
+    // ツールバー表示
+    document.getElementById('mainToolbar').style.display = 'flex';
+    document.getElementById('bottomBar').style.display = 'flex';
+    document.getElementById('toolbarTitle').textContent =
+        file.source_pdf || file.filename.replace('_ocr.json', '');
+    document.getElementById('toolbarMeta').textContent =
+        (file.hospital || '-') + ' / ' + (file.patient_id || '-');
+
+    // ナビゲーションボタン
+    document.getElementById('btnPrev').disabled = (idx === 0);
+    document.getElementById('btnNext').disabled = (idx === filesList.length - 1);
+
+    // ローディング
+    document.getElementById('questionsArea').innerHTML =
+        '<div class="empty-state" style="padding:40px;">データ読込中...</div>';
+
+    // ファイル詳細取得
+    apiGet('/api/file?name=' + encodeURIComponent(file.filename)).then(function(data) {
+        currentData = data;
+        renderQuestions(data);
+        renderFileList();
+    }).catch(function(err) {
+        document.getElementById('questionsArea').innerHTML =
+            '<div class="empty-state" style="color:#f87171;">読込エラー: ' + escapeHtml(err.message) + '</div>';
+    });
+}
+
+function navigateFile(delta) {
+    var newIdx = currentFileIndex + delta;
+    if (newIdx >= 0 && newIdx < filesList.length) {
+        selectFile(newIdx);
+    }
+}
+
+// ========== 質問ブロック描画 ==========
+function renderQuestions(data) {
+    var html = '';
+    questionStates = {};
+    var images = data.verification_images || {};
+    var checkItems = data['要確認項目一覧'] || [];
+    var displayValues = data._display_values || {};
+
+    for (var idx = 0; idx < QUESTION_ORDER.length; idx++) {
+        var key = QUESTION_ORDER[idx];
+        var label = QUESTION_LABELS[key] || key;
+        var displayVal = displayValues[key] || '';
+        var hasImage = !!images[key];
+        var needsCheck = checkItems.indexOf(key) >= 0;
+
+        questionStates[idx] = 'editing';
+
+        var blockCls = 'q-block' + (needsCheck ? ' needs-check' : '');
+        html += '<div class="' + blockCls + '" id="qblock_' + idx + '" data-key="' + escapeHtml(key) + '">';
+
+        // 画像
+        html += '<div class="q-image">';
+        if (hasImage) {
+            html += '<img src="' + images[key] + '" alt="' + escapeHtml(key) + '" onclick="showOverlay(this.src)">';
+        } else {
+            html += '<div class="img-placeholder">画像なし</div>';
+        }
+        html += '</div>';
+
+        // コンテンツ
+        html += '<div class="q-content">';
+        html += '<div class="q-label">' + escapeHtml(label);
+        if (needsCheck) html += ' <span class="check-warn">&#9888; 要確認</span>';
+        html += '</div>';
+
+        // 入力欄（複数行なら textarea）
+        var isMultiline = displayVal.indexOf('\n') >= 0 || key === '質問13_飲酒習慣';
+        if (isMultiline) {
+            var rows = Math.min(6, Math.max(2, displayVal.split('\n').length + 1));
+            html += '<textarea class="q-input" id="qinput_' + idx + '" rows="' + rows + '">' +
+                    escapeHtml(displayVal) + '</textarea>';
+        } else {
+            html += '<input class="q-input" type="text" id="qinput_' + idx + '" value="' +
+                    escapeHtml(displayVal) + '">';
+        }
+
+        // ボタン
+        html += '<div class="q-actions">';
+        html += '<button class="btn-ok" id="btnok_' + idx + '" onclick="confirmQuestion(' + idx + ', event)">&#10003; OK</button>';
+        html += '<button class="btn-edit" id="btnedit_' + idx + '" onclick="editQuestion(' + idx + ')">&#9998; 編集</button>';
+        html += '</div>';
+
+        html += '</div>'; // q-content
+        html += '</div>'; // q-block
+    }
+
+    document.getElementById('questionsArea').innerHTML = html;
+    updateProgress();
+}
+
+// ========== 確認・編集操作 ==========
+function confirmQuestion(idx, event) {
+    // Shift+クリックで一括確認
+    if (event && event.shiftKey) {
+        confirmAll();
+        return;
+    }
+
+    questionStates[idx] = 'confirmed';
+    var block = document.getElementById('qblock_' + idx);
+    var input = document.getElementById('qinput_' + idx);
+    var btnOk = document.getElementById('btnok_' + idx);
+
+    block.classList.add('confirmed');
+    input.disabled = true;
+    btnOk.classList.add('active');
+
+    updateProgress();
+
+    // 次の未確認項目にスクロール
+    var nextUnconfirmed = -1;
+    for (var i = idx + 1; i < QUESTION_ORDER.length; i++) {
+        if (questionStates[i] !== 'confirmed') {
+            nextUnconfirmed = i;
+            break;
+        }
+    }
+    if (nextUnconfirmed >= 0) {
+        var nextBlock = document.getElementById('qblock_' + nextUnconfirmed);
+        if (nextBlock) {
+            setTimeout(function() {
+                nextBlock.scrollIntoView({behavior: 'smooth', block: 'center'});
+            }, 100);
+        }
+    }
+}
+
+function editQuestion(idx) {
+    questionStates[idx] = 'editing';
+    var block = document.getElementById('qblock_' + idx);
+    var input = document.getElementById('qinput_' + idx);
+    var btnOk = document.getElementById('btnok_' + idx);
+
+    block.classList.remove('confirmed');
+    input.disabled = false;
+    btnOk.classList.remove('active');
+    input.focus();
+
+    updateProgress();
+}
+
+function confirmAll() {
+    for (var i = 0; i < QUESTION_ORDER.length; i++) {
+        if (questionStates[i] !== 'confirmed') {
+            questionStates[i] = 'confirmed';
+            var block = document.getElementById('qblock_' + i);
+            var input = document.getElementById('qinput_' + i);
+            var btnOk = document.getElementById('btnok_' + i);
+            if (block) block.classList.add('confirmed');
+            if (input) input.disabled = true;
+            if (btnOk) btnOk.classList.add('active');
+        }
+    }
+    updateProgress();
+}
+
+function updateProgress() {
+    var total = QUESTION_ORDER.length;
+    var confirmed = 0;
+    for (var i = 0; i < total; i++) {
+        if (questionStates[i] === 'confirmed') confirmed++;
+    }
+
+    var pct = total > 0 ? Math.round(confirmed / total * 100) : 0;
+    document.getElementById('progressText').textContent = confirmed + '/' + total;
+    document.getElementById('progressBar').style.width = pct + '%';
+
+    var allConfirmed = (confirmed === total);
+    document.getElementById('btnSave').disabled = !allConfirmed;
+    document.getElementById('statusMsg').textContent = allConfirmed ?
+        '全項目確認済み — 保存できます' :
+        confirmed + '/' + total + ' 項目確認済み';
+
+    // 次のファイルがあれば「保存して次へ」ボタン表示
+    var hasNext = currentFileIndex < filesList.length - 1;
+    document.getElementById('btnSaveNext').style.display =
+        (allConfirmed && hasNext) ? 'inline-block' : 'none';
+}
+
+// ========== 保存 ==========
+function saveVerified() {
+    if (!currentData || currentFileIndex < 0) return;
+
+    var file = filesList[currentFileIndex];
+    var verifiedData = buildVerifiedData();
+
+    document.getElementById('btnSave').disabled = true;
+    document.getElementById('btnSave').textContent = '保存中...';
+
+    apiPost('/api/save', {
+        filename: file.filename,
+        data: verifiedData
+    }).then(function(result) {
+        document.getElementById('btnSave').textContent = '保存完了 ✓';
+        document.getElementById('statusMsg').textContent =
+            '保存完了' + (result.pdf_moved ? ' (PDFを入力済みPDFに移動済み)' : '');
+
+        // ファイル一覧更新
+        filesList[currentFileIndex].status = 'verified';
+        renderFileList();
+        updateTotalStatus();
+
+        setTimeout(function() {
+            document.getElementById('btnSave').textContent = '照合完了・保存';
+        }, 2000);
+    }).catch(function(err) {
+        document.getElementById('btnSave').textContent = '照合完了・保存';
+        document.getElementById('btnSave').disabled = false;
+        alert('保存エラー: ' + err.message);
+    });
+}
+
+function saveAndNext() {
+    if (!currentData || currentFileIndex < 0) return;
+
+    var file = filesList[currentFileIndex];
+    var verifiedData = buildVerifiedData();
+
+    apiPost('/api/save', {
+        filename: file.filename,
+        data: verifiedData
+    }).then(function(result) {
+        filesList[currentFileIndex].status = 'verified';
+        renderFileList();
+        updateTotalStatus();
+
+        // 次のファイルへ
+        if (currentFileIndex < filesList.length - 1) {
+            selectFile(currentFileIndex + 1);
+        }
+    }).catch(function(err) {
+        alert('保存エラー: ' + err.message);
+    });
+}
+
+function buildVerifiedData() {
+    var result = {
+        "verified_by": "local",
+        "回答データ": {}
+    };
+
+    for (var idx = 0; idx < QUESTION_ORDER.length; idx++) {
+        var key = QUESTION_ORDER[idx];
+        var input = document.getElementById('qinput_' + idx);
+        if (!input) continue;
+        var val = input.value;
+
+        if (key === '医療機関名') {
+            result['医療機関名'] = val;
+        } else if (key === '患者さんID') {
+            result['患者さんID'] = val;
+        } else {
+            // 構造化データの場合、テキストをそのまま保存
+            // サーバー側で元のデータとマージするので、テキスト表現を保存
+            var origData = currentData ? (currentData['回答データ'] || {})[key] : null;
+            if (origData && typeof origData === 'object') {
+                // 元が構造化データの場合、_verified_textとして保存
+                origData['_verified_text'] = val;
+                result['回答データ'][key] = origData;
+            } else {
+                result['回答データ'][key] = val;
+            }
+        }
+    }
+
+    return result;
+}
+
+// ========== キーボードショートカット ==========
+document.addEventListener('keydown', function(e) {
+    // Escape: オーバーレイ閉じる
+    if (e.key === 'Escape') {
+        hideOverlay();
+        return;
+    }
+
+    // Ctrl+Enter: 全項目確認
+    if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        confirmAll();
+        return;
+    }
+
+    // Ctrl+S: 保存
+    if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        if (!document.getElementById('btnSave').disabled) {
+            saveVerified();
+        }
+        return;
+    }
+
+    // Alt+左右: ファイル移動
+    if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        navigateFile(-1);
+        return;
+    }
+    if (e.altKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        navigateFile(1);
+        return;
+    }
+});
+
+// ========== 初期化 ==========
+loadFileList();
+</script>
+</body>
+</html>

@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>糖化アンケート データフロー図</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', 'Yu Gothic UI', 'Meiryo', sans-serif;
+    background: #f0f4f8;
+    padding: 30px;
+    color: #333;
+  }
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    margin-bottom: 10px;
+    color: #2c3e50;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 13px;
+    color: #7f8c8d;
+    margin-bottom: 30px;
+  }
+  .chart-container {
+    max-width: 960px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* ===== ゴール（データシート） ===== */
+  .goal-box {
+    background: linear-gradient(135deg, #2e7d32, #43a047);
+    color: #fff;
+    border-radius: 12px;
+    padding: 18px 24px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(46,125,50,0.3);
+    margin-bottom: 20px;
+  }
+  .goal-box .sub {
+    font-size: 12px;
+    font-weight: normal;
+    opacity: 0.9;
+    margin-top: 6px;
+    line-height: 1.6;
+  }
+
+  /* ===== 医療機関セクション ===== */
+  .source-section {
+    background: #e8f5e9;
+    border: 2px solid #81c784;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
+  }
+  .source-section h2 {
+    font-size: 15px;
+    color: #2e7d32;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .source-items {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .source-item {
+    background: #fff;
+    border: 2px solid #a5d6a7;
+    border-radius: 8px;
+    padding: 12px 14px;
+    position: relative;
+  }
+  .source-item .label {
+    font-weight: bold;
+    font-size: 13px;
+    color: #2e7d32;
+  }
+  .source-item .desc {
+    font-size: 12px;
+    color: #555;
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+  .source-item .badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-top: 6px;
+    font-weight: bold;
+  }
+  .badge-digital { background: #e3f2fd; color: #1565c0; }
+  .badge-paper { background: #fff3e0; color: #e65100; }
+  .badge-sample { background: #fce4ec; color: #c62828; }
+  .badge-doctor { background: #f3e5f5; color: #6a1b9a; }
+
+  /* ===== 矢印 ===== */
+  .arrow-down {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+  }
+  .arrow-down .line {
+    width: 3px;
+    height: 30px;
+    background: #78909c;
+  }
+  .arrow-down .head {
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 14px solid #78909c;
+  }
+  .arrow-label {
+    font-size: 12px;
+    color: #546e7a;
+    font-weight: bold;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    text-align: center;
+  }
+
+  /* ===== Devine社 ===== */
+  .devine-box {
+    background: linear-gradient(135deg, #1565c0, #1976d2);
+    color: #fff;
+    border-radius: 12px;
+    padding: 18px 24px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(21,101,192,0.3);
+  }
+  .devine-box .sub {
+    font-size: 12px;
+    font-weight: normal;
+    opacity: 0.85;
+    margin-top: 4px;
+  }
+
+  /* ===== 分岐ダイヤモンド ===== */
+  .diamond-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 6px 0;
+  }
+  .diamond {
+    width: 200px;
+    height: 60px;
+    background: #fff9c4;
+    border: 2px solid #f9a825;
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: bold;
+    color: #e65100;
+    text-align: center;
+  }
+
+  /* ===== 分岐 ===== */
+  .branch-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .branch-box {
+    border-radius: 12px;
+    padding: 16px 18px;
+    position: relative;
+  }
+  .branch-box h3 {
+    font-size: 14px;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .branch-case-a {
+    background: #e8eaf6;
+    border: 2px solid #7986cb;
+  }
+  .branch-case-a h3 { color: #283593; }
+  .branch-case-b {
+    background: #fce4ec;
+    border: 2px solid #ef9a9a;
+  }
+  .branch-case-b h3 { color: #b71c1c; }
+  .branch-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: #fff;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .branch-item:last-child { margin-bottom: 0; }
+  .branch-item .number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 12px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .branch-case-a .branch-item .number { background: #5c6bc0; }
+  .branch-case-b .branch-item .number { background: #e57373; }
+  .branch-plus {
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    color: #999;
+    margin: 2px 0;
+  }
+
+  /* ===== 作業ステップ ===== */
+  .step-box {
+    border-radius: 10px;
+    padding: 14px 18px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+  }
+  .step-human {
+    background: #fff3e0;
+    border: 2px solid #ff9800;
+    color: #e65100;
+  }
+  .step-human .actor {
+    display: inline-block;
+    background: #ff9800;
+    color: #fff;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    font-weight: bold;
+  }
+  .step-human .detail {
+    font-size: 12px;
+    font-weight: normal;
+    color: #795548;
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+  .step-storage {
+    background: #e3f2fd;
+    border: 2px solid #42a5f5;
+    color: #1565c0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+  .step-storage .icon {
+    font-size: 18px;
+  }
+  .step-auto {
+    background: #e8f5e9;
+    border: 2px solid #66bb6a;
+    color: #2e7d32;
+  }
+  .step-auto .actor {
+    display: inline-block;
+    background: #66bb6a;
+    color: #fff;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    font-weight: bold;
+  }
+  .step-auto .detail {
+    font-size: 12px;
+    font-weight: normal;
+    color: #33691e;
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  /* ===== 共有インフラ ===== */
+  .infra-section {
+    background: #fff;
+    border: 2px solid #90a4ae;
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-top: 10px;
+  }
+  .infra-section h3 {
+    font-size: 14px;
+    color: #37474f;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .infra-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .infra-item {
+    background: #f5f5f5;
+    border: 1px solid #cfd8dc;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .infra-item .infra-icon {
+    font-size: 20px;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .infra-item strong {
+    color: #37474f;
+  }
+
+  /* ===== 注意事項 ===== */
+  .note-box {
+    background: #fffde7;
+    border: 2px solid #fdd835;
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-top: 16px;
+    font-size: 12px;
+    line-height: 1.8;
+    color: #5d4037;
+  }
+  .note-box strong {
+    color: #e65100;
+  }
+
+  /* ===== フローステップ（Group B） ===== */
+  .flow-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #fff;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .flow-step:last-child { margin-bottom: 0; }
+  .flow-step .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 12px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .flow-step .step-content {
+    flex: 1;
+  }
+  .flow-step .step-content strong {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+  .flow-arrow-down {
+    text-align: center;
+    font-size: 16px;
+    color: #999;
+    margin: 0 0 6px 0;
+    padding-left: 12px;
+  }
+
+  /* ===== 凡例 ===== */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #555;
+  }
+  .legend-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+  }
+
+  /* ===== 横矢印（Group内） ===== */
+  .arrow-right-inline {
+    display: inline-block;
+    color: #78909c;
+    font-weight: bold;
+    margin: 0 4px;
+  }
+</style>
+</head>
+<body>
+
+<h1>糖化アンケート データフロー図</h1>
+<p class="subtitle">2グループワークフロー（QRコード組 / 紙回答組）</p>
+
+<!-- ゴール表示 -->
+<div style="max-width:960px; margin:0 auto 20px;">
+  <div class="goal-box">
+    ゴール：スプレッドシート「糖化アンケート_v9_回答」の完成
+    <div class="sub">
+      各行 = 連番No.（崩さない）｜ タイムスタンプ（順序管理）｜ アンケート回答データ ｜ 抜去位置 ｜ JSON保存済みフラグ ｜ 元PDFファイル名
+    </div>
+  </div>
+</div>
+
+<div class="chart-container">
+
+  <!-- 医療機関（発生源） -->
+  <div class="source-section">
+    <h2>医療機関（データ発生源）</h2>
+    <div class="source-items">
+      <div class="source-item">
+        <span class="label">フォーム回答</span>
+        <div class="desc">
+          QRコード → URL → Google Formsで<br>
+          患者さんが送信した回答
+        </div>
+        <span class="badge badge-digital">デジタル</span>
+      </div>
+      <div class="source-item">
+        <span class="label">紙回答</span>
+        <div class="desc">
+          患者さんが紙で回答を記入<br>
+          ＋ 医師が抜去位置を記入
+        </div>
+        <span class="badge badge-paper">紙</span>
+        <span class="badge badge-doctor">医師（抜去位置）</span>
+      </div>
+      <div class="source-item">
+        <span class="label">検体サンプル</span>
+        <div class="desc">
+          抜歯した検体サンプル<br>
+          （名前・生年月日 記入済み）
+        </div>
+        <span class="badge badge-sample">検体</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 矢印 -->
+  <div class="arrow-down">
+    <div class="line"></div>
+    <div class="head"></div>
+    <div class="arrow-label">郵送・データ送信</div>
+  </div>
+
+  <!-- Devine社 -->
+  <div class="devine-box">
+    Devine社
+    <div class="sub">データ受領・スキャン・処理開始</div>
+  </div>
+
+  <!-- 分岐ダイヤモンド -->
+  <div class="diamond-wrap">
+    <div class="diamond">回答パターン</div>
+  </div>
+
+  <div class="arrow-down" style="padding:4px 0;">
+    <div class="line" style="height:16px;"></div>
+  </div>
+
+  <!-- 2グループ分岐 -->
+  <div class="branch-container">
+
+    <!-- Group A: QRコード組 -->
+    <div class="branch-box branch-case-a">
+      <h3>Group A: QRコード組</h3>
+
+      <div class="branch-item">
+        <span class="number">1</span>
+        <div>
+          <strong>フォーム回答</strong><br>
+          → 自動でスプレッドシートへ
+        </div>
+      </div>
+      <div class="branch-plus">＋</div>
+      <div class="branch-item">
+        <span class="number">2</span>
+        <div>
+          <strong>紙回答 ＋ 検体サンプル</strong><br>
+          → PDFを見ながらGoogleフォーム経由で手動入力
+        </div>
+      </div>
+      <div class="branch-plus">＋</div>
+      <div class="branch-item">
+        <span class="number">3</span>
+        <div>
+          <strong>医師（抜去位置）</strong><br>
+          → 医師が別途記入した抜去位置データ
+        </div>
+      </div>
+
+      <div style="margin-top:12px; padding:10px; background:#fff; border-radius:6px; font-size:12px; color:#283593; line-height:1.6;">
+        <strong>抜去位置の扱い:</strong><br>
+        紙回答 → OCR/手動で自動入力<br>
+        フォーム回答 → PDF紐づけ時に手入力
+      </div>
+    </div>
+
+    <!-- Group B: 紙回答組 -->
+    <div class="branch-box branch-case-b">
+      <h3>Group B: 紙回答組</h3>
+
+      <div class="flow-steps">
+        <div class="flow-step">
+          <span class="step-num" style="background:#e57373;">1</span>
+          <div class="step-content">
+            <strong>手動入力</strong>
+            PDFを見ながらGoogleフォームでデータ入力
+          </div>
+        </div>
+        <div class="flow-arrow-down">▼</div>
+        <div class="flow-step">
+          <span class="step-num" style="background:#e57373;">2</span>
+          <div class="step-content">
+            <strong>PDF紐づけ</strong>
+            元PDFとデータ行を紐づけ<br>
+            質問14 抜去位置を手入力
+          </div>
+        </div>
+        <div class="flow-arrow-down">▼</div>
+        <div class="flow-step">
+          <span class="step-num" style="background:#e57373;">3</span>
+          <div class="step-content">
+            <strong>連番検索・記入</strong>
+            サンプルの氏名・生年月日からあいまい検索で連番を特定し記入
+          </div>
+        </div>
+        <div class="flow-arrow-down">▼</div>
+        <div class="flow-step">
+          <span class="step-num" style="background:#e57373;">4</span>
+          <div class="step-content">
+            <strong>PpP値 測定</strong>
+            測定結果 → PpP値データシートへ記録
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:10px; padding:10px; background:#fff; border-radius:6px; font-size:12px; color:#b71c1c; line-height:1.6;">
+        <strong>出力:</strong> 入力済みPDF ＋ JSONファイル
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 矢印（合流） -->
+  <div class="arrow-down">
+    <div class="arrow-label">両グループとも共通基盤を使用</div>
+    <div class="line"></div>
+    <div class="head"></div>
+  </div>
+
+  <!-- 共有インフラ -->
+  <div class="infra-section">
+    <h3>共有インフラ</h3>
+    <div class="infra-grid">
+      <div class="infra-item">
+        <span class="infra-icon">📊</span>
+        <strong>スプレッドシート</strong><br>
+        糖化アンケート_v9_回答<br>
+        <span style="color:#e65100; font-size:11px;">連番（No.）を崩さないこと<br>タイムスタンプで順序管理</span>
+      </div>
+      <div class="infra-item">
+        <span class="infra-icon">📁</span>
+        <strong>元PDFフォルダ</strong><br>
+        Google Drive<br>
+        <span style="color:#546e7a; font-size:11px;">スキャン済みPDF保存先</span>
+      </div>
+      <div class="infra-item">
+        <span class="infra-icon">📂</span>
+        <strong>入力済みPDFフォルダ</strong><br>
+        Google Drive<br>
+        <span style="color:#546e7a; font-size:11px;">照合完了後のPDF移動先</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 注意事項 -->
+  <div class="note-box">
+    <strong>抜去位置の入力ルール:</strong><br>
+    ・紙回答 → OCR読み取り or 手動入力で自動的にスプレッドシートへ<br>
+    ・フォーム回答 → PDF紐づけツールで元PDFを確認しながら手入力<br>
+    <br>
+    <strong>連番（No.）について:</strong><br>
+    ・スプレッドシートの連番は絶対に崩さない（行の挿入・削除禁止）<br>
+    ・タイムスタンプで受付順序を管理<br>
+    ・サンプルの連番検索は氏名・生年月日のあいまい検索で特定
+  </div>
+
+</div>
+
+<!-- 凡例 -->
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-color" style="background:#e3f2fd; border:1px solid #1565c0;"></div>
+    デジタルデータ
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background:#fff3e0; border:1px solid #e65100;"></div>
+    紙データ
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background:#fce4ec; border:1px solid #c62828;"></div>
+    検体サンプル
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background:#f3e5f5; border:1px solid #6a1b9a;"></div>
+    医師記入
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background:#e8eaf6; border:1px solid #283593;"></div>
+    Group A（QRコード組）
+  </div>
+  <div class="legend-item">
+    <div class="legend-color" style="background:#fce4ec; border:1px solid #b71c1c;"></div>
+    Group B（紙回答組）
+  </div>
+</div>
+
+</body>
+</html>

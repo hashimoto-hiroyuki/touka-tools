@@ -96,6 +96,8 @@
         .cat-col.cat-data .cat-header svg { stroke: #e65100; }
         .cat-col.cat-lab .cat-header { color: #7b1fa2; background: #f3e5f5; border-bottom-color: #8e24aa; }
         .cat-col.cat-lab .cat-header svg { stroke: #7b1fa2; }
+        .cat-col.cat-flow .cat-header { color: #37474f; background: #eceff1; border-bottom-color: #546e7a; }
+        .cat-col.cat-flow .cat-header svg { stroke: #37474f; }
 
         /* ツール群（縦並び） */
         .cat-tools {
@@ -171,6 +173,8 @@
         .ic-teal svg { stroke: #00695c; }
         .ic-gray { background: #f0f0f0; }
         .ic-gray svg { fill: #555; stroke: none; }
+        .ic-bluegray { background: #eceff1; }
+        .ic-bluegray svg { stroke: #37474f; }
 
         /* === 右メインパネル === */
         .main-panel {
@@ -432,6 +436,16 @@
                     <span class="item-label">PDF処理状況チェック</span>
                     <span class="tag tag-web">Web</span>
                 </div>
+                <div class="tree-item" data-detail="paper-ocr" onclick="showDetail('paper-ocr')">
+                    <div class="item-icon ic-blue"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg></div>
+                    <span class="item-label">紙回答自動OCR+照合</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
+                <div class="tree-item" data-detail="batch-ocr" onclick="showDetail('batch-ocr')">
+                    <div class="item-icon ic-blue"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m0 0a2.246 2.246 0 0 0-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0 1 21 12v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6c0-1.243 1.007-2.25 2.25-2.25h13.5"/></svg></div>
+                    <span class="item-label">バッチOCR照合</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
                 </div>
             </div>
 
@@ -467,6 +481,16 @@
                     <span class="item-label">検体番号検索</span>
                     <span class="tag tag-web">Web</span>
                 </div>
+                <div class="tree-item" data-detail="pdf-arrival" onclick="showDetail('pdf-arrival')">
+                    <div class="item-icon ic-orange"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></div>
+                    <span class="item-label">PDF到着状況</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
+                <div class="tree-item" data-detail="restore-json" onclick="showDetail('restore-json')">
+                    <div class="item-icon ic-orange"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182"/></svg></div>
+                    <span class="item-label">JSON復元</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
                 </div>
             </div>
 
@@ -496,6 +520,31 @@
                     <div class="item-icon ic-teal"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"/></svg></div>
                     <span class="item-label">PpP値データを開く</span>
                     <span class="tag tag-ext">Sheets</span>
+                </div>
+                </div>
+            </div>
+
+            <!-- データフロー -->
+            <div class="cat-col cat-flow">
+                <div class="cat-header">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/></svg>
+                    データフロー
+                </div>
+                <div class="cat-tools">
+                <div class="tree-item" data-detail="data-flow" onclick="showDetail('data-flow')">
+                    <div class="item-icon ic-bluegray"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z"/></svg></div>
+                    <span class="item-label">全体データフロー</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
+                <div class="tree-item" data-detail="workflow" onclick="showDetail('workflow')">
+                    <div class="item-icon ic-bluegray"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"/></svg></div>
+                    <span class="item-label">作業フロー図</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
+                <div class="tree-item" data-detail="view-pdf" onclick="showDetail('view-pdf')">
+                    <div class="item-icon ic-bluegray"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg></div>
+                    <span class="item-label">元PDF閲覧ビューア</span>
+                    <span class="tag tag-web">Web</span>
                 </div>
                 </div>
             </div>
@@ -1007,6 +1056,196 @@
                 <a class="btn-open btn-vercel" href="https://docs.google.com/spreadsheets/d/1y4z8dZjKuJKOS0HUxmnSSfkkvhRWkQpb--TXGm5amvs/edit?gid=0#gid=0" target="_blank">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
                     スプレッドシートを開く
+                </a>
+            </div>
+
+            <!-- 全体データフロー -->
+            <div class="detail" id="detail-data-flow">
+                <div class="detail-header">
+                    <div class="detail-icon ic-bluegray"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z"/></svg></div>
+                    <div>
+                        <div class="detail-title">全体データフロー</div>
+                        <div class="detail-subtitle">システム全体のデータの流れを図示</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>アンケート用紙の作成から、スキャン・OCR・照合・スプレッドシート登録までの全体データフローを視覚的に表示します。Group A（QRコード組）とGroup B（紙回答組）の分岐を含む処理の流れを確認できます。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>主な内容</h3>
+                    <ul>
+                        <li>3プロジェクト（touka-survey / test-OCR / touka-tools）の連携図</li>
+                        <li>Group A / Group B のデータ分岐フロー</li>
+                        <li>Google Spreadsheet・Driveとの連携経路</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="data_flow_chart.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    データフロー図を開く
+                </a>
+            </div>
+
+            <!-- 作業フロー図 -->
+            <div class="detail" id="detail-workflow">
+                <div class="detail-header">
+                    <div class="detail-icon ic-bluegray"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"/></svg></div>
+                    <div>
+                        <div class="detail-title">作業フロー図</div>
+                        <div class="detail-subtitle">協力者向け作業手順フロー</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>協力者による紙回答のフォーム入力とPDFの紐づけ作業のワークフローを図示します。2ページ構成のアンケート処理手順を、ステップごとに確認できます。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>主な内容</h3>
+                    <ul>
+                        <li>紙回答 → Googleフォーム手動入力の手順</li>
+                        <li>PDF紐づけ → 抜歯位置（Q14）入力の手順</li>
+                        <li>検体番号検索 → PpP値入力の手順</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="workflow_chart.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    作業フロー図を開く
+                </a>
+            </div>
+
+            <!-- 元PDF閲覧ビューア -->
+            <div class="detail" id="detail-view-pdf">
+                <div class="detail-header">
+                    <div class="detail-icon ic-bluegray"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg></div>
+                    <div>
+                        <div class="detail-title">元PDF閲覧ビューア</div>
+                        <div class="detail-subtitle">Google Drive上のスキャンPDFを閲覧</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>Google Driveの「Scan Data」フォルダに保存されたスキャン済みアンケートPDFを一覧表示し、ブラウザ上で閲覧するビューアです。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>主な機能</h3>
+                    <ul>
+                        <li>Scan Dataフォルダ内のPDF一覧表示</li>
+                        <li>PDFの直接プレビュー</li>
+                        <li>ファイル名・日時での並び替え</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="view_pdf.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    ビューアを開く
+                </a>
+            </div>
+
+            <!-- 紙回答自動OCR+照合 -->
+            <div class="detail" id="detail-paper-ocr">
+                <div class="detail-header">
+                    <div class="detail-icon ic-blue"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg></div>
+                    <div>
+                        <div class="detail-title">紙回答自動OCR+照合支援</div>
+                        <div class="detail-subtitle">紙のアンケートをブラウザでOCR処理</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>Google Drive上のスキャンPDFに対して、ブラウザからGemini AIでOCR読み取りを行い、結果を照合・編集してスプレッドシートに送信するツールです。ローカルPython環境なしで照合作業ができます。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>主な機能</h3>
+                    <ul>
+                        <li>PDFアップロードまたはGoogle Driveから直接読み込み</li>
+                        <li>Gemini AI による自動OCR読み取り</li>
+                        <li>読み取り結果の照合・編集</li>
+                        <li>スプレッドシートへの直接送信</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="paper_ocr_verify.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    ツールを開く
+                </a>
+            </div>
+
+            <!-- バッチOCR照合 -->
+            <div class="detail" id="detail-batch-ocr">
+                <div class="detail-header">
+                    <div class="detail-icon ic-blue"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m0 0a2.246 2.246 0 0 0-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0 1 21 12v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6c0-1.243 1.007-2.25 2.25-2.25h13.5"/></svg></div>
+                    <div>
+                        <div class="detail-title">バッチOCR照合</div>
+                        <div class="detail-subtitle">複数PDFのOCR結果を一括照合</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>複数のスキャンPDFに対するOCR読み取り結果をバッチで一括照合するツールです。LabelMe風のUIでファイルを切り替えながら効率的に照合できます。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>主な機能</h3>
+                    <ul>
+                        <li>複数PDF結果の一覧表示</li>
+                        <li>ファイル切り替えUI（前/次ボタン）</li>
+                        <li>照合済みデータの保存</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="batch_verify_ocr.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    ツールを開く
+                </a>
+            </div>
+
+            <!-- PDF到着状況 -->
+            <div class="detail" id="detail-pdf-arrival">
+                <div class="detail-header">
+                    <div class="detail-icon ic-orange"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg></div>
+                    <div>
+                        <div class="detail-title">PDF到着状況</div>
+                        <div class="detail-subtitle">スキャンPDFの到着・処理状況を確認</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>Google Driveの「Scan Data」フォルダと「入力済みPDF」フォルダの状況を比較し、PDF到着・処理済み・未処理の状況をダッシュボード形式で表示します。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>主な機能</h3>
+                    <ul>
+                        <li>到着済み / 処理済み / 未処理のPDF数を集計</li>
+                        <li>医療機関別の到着状況一覧</li>
+                        <li>自動更新機能</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="pdf_arrival_status.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    到着状況を開く
+                </a>
+            </div>
+
+            <!-- JSON復元 -->
+            <div class="detail" id="detail-restore-json">
+                <div class="detail-header">
+                    <div class="detail-icon ic-orange"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182"/></svg></div>
+                    <div>
+                        <div class="detail-title">JSON復元</div>
+                        <div class="detail-subtitle">保存済みJSONデータからスプレッドシートへ復元</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>OCR照合で保存されたJSONファイルを読み込み、Googleスプレッドシートへデータを復元・再送信するツールです。照合結果の再投入やデータ修正に使用します。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>主な機能</h3>
+                    <ul>
+                        <li>JSONファイルのアップロード・読み込み</li>
+                        <li>データ内容のプレビュー</li>
+                        <li>スプレッドシートへの再送信</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="restore_from_json.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    JSON復元を開く
                 </a>
             </div>
 
