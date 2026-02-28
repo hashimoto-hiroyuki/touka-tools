@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>フォーム入力ワークフロー</title>
+    <title>アンケート処理ワークフロー（2ページ構成）</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -254,12 +254,125 @@
             align-items: center;
             gap: 8px;
         }
+
+        /* 2ページ構成図 */
+        .page-structure {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        .page-box {
+            flex: 1;
+            max-width: 400px;
+            border: 2px solid #90a4ae;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .page-box-header {
+            padding: 8px 14px;
+            font-weight: bold;
+            font-size: 14px;
+            color: #fff;
+            text-align: center;
+        }
+        .page-box-body {
+            padding: 10px 14px;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+        .page-box-body .label {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #fff;
+            margin-right: 4px;
+        }
+
+        /* OCR処理フロー */
+        .step4 .step-header { background: linear-gradient(135deg, #6a1b9a, #4a148c); }
+        .ocr-flow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 6px 0;
+        }
+        .ocr-flow-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .ocr-flow-arrow {
+            font-size: 18px;
+            color: #bbb;
+        }
+        .tool-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #fff;
+            margin-left: 4px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>フォーム入力ワークフロー</h1>
-        <p class="subtitle">PDFを見ながらデータシートを完成させる手順（すべてブラウザのみ）</p>
+        <h1>アンケート処理ワークフロー（2ページ構成）</h1>
+        <p class="subtitle">2ページPDFを見ながらデータシートを完成させる手順</p>
+
+        <!-- アンケート用紙 2ページ構成 -->
+        <div style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; overflow: hidden;">
+            <div style="padding: 14px 20px; background: linear-gradient(135deg, #455a64, #37474f); color: #fff; font-weight: bold; font-size: 17px; display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px;">📄</span>
+                アンケート用紙の構成（2ページ）
+            </div>
+            <div style="padding: 20px 24px;">
+                <div class="page-structure">
+                    <!-- ページ1 -->
+                    <div class="page-box">
+                        <div class="page-box-header" style="background: linear-gradient(135deg, #1976D2, #1565C0);">
+                            ページ1（表面）&#8212; 患者記入
+                        </div>
+                        <div class="page-box-body">
+                            <span class="label" style="background:#1976D2;">Q1</span> 名前（カタカナ）<br>
+                            <span class="label" style="background:#1976D2;">Q2</span> 生年月日 + QRコード回答チェック<br>
+                            <span class="label" style="background:#1976D2;">Q3</span> 性別<br>
+                            <span class="label" style="background:#1976D2;">Q4</span> 血液型<br>
+                            <span class="label" style="background:#1976D2;">Q5</span> 身長・体重<br>
+                            <span class="label" style="background:#1976D2;">Q6-12</span> 選択式質問<br>
+                            <span class="label" style="background:#1976D2;">Q13</span> 飲酒習慣（選択+記入）
+                        </div>
+                    </div>
+                    <!-- ページ2 -->
+                    <div class="page-box">
+                        <div class="page-box-header" style="background: linear-gradient(135deg, #e65100, #d84315);">
+                            ページ2（裏面）&#8212; 質問13選択肢 + 医師記入
+                        </div>
+                        <div class="page-box-body">
+                            <span class="label" style="background:#78909c;">参照</span> 質問13の酒類選択肢一覧<br>
+                            <hr style="border:none; border-top:1px dashed #ccc; margin:6px 0;">
+                            <span class="label" style="background:#e65100;">Q14</span> 抜歯位置 &#215;3行（右左/上下/番号）<br>
+                            <div style="font-size:12px; color:#888; margin-left:50px;">行1: 左右___  上下___  番号___</div>
+                            <div style="font-size:12px; color:#888; margin-left:50px;">行2: 左右___  上下___  番号___</div>
+                            <div style="font-size:12px; color:#888; margin-left:50px;">行3: 左右___  上下___  番号___</div>
+                            <span class="label" style="background:#e65100;">Q15</span> その他（例: HbA1c値など）
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="step-arrow">▼</div>
 
         <!-- A/B フロー説明（共通＋分岐レイアウト） -->
         <div style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; overflow: hidden;">
@@ -276,7 +389,7 @@
                 <div style="text-align: center; margin-bottom: 6px;">
                     <div style="display: inline-flex; align-items: center; gap: 10px; padding: 10px 28px; background: #f5f5f5; border: 2px solid #bdbdbd; border-radius: 10px; font-size: 16px; font-weight: bold; color: #333;">
                         <span style="font-size: 20px;">📄</span>
-                        紙をスキャンしてPDF化 → 元PDFフォルダへ
+                        紙（2ページ）をスキャンしてPDF化 → 元PDFフォルダへ
                     </div>
                 </div>
 
@@ -292,7 +405,7 @@
                             <span style="font-size: 16px; font-weight: bold; color: #e65100;">QRコードで回答した人</span>
                         </div>
                         <div style="padding: 8px 12px; background: #fff; border-radius: 6px; font-size: 14px; color: #e65100; font-weight: bold;">
-                            ⚠️ ①アンケート入力はスキップ
+                            ページ1のQ1-Q13入力はスキップ
                         </div>
                         <div style="font-size: 12px; color: #999; margin-top: 4px;">フォーム回答済みのため不要</div>
                     </div>
@@ -303,9 +416,9 @@
                             <span style="font-size: 16px; font-weight: bold; color: #1976D2;">紙で回答した人</span>
                         </div>
                         <div style="padding: 8px 12px; background: #fff; border-radius: 6px; font-size: 14px; color: #1565C0; font-weight: bold;">
-                            📝 PDFを見ながらフォームで質問1〜13を入力
+                            PDFページ1を見ながらフォームでQ1-Q13を入力
                         </div>
-                        <div style="font-size: 12px; color: #999; margin-top: 4px;">ステップ①</div>
+                        <div style="font-size: 12px; color: #999; margin-top: 4px;">ステップ1</div>
                     </div>
                 </div>
 
@@ -316,9 +429,10 @@
                 <div style="text-align: center; margin-bottom: 6px;">
                     <div style="display: inline-flex; align-items: center; gap: 10px; padding: 10px 28px; background: #f5f5f5; border: 2px solid #bdbdbd; border-radius: 10px; font-size: 16px; font-weight: bold; color: #333;">
                         <span style="font-size: 20px;">🔗</span>
-                        PDF紐づけ ＋ 質問14（抜歯位置）入力
-                        <span style="font-size: 13px; color: #999; font-weight: normal;">ステップ②</span>
+                        PDF紐づけ + Q14（抜歯位置 &#215;3行）+ Q15入力
+                        <span style="font-size: 13px; color: #999; font-weight: normal;">ステップ2</span>
                     </div>
+                    <div style="font-size: 12px; color: #888; margin-top: 4px;">PDFページ2を見ながら医師記入欄を手入力</div>
                 </div>
 
                 <!-- 下向き矢印 -->
@@ -328,8 +442,8 @@
                 <div style="text-align: center;">
                     <div style="display: inline-flex; align-items: center; gap: 10px; padding: 10px 28px; background: #f5f5f5; border: 2px solid #bdbdbd; border-radius: 10px; font-size: 16px; font-weight: bold; color: #333;">
                         <span style="font-size: 20px;">🔎</span>
-                        検体番号の紐づけ
-                        <span style="font-size: 13px; color: #999; font-weight: normal;">ステップ③</span>
+                        検体番号の紐づけ（あいまい検索）
+                        <span style="font-size: 13px; color: #999; font-weight: normal;">ステップ3</span>
                     </div>
                 </div>
 
@@ -338,7 +452,7 @@
                 <!-- 管理支援ツール（サイドパネル） -->
                 <div style="width: 180px; flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; gap: 10px; padding-left: 16px; border-left: 2px dashed #e0e0e0;">
                     <div style="font-size: 12px; font-weight: bold; color: #78909c; text-align: center; margin-bottom: 4px; letter-spacing: 0.5px;">
-                        🛠️ 管理支援ツール
+                        管理支援ツール
                     </div>
                     <a href="view_data.html" target="_blank"
                        style="display: flex; align-items: center; gap: 6px; padding: 8px 10px; background: #f3e5f5; border: 1px solid #ce93d8; border-radius: 8px; font-size: 12px; font-weight: bold; color: #7b1fa2; text-decoration: none;">
@@ -366,7 +480,7 @@
         <div class="step-card step1">
             <div class="step-header">
                 <span class="step-num">1</span>
-                アンケート入力（紙回答のみ）
+                アンケート入力（紙回答のみ・ページ1）
                 <div class="step-app-info">
                     <svg class="step-app-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M9 11l3 3L22 4"/>
@@ -382,11 +496,14 @@
                 <table class="flow-table">
                     <tr><th>操作</th><th></th><th>内部の動き</th></tr>
                     <tr>
-                        <td><span class="op-box"><span class="icon">✏️</span>質問1〜13を入力して送信</span></td>
+                        <td>
+                            <span class="op-box"><span class="icon">✏️</span>PDFページ1を見ながらQ1-Q13を入力して送信</span>
+                            <div class="note">※主要なデータ入力方法（手動入力）</div>
+                        </td>
                         <td>→</td>
                         <td>
                             <span class="sys-box">スプレッドシートに行を自動追加</span>
-                            <div class="note">※PDF紐づけなし・質問14は空</div>
+                            <div class="note">※PDF紐づけなし・Q14/Q15は空（ページ2の内容）</div>
                         </td>
                     </tr>
                 </table>
@@ -399,7 +516,7 @@
         <div class="step-card step2">
             <div class="step-header">
                 <span class="step-num">2</span>
-                PDF紐づけ ＋ 質問14入力
+                PDF紐づけ + Q14・Q15入力（ページ2）
                 <div class="step-app-info">
                     <svg class="step-app-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
@@ -423,7 +540,7 @@
                     <tr>
                         <td><span class="op-box"><span class="icon">👆</span>データ行を選択</span></td>
                         <td>→</td>
-                        <td><span class="sys-box">アンケート内容表示 ＋ PDF自動候補</span></td>
+                        <td><span class="sys-box">アンケート内容表示 + PDF自動候補</span></td>
                     </tr>
                     <tr>
                         <td><span class="op-box"><span class="icon">📂</span>「Drive PDF一覧を読み込む」</span></td>
@@ -433,10 +550,24 @@
                     <tr>
                         <td><span class="op-box"><span class="icon">🔍</span>PDFを選択（自動候補 or 手動）</span></td>
                         <td>→</td>
-                        <td><span class="sys-box">PDFプレビュー表示</span></td>
+                        <td><span class="sys-box">PDFプレビュー表示（2ページ）</span></td>
                     </tr>
                     <tr>
-                        <td><span class="op-box"><span class="icon">🦷</span>質問14（□右□左□上□下＋番号）</span></td>
+                        <td>
+                            <span class="op-box"><span class="icon">🦷</span>Q14: 抜歯位置を入力（&#215;3行）</span>
+                            <div class="note" style="margin-left: 8px;">
+                                行ごとに: □右□左 / □上□下 / 番号<br>
+                                PDFページ2の医師記入欄を見て手入力
+                            </div>
+                        </td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="op-box"><span class="icon">📝</span>Q15: その他（HbA1c値等）を入力</span>
+                            <div class="note" style="margin-left: 8px;">PDFページ2の医師記入欄を確認</div>
+                        </td>
                         <td></td>
                         <td></td>
                     </tr>
@@ -446,7 +577,8 @@
                         <td>
                             <ul class="auto-list">
                                 <li>元PDFファイル名を記録</li>
-                                <li>質問14（抜去位置）を記録</li>
+                                <li>Q14（抜去位置 &#215;3行）を記録</li>
+                                <li>Q15（その他）を記録</li>
                                 <li>Source列を「OCR」に変更</li>
                                 <li>PDFを入力済みフォルダへ自動移動</li>
                             </ul>
@@ -462,7 +594,7 @@
         <div class="step-card step3">
             <div class="step-header">
                 <span class="step-num">3</span>
-                検体番号の紐づけ
+                検体番号の紐づけ（あいまい検索）
                 <div class="step-app-info">
                     <svg class="step-app-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="11" cy="11" r="8"/>
@@ -507,14 +639,16 @@
                 <table class="result-table">
                     <tr>
                         <th>No.</th>
-                        <th>質問1〜13</th>
-                        <th>元PDFファイル名</th>
-                        <th>質問14（抜去位置）</th>
+                        <th>Q1-Q13<br><span style="font-size:11px; font-weight:normal;">ページ1</span></th>
+                        <th>元PDF</th>
+                        <th>Q14 抜去位置<br><span style="font-size:11px; font-weight:normal;">ページ2 &#215;3行</span></th>
+                        <th>Q15 その他<br><span style="font-size:11px; font-weight:normal;">ページ2</span></th>
                         <th>検体No.</th>
                     </tr>
                     <tr>
                         <td><strong>35</strong></td>
                         <td><span class="check">✔</span><br><span class="src-tag s1">ステップ1</span></td>
+                        <td><span class="check">✔</span><br><span class="src-tag s2">ステップ2</span></td>
                         <td><span class="check">✔</span><br><span class="src-tag s2">ステップ2</span></td>
                         <td><span class="check">✔</span><br><span class="src-tag s2">ステップ2</span></td>
                         <td><span class="check">✔</span><br><span class="src-tag s3">ステップ3</span></td>
@@ -524,6 +658,88 @@
                     <span>📁</span>
                     <span>元PDFフォルダ → <strong>入力済みPDFフォルダ</strong> へ自動移動済み（ステップ2で完了）</span>
                 </div>
+            </div>
+        </div>
+
+        <div class="step-arrow">▼</div>
+
+        <!-- OCR処理フロー（代替方式） -->
+        <div class="step-card step4">
+            <div class="step-header">
+                <span class="step-num" style="font-size: 14px;">OCR</span>
+                OCR自動処理フロー（代替方式）
+            </div>
+            <div class="step-body">
+                <div style="font-size: 13px; color: #666; margin-bottom: 12px;">
+                    手動入力の代替として、OCRで自動読み取り → 照合HTMLで人間が確認する方式
+                </div>
+
+                <!-- OCR処理パイプライン -->
+                <div style="margin-bottom: 14px;">
+                    <div style="font-size: 14px; font-weight: bold; color: #6a1b9a; margin-bottom: 8px;">処理パイプライン（2ページ対応）</div>
+                    <div class="ocr-flow">
+                        <span class="ocr-flow-box" style="background: #f3e5f5; color: #6a1b9a; border: 1px solid #ce93d8;">📄 PDF（2ページ）</span>
+                        <span class="ocr-flow-arrow">→</span>
+                        <span class="ocr-flow-box" style="background: #e3f2fd; color: #1565C0; border: 1px solid #90caf9;">ページ1: Q1-Q13 OCR</span>
+                        <span class="ocr-flow-arrow">→</span>
+                        <span class="ocr-flow-box" style="background: #fff3e0; color: #e65100; border: 1px solid #ffcc80;">ページ2: Q14(&#215;3行)・Q15 OCR</span>
+                        <span class="ocr-flow-arrow">→</span>
+                        <span class="ocr-flow-box" style="background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7;">マージ</span>
+                        <span class="ocr-flow-arrow">→</span>
+                        <span class="ocr-flow-box" style="background: #fce4ec; color: #c62828; border: 1px solid #ef9a9a;">照合HTML</span>
+                    </div>
+                </div>
+
+                <!-- 使用ツール一覧 -->
+                <div style="font-size: 14px; font-weight: bold; color: #6a1b9a; margin-bottom: 8px;">使用ツール</div>
+                <table class="flow-table">
+                    <tr><th>ツール</th><th></th><th>用途</th></tr>
+                    <tr>
+                        <td>
+                            <span class="op-box">
+                                <span class="icon">🐍</span>verify_survey.py
+                            </span>
+                        </td>
+                        <td></td>
+                        <td><span class="sys-box">単体PDF処理 + OCR + 照合HTML生成</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="op-box">
+                                <span class="icon">🐍</span>batch_verify.py
+                            </span>
+                        </td>
+                        <td></td>
+                        <td><span class="sys-box">複数PDFのバッチ照合（LabelMe風UI）</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="op-box">
+                                <span class="icon">🐍</span>auto_ocr.py
+                            </span>
+                        </td>
+                        <td></td>
+                        <td><span class="sys-box">自動OCR処理</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="op-box">
+                                <span class="icon">🌐</span><a href="https://hashimoto-hiroyuki.github.io/touka-tools/web_ocr_verify.html" target="_blank" style="color: inherit; text-decoration: none; border-bottom: 1px dotted #999;">web_ocr_verify.html</a>
+                            </span>
+                        </td>
+                        <td></td>
+                        <td><span class="sys-box">Web版PDF OCR照合（Google Drive連携）</span></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="op-box">
+                                <span class="icon">🐍</span>convert_and_submit.py
+                            </span>
+                        </td>
+                        <td></td>
+                        <td><span class="sys-box">照合済みデータ → スプレッドシートへ送信</span></td>
+                    </tr>
+                </table>
             </div>
         </div>
     </div>

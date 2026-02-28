@@ -1334,6 +1334,30 @@
             return r;
         }
 
+        function formatToothForSave(val) {
+            if (!val) return '';
+            if (typeof val === 'string') return val;
+            if (typeof val === 'object') {
+                // 3-row format: { 行1: {左右,上下,番号}, 行2: {...}, 行3: {...} }
+                if (val['行1'] || val['行2'] || val['行3']) {
+                    var parts = [];
+                    for (var r = 1; r <= 3; r++) {
+                        var row = val['行' + r];
+                        if (!row || typeof row !== 'object') continue;
+                        var s = (row['左右'] || '') + (row['上下'] || '') + (row['番号'] || '');
+                        if (s) parts.push(s);
+                    }
+                    return parts.join(', ');
+                }
+                // Old single-row format: { 左右, 上下, 番号 }
+                if (val['左右'] || val['上下'] || val['番号']) {
+                    return (val['左右'] || '') + (val['上下'] || '') + (val['番号'] || '');
+                }
+                return JSON.stringify(val);
+            }
+            return String(val);
+        }
+
         function convertToSurveyFormat(input) {
             var o = {};
             o['1. 受診中の歯科医院を選んでください。'] = input['医療機関名'] || '';
@@ -1367,7 +1391,7 @@
             o['23. 普段、お菓子、スイーツなどは食べますか？'] = parseSweets(input['質問12_お菓子']) || '';
             var alc = parseAlcohol(input['質問13_飲酒習慣']);
             for (var k in alc) o[k] = alc[k];
-            o['抜去位置'] = input['質問14_歯の抜去位置'] || '';
+            o['抜去位置'] = formatToothForSave(input['質問14_歯の抜去位置']);
             o['コメント'] = input['質問15_コメント'] || '';
             return o;
         }

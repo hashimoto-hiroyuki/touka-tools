@@ -996,6 +996,18 @@
 
         // 歯の抜去位置のフォーマット
         function formatTooth(val) {
+            // 3行フォーマット（行1, 行2, 行3）
+            if (val['行1'] !== undefined || val['行2'] !== undefined || val['行3'] !== undefined) {
+                var lines = [];
+                for (var i = 1; i <= 3; i++) {
+                    var row = val['行' + i];
+                    if (row !== undefined && row !== null && row !== '') {
+                        lines.push('行' + i + ': ' + String(row));
+                    }
+                }
+                return lines.length > 0 ? lines.join('\n') : '';
+            }
+            // 従来フォーマット（左右/上下/番号）
             var parts = [];
             if (val['左右']) parts.push(val['左右']);
             if (val['上下']) parts.push(val['上下']);

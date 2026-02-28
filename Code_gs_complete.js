@@ -15,6 +15,7 @@ const SPECIMEN_SPREADSHEET_ID = '1y4z8dZjKuJKOS0HUxmnSSfkkvhRWkQpb--TXGm5amvs'; 
 const SPECIMEN_SHEET_NAME = 'シート1';
 const TRACKING_SPREADSHEET_ID = '1jr25zPPv2qCHkgXNA6oHV5eoSq0RcxpXEirWq0V5YA8';  // HbA1c追跡シート
 const TRACKING_SHEET_NAME = 'シート1';
+const FORM_ID = '1d0DTtvnVtkW4rBEOMUkUx41bRA2asIYd50jtV-JEBWw';  // Googleフォーム編集用ID
 const GEMINI_API_KEY = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY') || '';
 // ========== Web App エンドポイント（JSONP対応） ==========
 function doGet(e) {
@@ -200,7 +201,7 @@ function getHospitalList() {
 }
 // ========== フォーム情報取得 ==========
 function getFormInfo() {
-  const form = FormApp.getActiveForm();
+  const form = FormApp.openById(FORM_ID);
   return {
     formUrl: form.getPublishedUrl(),
     entryId: getHospitalQuestionEntryId()
@@ -209,7 +210,7 @@ function getFormInfo() {
 // ========== 医療機関質問のEntry ID取得 ==========
 // ※ form.createResponse()でプリフィルURLを生成し、正しいentry.XXXを抽出する
 function getHospitalQuestionEntryId() {
-  const form = FormApp.getActiveForm();
+  const form = FormApp.openById(FORM_ID);
   // ★ ListItem（プルダウン）を検索 ★
   const items = form.getItems(FormApp.ItemType.LIST);
   for (let i = 0; i < items.length; i++) {
@@ -309,7 +310,7 @@ function syncHospitalListOnly() {
       .filter(n => n !== "");
     hList = [...new Set(hList)];
   }
-  const form = FormApp.getActiveForm();
+  const form = FormApp.openById(FORM_ID);
   // ★ ListItem（プルダウン）を検索 ★
   const items = form.getItems(FormApp.ItemType.LIST);
   for (let i = 0; i < items.length; i++) {
@@ -322,7 +323,7 @@ function syncHospitalListOnly() {
 }
 // ========== フォーム全体を再構築 ==========
 function rebuildFullForm() {
-  const form = FormApp.getActiveForm();
+  const form = FormApp.openById(FORM_ID);
   // --- 1. 既存の質問をすべて削除 ---
   const items = form.getItems();
   items.forEach(item => form.deleteItem(item));
@@ -470,7 +471,7 @@ function rebuildFullForm() {
 }
 // ========== デバッグ・テスト用関数 ==========
 function getFormEntryIds() {
-  const form = FormApp.getActiveForm();
+  const form = FormApp.openById(FORM_ID);
   Logger.log('=== フォーム情報 ===');
   Logger.log('公開URL: ' + form.getPublishedUrl());
   Logger.log('');
@@ -487,7 +488,7 @@ function getFormEntryIds() {
   }
 }
 function getFormPublishedUrl() {
-  const form = FormApp.getActiveForm();
+  const form = FormApp.openById(FORM_ID);
   Logger.log('公開URL: ' + form.getPublishedUrl());
 }
 function testGetHospitalList() {

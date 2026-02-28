@@ -827,27 +827,61 @@
             <div class="step-title">③ 紐づけ実行</div>
             <div id="selectionSummary" style="margin-bottom:12px; padding:10px; background:#e3f2fd; border-radius:6px; font-size:14px; display:none;"></div>
 
-            <!-- 抜去位置入力エリア -->
+            <!-- 抜去位置入力エリア（3行対応） -->
             <div class="extraction-input-area" id="extractionInputArea">
-                <div class="ext-title">【質問14】歯の抜去位置（医師入力）</div>
-                <div class="ext-row">
+                <div class="ext-title">【質問14】歯の抜去位置（医師入力・最大3箇所）</div>
+                <div class="ext-row" data-row="1">
+                    <span class="ext-label" style="min-width:20px;">1:</span>
                     <div class="ext-group">
-                        <span class="ext-label">左右:</span>
                         <div class="ext-checkbox-group">
-                            <label><input type="checkbox" id="extRight" onchange="updateExtractionPreview()"><span>右</span></label>
-                            <label><input type="checkbox" id="extLeft" onchange="updateExtractionPreview()"><span>左</span></label>
+                            <label><input type="checkbox" id="extRight1" onchange="updateExtractionPreview()"><span>右</span></label>
+                            <label><input type="checkbox" id="extLeft1" onchange="updateExtractionPreview()"><span>左</span></label>
                         </div>
                     </div>
                     <div class="ext-group">
-                        <span class="ext-label">上下:</span>
                         <div class="ext-checkbox-group">
-                            <label><input type="checkbox" id="extUpper" onchange="updateExtractionPreview()"><span>上</span></label>
-                            <label><input type="checkbox" id="extLower" onchange="updateExtractionPreview()"><span>下</span></label>
+                            <label><input type="checkbox" id="extUpper1" onchange="updateExtractionPreview()"><span>上</span></label>
+                            <label><input type="checkbox" id="extLower1" onchange="updateExtractionPreview()"><span>下</span></label>
                         </div>
                     </div>
                     <div class="ext-group">
-                        <span class="ext-label">番号:</span>
-                        <input type="text" id="extNumber" placeholder="例: 6" oninput="updateExtractionPreview()">
+                        <input type="text" id="extNumber1" placeholder="番号" style="width:60px" oninput="updateExtractionPreview()">
+                    </div>
+                </div>
+                <div class="ext-row" data-row="2">
+                    <span class="ext-label" style="min-width:20px;">2:</span>
+                    <div class="ext-group">
+                        <div class="ext-checkbox-group">
+                            <label><input type="checkbox" id="extRight2" onchange="updateExtractionPreview()"><span>右</span></label>
+                            <label><input type="checkbox" id="extLeft2" onchange="updateExtractionPreview()"><span>左</span></label>
+                        </div>
+                    </div>
+                    <div class="ext-group">
+                        <div class="ext-checkbox-group">
+                            <label><input type="checkbox" id="extUpper2" onchange="updateExtractionPreview()"><span>上</span></label>
+                            <label><input type="checkbox" id="extLower2" onchange="updateExtractionPreview()"><span>下</span></label>
+                        </div>
+                    </div>
+                    <div class="ext-group">
+                        <input type="text" id="extNumber2" placeholder="番号" style="width:60px" oninput="updateExtractionPreview()">
+                    </div>
+                </div>
+                <div class="ext-row" data-row="3">
+                    <span class="ext-label" style="min-width:20px;">3:</span>
+                    <div class="ext-group">
+                        <div class="ext-checkbox-group">
+                            <label><input type="checkbox" id="extRight3" onchange="updateExtractionPreview()"><span>右</span></label>
+                            <label><input type="checkbox" id="extLeft3" onchange="updateExtractionPreview()"><span>左</span></label>
+                        </div>
+                    </div>
+                    <div class="ext-group">
+                        <div class="ext-checkbox-group">
+                            <label><input type="checkbox" id="extUpper3" onchange="updateExtractionPreview()"><span>上</span></label>
+                            <label><input type="checkbox" id="extLower3" onchange="updateExtractionPreview()"><span>下</span></label>
+                        </div>
+                    </div>
+                    <div class="ext-group">
+                        <input type="text" id="extNumber3" placeholder="番号" style="width:60px" oninput="updateExtractionPreview()">
                     </div>
                 </div>
                 <div class="ext-preview" id="extractionPreview">抜去位置: <strong>（未入力）</strong></div>
@@ -1825,34 +1859,48 @@
             }
         }
 
-        // === 抜去位置入力 ===
-        function getExtractionPosition() {
+        // === 抜去位置入力（3行対応） ===
+        function getExtractionPositionRow(rowNum) {
             var parts = [];
-            if (document.getElementById('extRight').checked) parts.push('右');
-            if (document.getElementById('extLeft').checked) parts.push('左');
-            if (document.getElementById('extUpper').checked) parts.push('上');
-            if (document.getElementById('extLower').checked) parts.push('下');
-            var num = document.getElementById('extNumber').value.trim();
+            if (document.getElementById('extRight' + rowNum).checked) parts.push('右');
+            if (document.getElementById('extLeft' + rowNum).checked) parts.push('左');
+            if (document.getElementById('extUpper' + rowNum).checked) parts.push('上');
+            if (document.getElementById('extLower' + rowNum).checked) parts.push('下');
+            var num = document.getElementById('extNumber' + rowNum).value.trim();
             if (num) parts.push(num);
             return parts.join('');
+        }
+
+        function getExtractionPosition() {
+            var allParts = [];
+            for (var i = 1; i <= 3; i++) {
+                var rowPos = getExtractionPositionRow(i);
+                if (rowPos) allParts.push(rowPos);
+            }
+            return allParts.join(', ');
         }
 
         function updateExtractionPreview() {
             var pos = getExtractionPosition();
             var preview = document.getElementById('extractionPreview');
             var warning = document.getElementById('extractionWarning');
-            var hasCheckbox = document.getElementById('extRight').checked ||
-                              document.getElementById('extLeft').checked ||
-                              document.getElementById('extUpper').checked ||
-                              document.getElementById('extLower').checked;
-            var num = document.getElementById('extNumber').value.trim();
+            var hasCheckbox = false;
+            var hasNumMissing = false;
+            for (var i = 1; i <= 3; i++) {
+                var rowHasCheck = document.getElementById('extRight' + i).checked ||
+                                  document.getElementById('extLeft' + i).checked ||
+                                  document.getElementById('extUpper' + i).checked ||
+                                  document.getElementById('extLower' + i).checked;
+                var rowNum = document.getElementById('extNumber' + i).value.trim();
+                if (rowHasCheck) hasCheckbox = true;
+                if (rowHasCheck && !rowNum) hasNumMissing = true;
+            }
             if (pos) {
                 preview.innerHTML = '抜去位置: <strong>' + escapeHtml(pos) + '</strong>';
             } else {
                 preview.innerHTML = '抜去位置: <strong>（未入力）</strong>';
             }
-            // チェックありで番号未入力の場合に警告
-            if (hasCheckbox && !num) {
+            if (hasNumMissing) {
                 warning.style.display = 'block';
             } else {
                 warning.style.display = 'none';
@@ -1860,11 +1908,13 @@
         }
 
         function resetExtractionInput() {
-            document.getElementById('extRight').checked = false;
-            document.getElementById('extLeft').checked = false;
-            document.getElementById('extUpper').checked = false;
-            document.getElementById('extLower').checked = false;
-            document.getElementById('extNumber').value = '';
+            for (var i = 1; i <= 3; i++) {
+                document.getElementById('extRight' + i).checked = false;
+                document.getElementById('extLeft' + i).checked = false;
+                document.getElementById('extUpper' + i).checked = false;
+                document.getElementById('extLower' + i).checked = false;
+                document.getElementById('extNumber' + i).value = '';
+            }
             updateExtractionPreview();
         }
 
