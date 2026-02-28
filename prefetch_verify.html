@@ -671,9 +671,52 @@
         o['23. 普段、お菓子、スイーツなどは食べますか？'] = parseSweets(input['質問12_お菓子']) || '';
         var alc = parseAlcohol(input['質問13_飲酒習慣']);
         Object.assign(o, alc);
-        o['抜去位置'] = input['質問14_歯の抜去位置'] || '';
+        o['抜去位置'] = formatToothForSave(input['質問14_歯の抜去位置']);
+        o['コメント'] = formatCommentForSave(input['質問15_コメント']);
         o['元PDFファイル名'] = (currentData && currentData.pdf_filename) || '';
         return o;
+    }
+
+    // Q14: 抜去位置の保存用フォーマット
+    function formatToothForSave(val) {
+        if (!val) return '';
+        if (typeof val === 'string') return val;
+        if (typeof val === 'object') {
+            // 3行フォーマット: { 行1: {左右,上下,番号}, 行2: ..., 行3: ... }
+            if (val['行1'] || val['行2'] || val['行3']) {
+                var parts = [];
+                for (var r = 1; r <= 3; r++) {
+                    var row = val['行' + r];
+                    if (!row) continue;
+                    if (typeof row === 'object') {
+                        var s = (row['左右'] || '') + (row['上下'] || '') + (row['番号'] || '');
+                        if (s) parts.push(s);
+                    } else if (row !== '') {
+                        parts.push(String(row));
+                    }
+                }
+                return parts.join(', ');
+            }
+            // 従来フォーマット: { 左右, 上下, 番号 }
+            if (val['左右'] || val['上下'] || val['番号']) {
+                return (val['左右'] || '') + (val['上下'] || '') + (val['番号'] || '');
+            }
+            return JSON.stringify(val);
+        }
+        return String(val);
+    }
+
+    // Q15: コメントの保存用フォーマット
+    function formatCommentForSave(val) {
+        if (!val) return '';
+        if (typeof val === 'string') return val;
+        if (typeof val === 'object') {
+            if (val['その他'] !== undefined) return String(val['その他']);
+            if (val['コメント'] !== undefined) return String(val['コメント']);
+            if (val['内容'] !== undefined) return String(val['内容']);
+            return JSON.stringify(val);
+        }
+        return String(val);
     }
 
     // =============================================

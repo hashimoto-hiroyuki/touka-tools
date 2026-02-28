@@ -1001,7 +1001,14 @@
                 var lines = [];
                 for (var i = 1; i <= 3; i++) {
                     var row = val['行' + i];
-                    if (row !== undefined && row !== null && row !== '') {
+                    if (!row) continue;
+                    if (typeof row === 'object') {
+                        var p = [];
+                        if (row['左右']) p.push(row['左右']);
+                        if (row['上下']) p.push(row['上下']);
+                        if (row['番号']) p.push('番号: ' + row['番号']);
+                        if (p.length > 0) lines.push('行' + i + ': ' + p.join(' / '));
+                    } else if (row !== '') {
                         lines.push('行' + i + ': ' + String(row));
                     }
                 }
@@ -1356,6 +1363,10 @@
             o['23. 普段、お菓子、スイーツなどは食べますか？'] = parseSweets(input['質問12_お菓子']) || '';
             var alc = parseAlcohol(input['質問13_飲酒習慣']);
             for (var k in alc) o[k] = alc[k];
+            // Q14: 抜去位置（テキスト入力値をそのまま使用）
+            o['抜去位置'] = input['質問14_歯の抜去位置'] || '';
+            // Q15: コメント
+            o['コメント'] = input['質問15_コメント'] || '';
             // 元PDFファイル名を追加
             o['元PDFファイル名'] = (currentOcrData && currentOcrData.metadata) ? currentOcrData.metadata.source_pdf || '' : '';
             return o;

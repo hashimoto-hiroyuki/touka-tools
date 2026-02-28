@@ -889,6 +889,15 @@
                 <div class="ext-note">※ PDFを確認して入力してください。空欄でも紐づけは実行できます。</div>
             </div>
 
+            <!-- Q15 コメント入力エリア -->
+            <div class="extraction-input-area" id="commentInputArea" style="display:none;">
+                <div class="ext-title">【質問15】その他・コメント（医師記入欄）</div>
+                <div style="padding: 4px 0;">
+                    <textarea id="commentInput" placeholder="特記事項があれば入力（例: HbA1c 2023.10）" rows="2" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; font-size:13px; resize:vertical;"></textarea>
+                </div>
+                <div class="ext-note">※ 裏面の医師記入欄を確認してください。空欄でも紐づけは実行できます。</div>
+            </div>
+
             <button class="btn-save" id="saveBtn" onclick="executeLinkPdf()" disabled>紐づける</button>
         </div>
 
@@ -1831,12 +1840,15 @@
             const btn = document.getElementById('saveBtn');
             btn.disabled = !(selectedNo && selectedDriveFile);
 
-            // 抜去位置入力エリアの表示制御（No.とPDFの両方が選択されたら表示）
+            // 抜去位置入力エリア・コメント入力エリアの表示制御（No.とPDFの両方が選択されたら表示）
             var extArea = document.getElementById('extractionInputArea');
+            var cmtArea = document.getElementById('commentInputArea');
             if (selectedNo && selectedDriveFile) {
                 extArea.className = 'extraction-input-area visible';
+                cmtArea.style.display = 'block';
             } else {
                 extArea.className = 'extraction-input-area';
+                cmtArea.style.display = 'none';
             }
 
             // 選択サマリーを更新
@@ -1925,6 +1937,7 @@
             const resultArea = document.getElementById('resultArea');
             const saveBtn = document.getElementById('saveBtn');
             const extractionPosition = getExtractionPosition();
+            const commentValue = (document.getElementById('commentInput').value || '').trim();
 
             // 抜去位置が未入力の場合、警告を表示して確認
             if (!extractionPosition) {
@@ -1935,6 +1948,9 @@
             var msg = 'No.' + selectedNo + ' に「' + selectedDriveFile.fileName + '」を紐づけます。\n';
             if (extractionPosition) {
                 msg += '抜去位置: ' + extractionPosition + '\n';
+            }
+            if (commentValue) {
+                msg += 'コメント: ' + commentValue + '\n';
             }
             msg += '（紐づけ後、PDFは完了フォルダへ移動されます）\n\nよろしいですか？';
             if (!confirm(msg)) return;
@@ -1954,6 +1970,9 @@
             if (extractionPosition) {
                 params.extractionPosition = encodeURIComponent(extractionPosition);
             }
+            if (commentValue) {
+                params.comment = encodeURIComponent(commentValue);
+            }
 
             try {
                 const result = await jsonpRequest('linkPdfFromDrive', params);
@@ -1971,8 +1990,9 @@
                     selectedRow = null;
                     selectedPatientInfo = null;
 
-                    // 抜去位置入力をリセット
+                    // 抜去位置入力・コメント入力をリセット
                     resetExtractionInput();
+                    document.getElementById('commentInput').value = '';
 
                     // PDFプレビューをクリア
                     clearPdfPreview();
