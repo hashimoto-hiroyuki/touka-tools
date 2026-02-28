@@ -45,141 +45,101 @@
             color: #4a7c59;
         }
 
-        /* メインレイアウト */
+        /* メインレイアウト（縦積み: ナビ→メインパネル） */
         .main-layout {
             display: flex;
+            flex-direction: column;
             flex: 1;
             min-height: 0;
         }
 
-        /* === 左サイドバー === */
-        .sidebar {
-            width: 320px;
+        /* === 上部ナビゲーション（4カラム横並び） === */
+        .top-nav {
             background: #fff;
-            border-right: 1px solid #e0e0e0;
-            overflow-y: auto;
+            border-bottom: 1px solid #e0e0e0;
             flex-shrink: 0;
+            display: flex;
         }
 
-        .sidebar .tree-group {
-            border-bottom: 1px solid #e8e8e8;
+        /* カテゴリ列（縦にヘッダー+ツール群） */
+        .cat-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #f0f0f0;
+            min-width: 0;
         }
-        .sidebar .tree-group:last-child { border-bottom: none; }
+        .cat-col:last-child { border-right: none; }
 
-        .sidebar .tree-category {
+        /* カテゴリヘッダー（列上部） */
+        .cat-header {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 11px 14px 7px;
-            font-size: 12.5px;
+            gap: 6px;
+            padding: 10px 12px;
+            font-size: 12px;
             font-weight: 700;
             letter-spacing: 0.3px;
-            cursor: default;
-            user-select: none;
-            border-left: 4px solid transparent;
-            margin-top: 2px;
+            white-space: nowrap;
+            border-bottom: 2px solid transparent;
         }
-        .sidebar .tree-category svg {
-            width: 16px; height: 16px; flex-shrink: 0;
+        .cat-header svg {
+            width: 15px; height: 15px; flex-shrink: 0;
         }
 
         /* ── カテゴリ別カラー ── */
-        .sidebar .tree-group.cat-create .tree-category {
-            color: #2e7d32;
-            border-left-color: #43a047;
-            background: linear-gradient(90deg, #e8f5e9 0%, transparent 100%);
+        .cat-col.cat-create .cat-header { color: #2e7d32; background: #e8f5e9; border-bottom-color: #43a047; }
+        .cat-col.cat-create .cat-header svg { stroke: #2e7d32; }
+        .cat-col.cat-ocr .cat-header { color: #1565c0; background: #e3f2fd; border-bottom-color: #1e88e5; }
+        .cat-col.cat-ocr .cat-header svg { stroke: #1565c0; }
+        .cat-col.cat-data .cat-header { color: #e65100; background: #fff3e0; border-bottom-color: #ef6c00; }
+        .cat-col.cat-data .cat-header svg { stroke: #e65100; }
+        .cat-col.cat-lab .cat-header { color: #7b1fa2; background: #f3e5f5; border-bottom-color: #8e24aa; }
+        .cat-col.cat-lab .cat-header svg { stroke: #7b1fa2; }
+
+        /* ツール群（縦並び） */
+        .cat-tools {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            padding: 4px 0;
+            flex: 1;
+            min-width: 0;
         }
-        .sidebar .tree-group.cat-create .tree-category svg { stroke: #2e7d32; }
 
-        .sidebar .tree-group.cat-ocr .tree-category {
-            color: #1565c0;
-            border-left-color: #1e88e5;
-            background: linear-gradient(90deg, #e3f2fd 0%, transparent 100%);
-        }
-        .sidebar .tree-group.cat-ocr .tree-category svg { stroke: #1565c0; }
-
-        .sidebar .tree-group.cat-data .tree-category {
-            color: #e65100;
-            border-left-color: #fb8c00;
-            background: linear-gradient(90deg, #fff3e0 0%, transparent 100%);
-        }
-        .sidebar .tree-group.cat-data .tree-category svg { stroke: #e65100; }
-
-        .sidebar .tree-group.cat-lab .tree-category {
-            color: #7b1fa2;
-            border-left-color: #ab47bc;
-            background: linear-gradient(90deg, #f3e5f5 0%, transparent 100%);
-        }
-        .sidebar .tree-group.cat-lab .tree-category svg { stroke: #7b1fa2; }
-
-        /* ── カテゴリ別ツリー線カラー ── */
-        .sidebar .tree-group.cat-create .tree-item::before,
-        .sidebar .tree-group.cat-create .tree-item::after { border-color: #a5d6a7; }
-        .sidebar .tree-group.cat-ocr .tree-item::before,
-        .sidebar .tree-group.cat-ocr .tree-item::after { border-color: #90caf9; }
-        .sidebar .tree-group.cat-data .tree-item::before,
-        .sidebar .tree-group.cat-data .tree-item::after { border-color: #ffcc80; }
-        .sidebar .tree-group.cat-lab .tree-item::before,
-        .sidebar .tree-group.cat-lab .tree-item::after { border-color: #ce93d8; }
-
-        .sidebar .tree-item {
+        /* ツールアイテム（縦並びリスト） */
+        .top-nav .tree-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 7px 14px 7px 56px;
-            font-size: 12.5px;
+            gap: 5px;
+            padding: 6px 12px;
+            font-size: 12px;
             color: #555;
             cursor: pointer;
             transition: all 0.12s;
             text-decoration: none;
-            position: relative;
+            border-radius: 0;
         }
-        /* ツリー接続線: 縦線 + 横枝 */
-        .sidebar .tree-item::before {
-            content: '';
-            position: absolute;
-            left: 38px;
-            top: 0;
-            bottom: 0;
-            width: 0;
-            border-left: 1px solid #ccc;
-        }
-        .sidebar .tree-item::after {
-            content: '';
-            position: absolute;
-            left: 38px;
-            top: 50%;
-            width: 10px;
-            height: 0;
-            border-top: 1px solid #ccc;
-        }
-        /* 最後のアイテム: 縦線を途中で止める（L字型） */
-        .sidebar .tree-item:last-child::before {
-            bottom: 50%;
-        }
-        .sidebar .tree-item:hover {
-            background: #f5f8ff;
+        .top-nav .tree-item:hover {
+            background: #f0f4ff;
             color: #333;
         }
-        .sidebar .tree-item.active {
+        .top-nav .tree-item.active {
             background: #e8f0fe;
             color: #1565c0;
             font-weight: 600;
         }
-        .sidebar .tree-item .item-icon {
-            width: 22px; height: 22px;
-            border-radius: 5px;
+        .top-nav .tree-item .item-icon {
+            width: 20px; height: 20px;
+            border-radius: 4px;
             display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
         }
-        .sidebar .tree-item .item-icon svg {
-            width: 13px; height: 13px;
+        .top-nav .tree-item .item-icon svg {
+            width: 12px; height: 12px;
         }
-        .sidebar .tree-item .item-label {
-            flex: 1;
+        .top-nav .tree-item .item-label {
             white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         /* タグ */
@@ -382,9 +342,12 @@
             flex-shrink: 0;
         }
 
-        @media (max-width: 700px) {
-            .main-layout { flex-direction: column; }
-            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #e0e0e0; max-height: 250px; }
+        @media (max-width: 900px) {
+            .top-nav { flex-wrap: wrap; }
+            .cat-col { flex: 1 1 50%; border-bottom: 1px solid #f0f0f0; }
+        }
+        @media (max-width: 500px) {
+            .cat-col { flex: 1 1 100%; }
             .main-panel { padding: 20px 16px; }
         }
     </style>
@@ -403,15 +366,16 @@
 
     <div class="main-layout">
 
-        <!-- 左サイドバー -->
-        <nav class="sidebar">
+        <!-- 上部ナビゲーション（全カテゴリ常時表示） -->
+        <nav class="top-nav">
 
             <!-- アンケート作成・開発 -->
-            <div class="tree-group cat-create">
-                <div class="tree-category">
+            <div class="cat-col cat-create">
+                <div class="cat-header">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
                     アンケート作成・開発
                 </div>
+                <div class="cat-tools">
                 <div class="tree-item" data-detail="survey-tool" onclick="showDetail('survey-tool')">
                     <div class="item-icon ic-green"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18.25 7.234l-.001.006"/></svg></div>
                     <span class="item-label">アンケート作成ツール</span>
@@ -432,14 +396,16 @@
                     <span class="item-label">touka-survey</span>
                     <span class="tag tag-gh">GitHub</span>
                 </div>
+                </div>
             </div>
 
             <!-- OCR読み取り・照合 -->
-            <div class="tree-group cat-ocr">
-                <div class="tree-category">
+            <div class="cat-col cat-ocr">
+                <div class="cat-header">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 3.75H6A2.25 2.25 0 0 0 3.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0 1 20.25 6v1.5m0 9V18A2.25 2.25 0 0 1 18 20.25h-1.5m-9 0H6A2.25 2.25 0 0 1 3.75 18v-1.5M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/></svg>
                     OCR読み取り・照合
                 </div>
+                <div class="cat-tools">
                 <div class="tree-item" data-detail="ocr" onclick="showDetail('ocr')">
                     <div class="item-icon ic-blue"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg></div>
                     <span class="item-label">OCR読み取り＋照合</span>
@@ -466,14 +432,16 @@
                     <span class="item-label">PDF処理状況チェック</span>
                     <span class="tag tag-web">Web</span>
                 </div>
+                </div>
             </div>
 
             <!-- データ管理 -->
-            <div class="tree-group cat-data">
-                <div class="tree-category">
+            <div class="cat-col cat-data">
+                <div class="cat-header">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
                     データ管理
                 </div>
+                <div class="cat-tools">
                 <div class="tree-item" data-detail="view-data" onclick="showDetail('view-data')">
                     <div class="item-icon ic-orange"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z"/></svg></div>
                     <span class="item-label">データ閲覧</span>
@@ -499,14 +467,16 @@
                     <span class="item-label">検体番号検索</span>
                     <span class="tag tag-web">Web</span>
                 </div>
+                </div>
             </div>
 
             <!-- 検査値入力 -->
-            <div class="tree-group cat-lab">
-                <div class="tree-category">
+            <div class="cat-col cat-lab">
+                <div class="cat-header">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
                     検査値入力
                 </div>
+                <div class="cat-tools">
                 <div class="tree-item" data-detail="hba1c" onclick="showDetail('hba1c')">
                     <div class="item-icon ic-purple"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"/></svg></div>
                     <span class="item-label">HbA1c追跡データ入力</span>
@@ -527,6 +497,7 @@
                     <span class="item-label">PpP値データを開く</span>
                     <span class="tag tag-ext">Sheets</span>
                 </div>
+                </div>
             </div>
 
         </nav>
@@ -537,7 +508,7 @@
             <!-- ウェルカム画面 -->
             <div class="welcome" id="welcomeView">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z"/></svg>
-                <div class="welcome-title">左のメニューからアプリを選択</div>
+                <div class="welcome-title">上のカテゴリからツールを選択</div>
                 <div class="welcome-sub">各ツールの説明を確認し、起動できます</div>
             </div>
 
@@ -1062,8 +1033,8 @@
             var target = document.getElementById('detail-' + id);
             if (target) target.classList.add('visible');
 
-            // サイドバーのactive
-            var items = document.querySelectorAll('.sidebar .tree-item');
+            // ナビのactive
+            var items = document.querySelectorAll('.top-nav .tree-item');
             for (var i = 0; i < items.length; i++) {
                 items[i].classList.remove('active');
                 if (items[i].getAttribute('data-detail') === id) {
