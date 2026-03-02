@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF紐づけツール</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23e65100'/><path d='M8 6h10l6 6v14a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2z' fill='white' opacity='0.9'/><path d='M18 6v6h6' fill='none' stroke='%23e65100' stroke-width='1.5'/><path d='M10 18h8M10 22h5' stroke='%23e65100' stroke-width='1.5' stroke-linecap='round'/></svg>">
-    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <!-- pdf-lib不要（分割はsplit_scan_pdf.htmlで実施） -->
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -934,13 +934,7 @@
                     <button class="btn-dismiss" onclick="dismissAutoCandidate()">無視</button>
                 </div>
             </div>
-            <!-- PDFまとめアクションバー -->
-            <div class="split-actions-bar" id="splitActionsBar">
-                <span class="split-info" id="splitInfo"></span>
-                <button class="btn-split-all" id="btnSplitAll" onclick="mergeAllSinglePagePdfs()">全てまとめる</button>
-                <button class="btn-dismiss" onclick="dismissSplitBar()">閉じる</button>
-            </div>
-            <!-- PDF分割プログレス -->
+            <!-- ページ数チェック結果 -->
             <div class="split-progress-area" id="splitProgressArea">
                 <div class="split-progress-text" id="splitProgressText">処理中...</div>
                 <div class="split-progress-bar-wrap">
@@ -1832,7 +1826,6 @@
                 document.getElementById('btnCheckPages').disabled = (drivePdfList.length === 0);
                 // ページ数チェック済みフラグをリセット
                 pageCountChecked = false;
-                dismissSplitBar();
                 // PDF一覧読み込み完了後、患者情報があれば自動マッチング実行
                 if (selectedPatientInfo) {
                     autoMatchPdf();
@@ -1882,20 +1875,13 @@
                 var cellClass = pdf.indexed ? 'indexed-cell' : 'not-indexed-cell';
                 var badge = pdf.indexed === false ? '<span class="unindexed-badge">未</span>' : '';
 
-                // ページ数表示
+                // ページ数表示（2ページが正常）
                 var pageCell = '-';
                 if (pdf.pageCount !== undefined && pdf.pageCount > 0) {
-                    if (pdf.pageCount === 1) {
-                        // 1ページ: まとめが必要
-                        if (pdf._pairRole === 'unpaired') {
-                            pageCell = '<span class="page-badge odd-warn">1 ⚠️</span>';
-                        } else {
-                            pageCell = '<span class="page-badge multi">1</span>';
-                        }
-                    } else if (pdf.pageCount === 2) {
+                    if (pdf.pageCount === 2) {
                         pageCell = '<span class="page-badge normal">2</span>';
                     } else {
-                        pageCell = '<span class="page-badge odd-warn">' + pdf.pageCount + '</span>';
+                        pageCell = '<span class="page-badge odd-warn">' + pdf.pageCount + ' ⚠️</span>';
                     }
                 } else if (pdf.pageCount === -1) {
                     pageCell = '<span style="color:#999">?</span>';
@@ -1909,17 +1895,10 @@
                 html += '<td class="' + cellClass + '">' + escapeHtml(pdf.patientName || '-') + '</td>';
                 html += '<td class="' + cellClass + '">' + escapeHtml(pdf.birthdate || '-') + '</td>';
                 html += '<td>' + escapeHtml(pdf.lastUpdated || '') + '</td>';
-                // 操作列: インデックスボタン + まとめるボタン
+                // 操作列: インデックスボタン
                 var idxBtnClass = pdf.indexed ? 'btn-idx-inline btn-idx-rerun' : 'btn-idx-inline';
                 var idxBtnLabel = pdf.indexed ? '再実行' : '実行';
                 var actionHtml = '<button class="' + idxBtnClass + '" onclick="event.stopPropagation(); indexOnePdf(\'' + pdf.fileId + '\', this)">' + idxBtnLabel + '</button>';
-                if (pdf._pairRole === 'first') {
-                    actionHtml += ' <button class="btn-split" onclick="event.stopPropagation(); mergePairByIndex(' + pdf._pairIndex + ', this)">まとめる</button>';
-                } else if (pdf._pairRole === 'second') {
-                    actionHtml += ' <span style="font-size:10px;color:#888">← ' + escapeHtml(pdf._pairPartner) + '</span>';
-                } else if (pdf._pairRole === 'unpaired') {
-                    actionHtml += ' <span style="font-size:10px;color:#c62828">⚠️未ペア</span>';
-                }
                 html += '<td>' + actionHtml + '</td>';
                 html += '</tr>';
             }
@@ -2224,72 +2203,11 @@
             });
         }
 
-        // ========== PDF分割機能 ==========
-
-        // === gasPost: iframe+form によるPOSTリクエスト（verify_ocr.htmlから移植・改良） ===
-        function gasPost(payload) {
-            return new Promise(function(resolve, reject) {
-                var iframeName = 'postFrame_' + Date.now();
-                var iframe = document.createElement('iframe');
-                iframe.name = iframeName;
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);
-
-                var form = document.createElement('form');
-                form.method = 'POST';
-                form.action = APPS_SCRIPT_API_URL;
-                form.target = iframeName;
-                form.style.display = 'none';
-
-                var input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'payload';
-                input.value = JSON.stringify(payload);
-                form.appendChild(input);
-                document.body.appendChild(form);
-
-                var timeoutId = setTimeout(function() {
-                    cleanup();
-                    resolve({ success: true, data: { message: '送信完了（タイムアウト方式）' } });
-                }, 60000); // 大きいPDFのため60秒に延長
-
-                iframe.onload = function() {
-                    clearTimeout(timeoutId);
-                    // CSP制約でiframe内容を読めない場合があるため、成功扱い
-                    try {
-                        var responseText = iframe.contentDocument
-                            ? iframe.contentDocument.body.textContent
-                            : iframe.contentWindow.document.body.textContent;
-                        if (responseText) {
-                            var parsed = JSON.parse(responseText);
-                            cleanup();
-                            resolve(parsed);
-                            return;
-                        }
-                    } catch (e) {
-                        // CSP制約でiframe読み取り不可 → 送信完了扱い
-                    }
-                    cleanup();
-                    resolve({ success: true, data: { message: '送信完了' } });
-                };
-
-                function cleanup() {
-                    if (form.parentNode) document.body.removeChild(form);
-                    setTimeout(function() {
-                        if (iframe.parentNode) document.body.removeChild(iframe);
-                    }, 1000);
-                }
-
-                form.submit();
-            });
-        }
+        // ========== ページ数チェック機能 ==========
 
         // === ページ数チェック: 全PDFのページ数を順次取得 ===
         var pageCountChecked = false;
         var isCheckingPages = false;
-        var isMerging = false;
-        var stopMerging = false;
-        var mergePairs = [];  // [{pdf1, pdf2, mergedName}, ...]
 
         function checkAllPageCounts() {
             if (drivePdfList.length === 0 || isCheckingPages) return;
@@ -2308,15 +2226,12 @@
 
             var total = drivePdfList.length;
             var current = 0;
-            var singlePageCount = 0;
+            var twoPageCount = 0;
+            var otherCount = 0;
 
             function checkNext() {
                 if (current >= total) {
-                    // ペアを構築
-                    buildMergePairs();
-                    var pairCount = mergePairs.length;
-
-                    progressText.textContent = 'チェック完了: ' + total + '件中 ' + singlePageCount + '件が1ページ → ' + pairCount + '組にまとめ可能';
+                    progressText.textContent = 'チェック完了: ' + total + '件中 ' + twoPageCount + '件が2ページ' + (otherCount > 0 ? '、' + otherCount + '件が異常' : '');
                     progressBar.style.width = '100%';
                     progressBar.textContent = '100%';
                     isCheckingPages = false;
@@ -2324,13 +2239,6 @@
                     btn.disabled = false;
                     btn.textContent = 'ページ数を再確認';
                     renderPdfList();
-
-                    // 1ページPDFのペアがあればまとめアクションバーを表示
-                    if (pairCount > 0) {
-                        showMergeActionsBar(pairCount);
-                    } else {
-                        dismissSplitBar();
-                    }
                     return;
                 }
 
@@ -2344,11 +2252,17 @@
                     if (data.success && data.data) {
                         pdf.pageCount = data.data.pageCount || 0;
                     } else {
-                        pdf.pageCount = -1; // エラー
+                        pdf.pageCount = -1;
                     }
 
-                    if (pdf.pageCount === 1) {
-                        singlePageCount++;
+                    if (pdf.pageCount === 2) {
+                        twoPageCount++;
+                    } else {
+                        otherCount++;
+                        var logDiv = document.createElement('div');
+                        logDiv.className = 'split-log-err';
+                        logDiv.textContent = pdf.fileName + ': ' + pdf.pageCount + 'ページ（2ページではありません）';
+                        progressLog.appendChild(logDiv);
                     }
 
                     current++;
@@ -2360,334 +2274,9 @@
             checkNext();
         }
 
-        // === ペア構築: 1ページPDFをファイル名順に2つずつペアにする ===
-        function buildMergePairs() {
-            // 以前のペア情報をクリア
-            for (var i = 0; i < drivePdfList.length; i++) {
-                delete drivePdfList[i]._pairIndex;
-                delete drivePdfList[i]._pairRole;
-                delete drivePdfList[i]._pairPartner;
-                delete drivePdfList[i]._mergedName;
-            }
+        // （まとめ機能は削除済み。分割はsplit_scan_pdf.htmlで実施）
 
-            // 1ページPDFのみ抽出してファイル名順にソート
-            var singlePages = drivePdfList.filter(function(p) { return p.pageCount === 1; });
-            singlePages.sort(function(a, b) { return (a.fileName || '').localeCompare(b.fileName || ''); });
 
-            mergePairs = [];
-
-            for (var i = 0; i < singlePages.length; i += 2) {
-                if (i + 1 < singlePages.length) {
-                    var pdf1 = singlePages[i];
-                    var pdf2 = singlePages[i + 1];
-
-                    // マージ後のファイル名を決定（例: EPSON013_014.PDF）
-                    var name1 = pdf1.fileName.replace(/\.[^.]+$/, '');
-                    var ext = pdf1.fileName.match(/\.[^.]+$/);
-                    ext = ext ? ext[0] : '.PDF';
-
-                    var m1 = name1.match(/(\d+)$/);
-                    var m2 = pdf2.fileName.replace(/\.[^.]+$/, '').match(/(\d+)$/);
-                    var mergedName;
-                    if (m1 && m2) {
-                        mergedName = name1.substring(0, m1.index) + m1[1] + '_' + m2[1] + ext;
-                    } else {
-                        mergedName = name1 + '_' + pdf2.fileName.replace(/\.[^.]+$/, '') + ext;
-                    }
-
-                    var pairIdx = mergePairs.length;
-                    pdf1._pairIndex = pairIdx;
-                    pdf1._pairRole = 'first';
-                    pdf1._pairPartner = pdf2.fileName;
-                    pdf1._mergedName = mergedName;
-
-                    pdf2._pairIndex = pairIdx;
-                    pdf2._pairRole = 'second';
-                    pdf2._pairPartner = pdf1.fileName;
-                    pdf2._mergedName = mergedName;
-
-                    mergePairs.push({ pdf1: pdf1, pdf2: pdf2, mergedName: mergedName });
-                } else {
-                    // 奇数個の場合、最後の1つは未ペア
-                    singlePages[i]._pairRole = 'unpaired';
-                }
-            }
-
-            return mergePairs;
-        }
-
-        // === まとめアクションバーの表示/非表示 ===
-        function showMergeActionsBar(pairCount) {
-            var bar = document.getElementById('splitActionsBar');
-            document.getElementById('splitInfo').textContent =
-                pairCount + '組の1ページPDFがあります（2ページずつにまとめ可能）';
-            bar.className = 'split-actions-bar visible';
-        }
-
-        function dismissSplitBar() {
-            document.getElementById('splitActionsBar').className = 'split-actions-bar';
-        }
-
-        // === PDFをbase64でダウンロード（GAS getPdfBase64 API経由、CORS回避） ===
-        function downloadPdfBase64(fileId) {
-            return new Promise(function(resolve, reject) {
-                callApi('getPdfBase64', { fileId: fileId }, function(data) {
-                    if (!data.success || !data.data || !data.data.base64) {
-                        reject(new Error('PDFダウンロードエラー: ' + ((data.data && data.data.error) || data.error || '不明')));
-                        return;
-                    }
-                    resolve(data.data.base64);
-                }, 120000);
-            });
-        }
-
-        // === 個別ペアPDF結合 ===
-        async function mergePairByIndex(pairIndex, buttonEl) {
-            if (pairIndex < 0 || pairIndex >= mergePairs.length) return;
-            var pair = mergePairs[pairIndex];
-
-            if (buttonEl) {
-                buttonEl.disabled = true;
-                buttonEl.textContent = '処理中...';
-            }
-
-            var progressArea = document.getElementById('splitProgressArea');
-            var progressBar = document.getElementById('splitProgressBar');
-            var progressText = document.getElementById('splitProgressText');
-            var progressLog = document.getElementById('splitProgressLog');
-            progressArea.style.display = 'block';
-            progressLog.innerHTML = '';
-
-            try {
-                // 1. 両方のPDFをbase64でダウンロード
-                progressText.textContent = pair.pdf1.fileName + ' をダウンロード中...';
-                progressBar.style.width = '10%';
-                progressBar.textContent = '10%';
-                var base64Data1 = await downloadPdfBase64(pair.pdf1.fileId);
-
-                progressText.textContent = pair.pdf2.fileName + ' をダウンロード中...';
-                progressBar.style.width = '25%';
-                progressBar.textContent = '25%';
-                var base64Data2 = await downloadPdfBase64(pair.pdf2.fileId);
-
-                // 2. pdf-libで両方のPDFを読み込み
-                progressText.textContent = 'PDFを結合中...';
-                progressBar.style.width = '40%';
-                progressBar.textContent = '40%';
-
-                var pdfBytes1 = Uint8Array.from(atob(base64Data1), function(c) { return c.charCodeAt(0); });
-                var pdfBytes2 = Uint8Array.from(atob(base64Data2), function(c) { return c.charCodeAt(0); });
-                var pdfDoc1 = await PDFLib.PDFDocument.load(pdfBytes1);
-                var pdfDoc2 = await PDFLib.PDFDocument.load(pdfBytes2);
-
-                // 3. 新しいPDFを作成し、両方のページをコピー
-                var mergedPdf = await PDFLib.PDFDocument.create();
-                var pages1 = await mergedPdf.copyPages(pdfDoc1, pdfDoc1.getPageIndices());
-                for (var p = 0; p < pages1.length; p++) mergedPdf.addPage(pages1[p]);
-                var pages2 = await mergedPdf.copyPages(pdfDoc2, pdfDoc2.getPageIndices());
-                for (var p = 0; p < pages2.length; p++) mergedPdf.addPage(pages2[p]);
-
-                // 4. Base64に変換
-                progressText.textContent = 'アップロード準備中...';
-                progressBar.style.width = '60%';
-                progressBar.textContent = '60%';
-
-                var mergedBytes = await mergedPdf.save();
-                var mergedBase64 = '';
-                var CHUNK_SIZE = 8192;
-                for (var ci = 0; ci < mergedBytes.length; ci += CHUNK_SIZE) {
-                    var slice = mergedBytes.subarray(ci, Math.min(ci + CHUNK_SIZE, mergedBytes.length));
-                    mergedBase64 += String.fromCharCode.apply(null, slice);
-                }
-                mergedBase64 = btoa(mergedBase64);
-
-                // 5. アップロード
-                progressText.textContent = pair.mergedName + ' をアップロード中...';
-                progressBar.style.width = '70%';
-                progressBar.textContent = '70%';
-
-                await gasPost({
-                    action: 'uploadSplitPdf',
-                    pdfBase64: mergedBase64,
-                    fileName: pair.mergedName
-                });
-
-                var logOk = document.createElement('div');
-                logOk.className = 'split-log-ok';
-                logOk.textContent = '[OK] ' + pair.mergedName + ' アップロード完了';
-                progressLog.appendChild(logOk);
-
-                // 6. 元ファイル2つをゴミ箱に移動
-                progressText.textContent = '元ファイルをゴミ箱に移動中...';
-                progressBar.style.width = '85%';
-                progressBar.textContent = '85%';
-
-                await new Promise(function(resolve) {
-                    callApi('trashDriveFile', { fileId: pair.pdf1.fileId }, function(data) {
-                        var log = document.createElement('div');
-                        log.className = (data.success && data.data && data.data.success) ? 'split-log-ok' : 'split-log-err';
-                        log.textContent = (data.success && data.data && data.data.success)
-                            ? '[OK] ' + pair.pdf1.fileName + ' → ゴミ箱'
-                            : '[WARN] ' + pair.pdf1.fileName + ' のゴミ箱移動に失敗';
-                        progressLog.appendChild(log);
-                        resolve();
-                    }, 30000);
-                });
-
-                await new Promise(function(resolve) {
-                    callApi('trashDriveFile', { fileId: pair.pdf2.fileId }, function(data) {
-                        var log = document.createElement('div');
-                        log.className = (data.success && data.data && data.data.success) ? 'split-log-ok' : 'split-log-err';
-                        log.textContent = (data.success && data.data && data.data.success)
-                            ? '[OK] ' + pair.pdf2.fileName + ' → ゴミ箱'
-                            : '[WARN] ' + pair.pdf2.fileName + ' のゴミ箱移動に失敗';
-                        progressLog.appendChild(log);
-                        resolve();
-                    }, 30000);
-                });
-
-                // 7. 完了
-                progressText.textContent = '結合完了: ' + pair.pdf1.fileName + ' + ' + pair.pdf2.fileName + ' → ' + pair.mergedName;
-                progressBar.style.width = '100%';
-                progressBar.textContent = '100%';
-
-                // PDF一覧を再読み込み
-                loadDrivePdfList();
-
-            } catch (err) {
-                progressText.textContent = 'エラー: ' + err.message;
-                var logErr = document.createElement('div');
-                logErr.className = 'split-log-err';
-                logErr.textContent = '[ERR] ' + err.message;
-                progressLog.appendChild(logErr);
-            }
-
-            if (buttonEl) {
-                buttonEl.disabled = false;
-                buttonEl.textContent = 'まとめる';
-            }
-        }
-
-        // === 全ての1ページPDFペアを一括結合 ===
-        async function mergeAllSinglePagePdfs() {
-            if (mergePairs.length === 0) {
-                showIndexResult('error', 'まとめるペアがありません');
-                return;
-            }
-
-            if (!confirm(mergePairs.length + '組のPDFを2ページずつにまとめます。\n\n' +
-                'まとめ後、元ファイルはゴミ箱に移動されます（復元可能）。\n\nよろしいですか？')) {
-                return;
-            }
-
-            isMerging = true;
-            stopMerging = false;
-            document.getElementById('btnSplitAll').disabled = true;
-            document.getElementById('btnCheckPages').disabled = true;
-            document.getElementById('loadPdfBtn').disabled = true;
-
-            var progressArea = document.getElementById('splitProgressArea');
-            var progressBar = document.getElementById('splitProgressBar');
-            var progressText = document.getElementById('splitProgressText');
-            var progressLog = document.getElementById('splitProgressLog');
-            progressArea.style.display = 'block';
-            progressLog.innerHTML = '';
-
-            var total = mergePairs.length;
-            var successCount = 0;
-            var errorCount = 0;
-
-            for (var pi = 0; pi < total; pi++) {
-                if (stopMerging) break;
-
-                var pair = mergePairs[pi];
-                var pctOverall = Math.round((pi / total) * 100);
-                progressText.textContent = '全体 (' + (pi + 1) + '/' + total + '): ' + pair.pdf1.fileName + ' + ' + pair.pdf2.fileName + ' を結合中...';
-                progressBar.style.width = pctOverall + '%';
-                progressBar.textContent = pctOverall + '%';
-
-                try {
-                    // 両方のPDFをダウンロード
-                    var base64Data1 = await downloadPdfBase64(pair.pdf1.fileId);
-                    if (stopMerging) break;
-                    var base64Data2 = await downloadPdfBase64(pair.pdf2.fileId);
-                    if (stopMerging) break;
-
-                    // pdf-libで結合
-                    var pdfBytes1 = Uint8Array.from(atob(base64Data1), function(c) { return c.charCodeAt(0); });
-                    var pdfBytes2 = Uint8Array.from(atob(base64Data2), function(c) { return c.charCodeAt(0); });
-                    var pdfDoc1 = await PDFLib.PDFDocument.load(pdfBytes1);
-                    var pdfDoc2 = await PDFLib.PDFDocument.load(pdfBytes2);
-
-                    var mergedPdf = await PDFLib.PDFDocument.create();
-                    var pages1 = await mergedPdf.copyPages(pdfDoc1, pdfDoc1.getPageIndices());
-                    for (var p = 0; p < pages1.length; p++) mergedPdf.addPage(pages1[p]);
-                    var pages2 = await mergedPdf.copyPages(pdfDoc2, pdfDoc2.getPageIndices());
-                    for (var p = 0; p < pages2.length; p++) mergedPdf.addPage(pages2[p]);
-
-                    var mergedBytes = await mergedPdf.save();
-                    var mergedBase64 = '';
-                    var CHUNK_SIZE = 8192;
-                    for (var ci = 0; ci < mergedBytes.length; ci += CHUNK_SIZE) {
-                        var slice = mergedBytes.subarray(ci, Math.min(ci + CHUNK_SIZE, mergedBytes.length));
-                        mergedBase64 += String.fromCharCode.apply(null, slice);
-                    }
-                    mergedBase64 = btoa(mergedBase64);
-
-                    // アップロード
-                    await gasPost({
-                        action: 'uploadSplitPdf',
-                        pdfBase64: mergedBase64,
-                        fileName: pair.mergedName
-                    });
-
-                    var logChunk = document.createElement('div');
-                    logChunk.className = 'split-log-ok';
-                    logChunk.textContent = '[OK] ' + pair.mergedName + ' アップロード完了';
-                    progressLog.appendChild(logChunk);
-                    progressLog.scrollTop = progressLog.scrollHeight;
-
-                    // 元ファイル2つをゴミ箱に移動
-                    if (!stopMerging) {
-                        await new Promise(function(resolve) {
-                            callApi('trashDriveFile', { fileId: pair.pdf1.fileId }, function(data) { resolve(); }, 30000);
-                        });
-                        await new Promise(function(resolve) {
-                            callApi('trashDriveFile', { fileId: pair.pdf2.fileId }, function(data) { resolve(); }, 30000);
-                        });
-                        var logDone = document.createElement('div');
-                        logDone.className = 'split-log-ok';
-                        logDone.textContent = '[DONE] ' + pair.pdf1.fileName + ' + ' + pair.pdf2.fileName + ' → ' + pair.mergedName;
-                        progressLog.appendChild(logDone);
-                        progressLog.scrollTop = progressLog.scrollHeight;
-                        successCount++;
-                    }
-
-                } catch (err) {
-                    errorCount++;
-                    var logErr = document.createElement('div');
-                    logErr.className = 'split-log-err';
-                    logErr.textContent = '[ERR] ' + pair.pdf1.fileName + ' + ' + pair.pdf2.fileName + ': ' + err.message;
-                    progressLog.appendChild(logErr);
-                    progressLog.scrollTop = progressLog.scrollHeight;
-                }
-            }
-
-            var statusMsg = stopMerging ? '中止' : '完了';
-            progressText.textContent = statusMsg + ': ' + successCount + '組成功 / ' + errorCount + '組エラー';
-            progressBar.style.width = '100%';
-            progressBar.textContent = '100%';
-            isMerging = false;
-            stopMerging = false;
-
-            document.getElementById('btnSplitAll').disabled = false;
-            document.getElementById('btnCheckPages').disabled = false;
-            document.getElementById('loadPdfBtn').disabled = false;
-            dismissSplitBar();
-
-            // PDF一覧を再読み込み
-            loadDrivePdfList();
-        }
 
     </script>
 </body>

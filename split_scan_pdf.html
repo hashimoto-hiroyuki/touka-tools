@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スキャンPDF分割ツール</title>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', 'Hiragino Sans', sans-serif; background: #f5f5f5; color: #333; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { color: #e65100; margin-bottom: 4px; font-size: 22px; }
+        .subtitle { color: #888; font-size: 13px; margin-bottom: 20px; }
+        .back-link { font-size: 13px; margin-bottom: 12px; }
+        .back-link a { color: #1976d2; text-decoration: none; }
+        .back-link a:hover { text-decoration: underline; }
+
+        .section { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .section-title { font-size: 16px; font-weight: bold; color: #e65100; margin-bottom: 12px; border-bottom: 2px solid #ffcc80; padding-bottom: 6px; }
+
+        /* Drop Zone */
+        .drop-zone { border: 2px dashed #ccc; border-radius: 8px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafafa; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: #ff9800; background: #fff8e1; }
+        .drop-zone p { color: #888; margin: 4px 0; }
+        .drop-zone .icon { font-size: 40px; margin-bottom: 8px; }
+        .drop-zone input[type="file"] { display: none; }
+        .drop-zone .btn-select { display: inline-block; margin-top: 8px; padding: 8px 20px; background: #ff9800; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .drop-zone .btn-select:hover { background: #f57c00; }
+
+        /* File Info */
+        .file-info { display: none; margin-top: 16px; }
+        .file-info.visible { display: block; }
+        .file-info table { width: 100%; border-collapse: collapse; }
+        .file-info th { text-align: left; padding: 6px 12px; color: #666; width: 140px; font-weight: normal; }
+        .file-info td { padding: 6px 12px; font-weight: bold; }
+        .file-info .warn { color: #c62828; }
+        .file-info .ok { color: #2e7d32; }
+        .btn-clear { padding: 4px 12px; font-size: 12px; background: #eee; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; margin-left: 8px; }
+
+        /* Settings */
+        .settings { display: none; }
+        .settings.visible { display: block; }
+        .setting-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .setting-row label { width: 160px; font-size: 14px; color: #555; flex-shrink: 0; }
+        .setting-row input, .setting-row select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .setting-row input[type="text"] { width: 200px; }
+        .setting-row input[type="number"] { width: 80px; }
+
+        /* Preview */
+        .preview-list { margin-top: 12px; max-height: 240px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 6px; }
+        .preview-item { display: flex; align-items: center; padding: 6px 12px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+        .preview-item:last-child { border-bottom: none; }
+        .preview-item .num { color: #888; width: 30px; flex-shrink: 0; }
+        .preview-item .name { font-weight: bold; flex: 1; }
+        .preview-item .pages { color: #666; font-size: 12px; }
+        .preview-item.odd { background: #fff3e0; }
+        .preview-item.odd .name { color: #e65100; }
+
+        /* Execute */
+        .execute { display: none; }
+        .execute.visible { display: block; }
+        .btn-exec { padding: 10px 24px; font-size: 14px; border: none; border-radius: 6px; cursor: pointer; margin-right: 8px; }
+        .btn-upload { background: #ff9800; color: #fff; }
+        .btn-upload:hover { background: #f57c00; }
+        .btn-upload:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-download { background: #1976d2; color: #fff; }
+        .btn-download:hover { background: #1565c0; }
+        .btn-download:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* Progress */
+        .progress-area { display: none; margin-top: 16px; padding: 12px; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px; }
+        .progress-area.visible { display: block; }
+        .progress-text { font-size: 13px; color: #555; margin-bottom: 6px; }
+        .progress-bar-wrap { width: 100%; height: 22px; background: #e0e0e0; border-radius: 11px; overflow: hidden; }
+        .progress-bar { height: 100%; background: #ff9800; border-radius: 11px; text-align: center; color: #fff; font-size: 11px; line-height: 22px; transition: width 0.3s; width: 0%; }
+        .progress-log { max-height: 200px; overflow-y: auto; margin-top: 8px; font-size: 12px; font-family: monospace; }
+        .log-ok { color: #2e7d32; padding: 2px 0; }
+        .log-err { color: #c62828; padding: 2px 0; }
+        .log-info { color: #555; padding: 2px 0; }
+
+        /* Result */
+        .result-area { display: none; margin-top: 16px; padding: 12px; border-radius: 6px; }
+        .result-area.visible { display: block; }
+        .result-area.success { background: #e8f5e9; border: 1px solid #a5d6a7; color: #2e7d32; }
+        .result-area.error { background: #fce4ec; border: 1px solid #ef9a9a; color: #c62828; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="back-link"><a href="index.html">← ダッシュボードに戻る</a></div>
+        <h1>スキャンPDF 2ページ分割ツール</h1>
+        <p class="subtitle">まとめてスキャンしたPDFを、アンケート1件 = 2ページごとに分割してGoogle Driveにアップロードします</p>
+
+        <!-- Step 1: File Selection -->
+        <div class="section">
+            <div class="section-title">① PDFファイルを選択</div>
+            <div class="drop-zone" id="dropZone">
+                <div class="icon">📄</div>
+                <p>ここにPDFをドラッグ＆ドロップ</p>
+                <p style="font-size:12px; color:#aaa;">または</p>
+                <button class="btn-select" onclick="document.getElementById('fileInput').click()">ファイルを選択</button>
+                <input type="file" id="fileInput" accept=".pdf">
+            </div>
+            <div class="file-info" id="fileInfo">
+                <table>
+                    <tr><th>ファイル名</th><td id="infoName"></td></tr>
+                    <tr><th>ファイルサイズ</th><td id="infoSize"></td></tr>
+                    <tr><th>ページ数</th><td id="infoPages"></td></tr>
+                    <tr><th>分割数</th><td id="infoChunks"></td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Step 2: Settings -->
+        <div class="section settings" id="settingsSection">
+            <div class="section-title">② 分割設定</div>
+            <div class="setting-row">
+                <label>ファイル名プレフィックス:</label>
+                <input type="text" id="prefix" value="SCAN" oninput="updatePreview()">
+            </div>
+            <div class="setting-row">
+                <label>開始番号:</label>
+                <input type="number" id="startNum" value="1" min="1" oninput="updatePreview()">
+            </div>
+            <div class="setting-row">
+                <label>番号の桁数:</label>
+                <select id="digits" onchange="updatePreview()">
+                    <option value="2">2桁 (01, 02...)</option>
+                    <option value="3" selected>3桁 (001, 002...)</option>
+                    <option value="4">4桁 (0001, 0002...)</option>
+                </select>
+            </div>
+            <div class="preview-list" id="previewList"></div>
+        </div>
+
+        <!-- Step 3: Execute -->
+        <div class="section execute" id="executeSection">
+            <div class="section-title">③ 分割実行</div>
+            <button class="btn-exec btn-upload" id="btnUpload" onclick="splitAndUpload()">分割して Google Drive にアップロード</button>
+            <button class="btn-exec btn-download" id="btnDownload" onclick="splitAndDownload()">分割してダウンロード</button>
+            <div class="progress-area" id="progressArea">
+                <div class="progress-text" id="progressText">処理中...</div>
+                <div class="progress-bar-wrap">
+                    <div class="progress-bar" id="progressBar">0%</div>
+                </div>
+                <div class="progress-log" id="progressLog"></div>
+            </div>
+            <div class="result-area" id="resultArea"></div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 設定 ==========
+        var APPS_SCRIPT_API_URL = 'https://script.google.com/macros/s/AKfycbyYnnni3ww8q2KJIPom0ljkVjseQuPMGULQq2lHh21BN63EwLECb_6XsEX9yMpPG_Ri/exec';
+
+        // ========== 状態 ==========
+        var selectedFile = null;
+        var pdfBytes = null;
+        var pdfDoc = null;
+        var totalPages = 0;
+        var isProcessing = false;
+
+        // ========== ファイル選択 ==========
+        var dropZone = document.getElementById('dropZone');
+        var fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', function() {
+            dropZone.classList.remove('dragover');
+        });
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            var files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type === 'application/pdf') {
+                handleFile(files[0]);
+            }
+        });
+        fileInput.addEventListener('change', function() {
+            if (fileInput.files.length > 0) {
+                handleFile(fileInput.files[0]);
+            }
+        });
+
+        async function handleFile(file) {
+            selectedFile = file;
+            var arrayBuffer = await file.arrayBuffer();
+            pdfBytes = new Uint8Array(arrayBuffer);
+
+            try {
+                pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+                totalPages = pdfDoc.getPageCount();
+            } catch (err) {
+                alert('PDFの読み込みに失敗しました: ' + err.message);
+                return;
+            }
+
+            // ファイル情報を表示
+            document.getElementById('infoName').textContent = file.name;
+            document.getElementById('infoSize').textContent = formatFileSize(file.size);
+
+            var chunkCount = Math.ceil(totalPages / 2);
+            var pagesHtml = totalPages + ' ページ';
+            if (totalPages % 2 !== 0) {
+                pagesHtml += ' <span class="warn">⚠️ 奇数ページ（最後の1件は1ページになります）</span>';
+            }
+            document.getElementById('infoPages').innerHTML = pagesHtml;
+            document.getElementById('infoChunks').innerHTML = '<span class="ok">' + chunkCount + ' ファイル</span>に分割';
+
+            document.getElementById('fileInfo').className = 'file-info visible';
+            document.getElementById('settingsSection').className = 'section settings visible';
+            document.getElementById('executeSection').className = 'section execute visible';
+
+            // プレフィックスをファイル名から推測
+            var stem = file.name.replace(/\.[^.]+$/, '').replace(/\s*\(\d+\)\s*$/, '');
+            // 長すぎる場合は短縮
+            if (stem.length > 20) stem = stem.substring(0, 20);
+            document.getElementById('prefix').value = stem;
+
+            updatePreview();
+        }
+
+        // ========== プレビュー ==========
+        function getOutputFiles() {
+            var prefix = document.getElementById('prefix').value || 'SCAN';
+            var startNum = parseInt(document.getElementById('startNum').value) || 1;
+            var digits = parseInt(document.getElementById('digits').value) || 3;
+            var files = [];
+
+            for (var i = 0; i < totalPages; i += 2) {
+                var num = startNum + Math.floor(i / 2);
+                var numStr = String(num).padStart(digits, '0');
+                var pageStart = i + 1;
+                var pageEnd = Math.min(i + 2, totalPages);
+                var isOdd = (pageEnd - pageStart + 1) === 1;
+                files.push({
+                    fileName: prefix + numStr + '.PDF',
+                    pageStart: pageStart,
+                    pageEnd: pageEnd,
+                    pageIndices: pageEnd > pageStart ? [i, i + 1] : [i],
+                    isOdd: isOdd
+                });
+            }
+            return files;
+        }
+
+        function updatePreview() {
+            if (totalPages === 0) return;
+            var files = getOutputFiles();
+            var html = '';
+            for (var i = 0; i < files.length; i++) {
+                var f = files[i];
+                var cls = f.isOdd ? 'preview-item odd' : 'preview-item';
+                var pageLabel = f.isOdd
+                    ? 'p' + f.pageStart + '（1ページのみ）'
+                    : 'p' + f.pageStart + '-' + f.pageEnd;
+                html += '<div class="' + cls + '">' +
+                    '<span class="num">' + (i + 1) + '.</span>' +
+                    '<span class="name">' + f.fileName + '</span>' +
+                    '<span class="pages">' + pageLabel + '</span>' +
+                    '</div>';
+            }
+            document.getElementById('previewList').innerHTML = html;
+        }
+
+        // ========== 分割してアップロード ==========
+        async function splitAndUpload() {
+            if (isProcessing || !pdfDoc) return;
+            isProcessing = true;
+            var files = getOutputFiles();
+
+            if (!confirm(files.length + '個のPDFファイルに分割してGoogle Driveにアップロードします。\n\nよろしいですか？')) {
+                isProcessing = false;
+                return;
+            }
+
+            setButtonsDisabled(true);
+            showProgress();
+
+            var successCount = 0;
+            var errorCount = 0;
+
+            for (var i = 0; i < files.length; i++) {
+                var f = files[i];
+                var pct = Math.round((i / files.length) * 100);
+                setProgress(pct, '(' + (i + 1) + '/' + files.length + ') ' + f.fileName + ' を作成・アップロード中...');
+
+                try {
+                    // PDFを作成
+                    var newPdf = await PDFLib.PDFDocument.create();
+                    var copiedPages = await newPdf.copyPages(pdfDoc, f.pageIndices);
+                    for (var p = 0; p < copiedPages.length; p++) {
+                        newPdf.addPage(copiedPages[p]);
+                    }
+                    var newPdfBytes = await newPdf.save();
+
+                    // Base64に変換
+                    var base64 = uint8ArrayToBase64(newPdfBytes);
+
+                    // GASにアップロード
+                    await gasPost({
+                        action: 'uploadSplitPdf',
+                        pdfBase64: base64,
+                        fileName: f.fileName
+                    });
+
+                    addLog('ok', '[OK] ' + f.fileName + ' アップロード完了');
+                    successCount++;
+                } catch (err) {
+                    addLog('err', '[ERR] ' + f.fileName + ': ' + err.message);
+                    errorCount++;
+                }
+            }
+
+            setProgress(100, '完了: ' + successCount + '件成功' + (errorCount > 0 ? ' / ' + errorCount + '件エラー' : ''));
+            showResult(errorCount === 0 ? 'success' : 'error',
+                successCount + '個のPDFファイルをGoogle Driveにアップロードしました。' +
+                (errorCount > 0 ? '（' + errorCount + '件エラー）' : ''));
+
+            setButtonsDisabled(false);
+            isProcessing = false;
+        }
+
+        // ========== 分割してダウンロード ==========
+        async function splitAndDownload() {
+            if (isProcessing || !pdfDoc) return;
+            isProcessing = true;
+            var files = getOutputFiles();
+
+            setButtonsDisabled(true);
+            showProgress();
+
+            var successCount = 0;
+
+            for (var i = 0; i < files.length; i++) {
+                var f = files[i];
+                var pct = Math.round((i / files.length) * 100);
+                setProgress(pct, '(' + (i + 1) + '/' + files.length + ') ' + f.fileName + ' を作成中...');
+
+                try {
+                    var newPdf = await PDFLib.PDFDocument.create();
+                    var copiedPages = await newPdf.copyPages(pdfDoc, f.pageIndices);
+                    for (var p = 0; p < copiedPages.length; p++) {
+                        newPdf.addPage(copiedPages[p]);
+                    }
+                    var newPdfBytes = await newPdf.save();
+
+                    // ダウンロード
+                    var blob = new Blob([newPdfBytes], { type: 'application/pdf' });
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = f.fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                    addLog('ok', '[OK] ' + f.fileName + ' ダウンロード完了');
+                    successCount++;
+
+                    // ブラウザのダウンロード制限回避のため少し待つ
+                    await sleep(300);
+                } catch (err) {
+                    addLog('err', '[ERR] ' + f.fileName + ': ' + err.message);
+                }
+            }
+
+            setProgress(100, '完了: ' + successCount + '件ダウンロード');
+            showResult('success', successCount + '個のPDFファイルをダウンロードしました。');
+            setButtonsDisabled(false);
+            isProcessing = false;
+        }
+
+        // ========== GAS POST (iframe + form) ==========
+        function gasPost(payload) {
+            return new Promise(function(resolve, reject) {
+                var iframeName = 'postFrame_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                var iframe = document.createElement('iframe');
+                iframe.name = iframeName;
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = APPS_SCRIPT_API_URL;
+                form.target = iframeName;
+                form.style.display = 'none';
+
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'payload';
+                input.value = JSON.stringify(payload);
+                form.appendChild(input);
+                document.body.appendChild(form);
+
+                var timeoutId = setTimeout(function() {
+                    cleanup();
+                    resolve({ success: true, data: { message: '送信完了（タイムアウト方式）' } });
+                }, 90000);
+
+                iframe.onload = function() {
+                    clearTimeout(timeoutId);
+                    try {
+                        var responseText = iframe.contentDocument
+                            ? iframe.contentDocument.body.textContent
+                            : iframe.contentWindow.document.body.textContent;
+                        if (responseText) {
+                            var parsed = JSON.parse(responseText);
+                            cleanup();
+                            resolve(parsed);
+                            return;
+                        }
+                    } catch (e) { /* CSP制約でiframe読み取り不可 */ }
+                    cleanup();
+                    resolve({ success: true, data: { message: '送信完了' } });
+                };
+
+                function cleanup() {
+                    if (form.parentNode) document.body.removeChild(form);
+                    setTimeout(function() {
+                        if (iframe.parentNode) document.body.removeChild(iframe);
+                    }, 1000);
+                }
+
+                form.submit();
+            });
+        }
+
+        // ========== ユーティリティ ==========
+        function uint8ArrayToBase64(bytes) {
+            var binary = '';
+            var CHUNK = 8192;
+            for (var i = 0; i < bytes.length; i += CHUNK) {
+                var slice = bytes.subarray(i, Math.min(i + CHUNK, bytes.length));
+                binary += String.fromCharCode.apply(null, slice);
+            }
+            return btoa(binary);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function sleep(ms) {
+            return new Promise(function(resolve) { setTimeout(resolve, ms); });
+        }
+
+        // ========== UI ヘルパー ==========
+        function setButtonsDisabled(disabled) {
+            document.getElementById('btnUpload').disabled = disabled;
+            document.getElementById('btnDownload').disabled = disabled;
+        }
+
+        function showProgress() {
+            document.getElementById('progressArea').className = 'progress-area visible';
+            document.getElementById('progressLog').innerHTML = '';
+            document.getElementById('resultArea').className = 'result-area';
+        }
+
+        function setProgress(pct, text) {
+            document.getElementById('progressBar').style.width = pct + '%';
+            document.getElementById('progressBar').textContent = pct + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+
+        function addLog(type, text) {
+            var log = document.getElementById('progressLog');
+            var div = document.createElement('div');
+            div.className = 'log-' + type;
+            div.textContent = text;
+            log.appendChild(div);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function showResult(type, text) {
+            var area = document.getElementById('resultArea');
+            area.textContent = text;
+            area.className = 'result-area visible ' + type;
+        }
+    </script>
+</body>
+</html>
