@@ -170,6 +170,16 @@ function doGet(e) {
       case 'getQuestionRects':
         result = { success: true, data: getQuestionRects() };
         break;
+      // ========== PDF結合（ページ数取得・base64取得・ファイルゴミ箱移動） ==========
+      case 'getPdfPageCount':
+        result = { success: true, data: getPdfPageCount(e.parameter.fileId) };
+        break;
+      case 'getPdfBase64':
+        result = { success: true, data: getPdfBase64(e.parameter.fileId) };
+        break;
+      case 'trashDriveFile':
+        result = { success: true, data: trashDriveFile(e.parameter.fileId) };
+        break;
       default:
         result = { success: false, error: 'Unknown action' };
     }
@@ -530,6 +540,10 @@ function doPost(e) {
       case 'saveQuestionRects':
         result = { success: true, data: saveQuestionRects(body.rects) };
         break;
+      // ========== PDF分割アップロード ==========
+      case 'uploadSplitPdf':
+        result = { success: true, data: uploadSplitPdf(body) };
+        break;
       default:
         result = { success: false, error: 'Unknown action: ' + action };
     }
@@ -564,13 +578,22 @@ function addSurveyResponse(data) {
       }
     }
   }
+  // Q14/Q15列が存在しない場合は自動追加
+  if (data['抜去位置'] !== undefined && data['抜去位置'] !== '' && headers.indexOf('抜去位置') < 0) {
+    addExtractionPositionColumn();
+  }
+  if (data['コメント'] !== undefined && data['コメント'] !== '' && headers.indexOf('コメント') < 0) {
+    addCommentColumn();
+  }
+  // 列追加後のヘッダーを再取得（追加があった場合）
+  const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   // ヘッダーの順序に合わせてデータ配列を構築
-  const newRow = lastRow + 1;
-  const rowData = headers.map(header => {
+  const newRow = sheet.getLastRow() + 1;
+  const rowData = currentHeaders.map(header => {
     if (header === 'No.') {
       // 通し番号を自動採番（既存データの最大No. + 1）
       if (lastRow > 1) {
-        const noColIndex = headers.indexOf('No.');
+        const noColIndex = currentHeaders.indexOf('No.');
         const existingNos = sheet.getRange(2, noColIndex + 1, lastRow - 1, 1).getValues();
         let maxNo = 0;
         for (let i = 0; i < existingNos.length; i++) {
@@ -595,7 +618,7 @@ function addSurveyResponse(data) {
   // 最終行の次に追加
   sheet.getRange(newRow, 1, 1, rowData.length).setValues([rowData]);
   // No.列の表示形式を数値に設定（日付表示防止）
-  const noColIdx = headers.indexOf('No.');
+  const noColIdx = currentHeaders.indexOf('No.');
   if (noColIdx >= 0) {
     sheet.getRange(newRow, noColIdx + 1).setNumberFormat('@');
   }
@@ -613,7 +636,7 @@ function addSurveyResponse(data) {
     }
     saveJsonToGoogleDrive(jsonData, newRow);
     // JSON作成済みフラグを設定
-    const jsonColIndex = headers.indexOf(JSON_CREATED_COLUMN_NAME);
+    const jsonColIndex = currentHeaders.indexOf(JSON_CREATED_COLUMN_NAME);
     if (jsonColIndex >= 0) {
       sheet.getRange(newRow, jsonColIndex + 1).setValue('済');
     }
@@ -1039,6 +1062,42 @@ function addExtractionPositionColumn() {
     const newCol = sheet.getLastColumn() + 1;
     sheet.getRange(1, newCol).setValue('抜去位置');
     Logger.log('末尾に「抜去位置」列を追加しました（列' + newCol + '）');
+  }
+}
+
+/**
+ * 「抜去位置」列の右に「コメント」列を追加する
+ * 既に存在する場合はスキップ
+ */
+function addCommentColumn() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName(RESPONSE_SHEET_NAME);
+  if (!sheet) {
+    Logger.log('回答シートが見つかりません: ' + RESPONSE_SHEET_NAME);
+    return;
+  }
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  if (headers.indexOf('コメント') >= 0) {
+    Logger.log('「コメント」列は既に存在します。');
+    return;
+  }
+  // まず「抜去位置」列がなければ作成
+  if (headers.indexOf('抜去位置') < 0) {
+    addExtractionPositionColumn();
+  }
+  // ヘッダーを再取得
+  const updatedHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const extColIndex = updatedHeaders.indexOf('抜去位置');
+  if (extColIndex >= 0) {
+    // 「抜去位置」の右に列を挿入
+    sheet.insertColumnAfter(extColIndex + 1);
+    sheet.getRange(1, extColIndex + 2).setValue('コメント');
+    Logger.log('「抜去位置」の右に「コメント」列を追加しました（列' + (extColIndex + 2) + '）');
+  } else {
+    // 末尾に追加
+    const newCol = sheet.getLastColumn() + 1;
+    sheet.getRange(1, newCol).setValue('コメント');
+    Logger.log('末尾に「コメント」列を追加しました（列' + newCol + '）');
   }
 }
 
@@ -2972,4 +3031,105 @@ function saveQuestionRects(rects) {
   var rectsJson = JSON.stringify(rects || {});
   props.setProperty('webOcrQuestionRects', rectsJson);
   return { saved: true, count: Object.keys(rects || {}).length };
+}
+
+// ========== PDF分割関連 ==========
+
+/**
+ * PDFのページ数を取得
+ * PDFバイナリを読み込み、/Type /Pages 辞書の /Count N をパースして返す
+ * @param {string} fileId - Google DriveのファイルID
+ * @returns {Object} { fileId, fileName, pageCount }
+ */
+function getPdfPageCount(fileId) {
+  if (!fileId) return { fileId: '', fileName: '', pageCount: -1 };
+  try {
+    var file = DriveApp.getFileById(fileId);
+    var blob = file.getBlob();
+    var content = blob.getDataAsString('ISO-8859-1');
+    var pageCount = 0;
+
+    // Method 1: /Type /Pages 辞書の /Count N（順方向、500文字以内で探す）
+    // [^>]*? ではなく [\s\S]{0,500}? を使い、ネストされた辞書の > を越えて検索
+    var re1 = /\/Type\s*\/Pages\b[\s\S]{0,500}?\/Count\s+(\d+)/g;
+    var match;
+    while ((match = re1.exec(content)) !== null) {
+      var c = parseInt(match[1], 10);
+      if (c > pageCount) pageCount = c;
+    }
+
+    // Method 2: /Count が /Type /Pages より先に来るパターン（逆順の辞書構造）
+    if (pageCount === 0) {
+      var re2 = /\/Count\s+(\d+)[\s\S]{0,500}?\/Type\s*\/Pages\b/g;
+      while ((match = re2.exec(content)) !== null) {
+        var c = parseInt(match[1], 10);
+        if (c > pageCount) pageCount = c;
+      }
+    }
+
+    // Method 3: フォールバック - /Type /Page（/Pagesではない）の出現回数をカウント
+    if (pageCount === 0) {
+      var pageMatches = content.match(/\/Type\s*\/Page\b(?!s)/g);
+      pageCount = pageMatches ? pageMatches.length : 0;
+    }
+
+    return { fileId: fileId, fileName: file.getName(), pageCount: pageCount };
+  } catch (err) {
+    return { fileId: fileId, fileName: '', pageCount: -1, error: err.message };
+  }
+}
+
+/**
+ * 分割されたPDFをGoogle Driveの元PDFフォルダにアップロード
+ * @param {Object} body - { pdfBase64: string, fileName: string }
+ * @returns {Object} { success: true, fileId, fileName }
+ */
+function uploadSplitPdf(body) {
+  if (!body.pdfBase64 || !body.fileName) {
+    return { success: false, message: 'pdfBase64とfileNameが必要です' };
+  }
+  try {
+    var folder = DriveApp.getFolderById(SCAN_PDF_FOLDER_ID);
+    var bytes = Utilities.base64Decode(body.pdfBase64);
+    var blob = Utilities.newBlob(bytes, MimeType.PDF, body.fileName);
+    var file = folder.createFile(blob);
+    return { success: true, fileId: file.getId(), fileName: file.getName(), fileSize: file.getSize() };
+  } catch (err) {
+    return { success: false, message: 'アップロードエラー: ' + err.message };
+  }
+}
+
+/**
+ * PDFファイルのバイナリをbase64エンコードして返す（JSONP経由でCORS回避）
+ * @param {string} fileId - Google DriveのファイルID
+ * @returns {Object} { fileId, fileName, base64 }
+ */
+function getPdfBase64(fileId) {
+  if (!fileId) return { fileId: '', fileName: '', base64: '', error: 'fileIdが必要です' };
+  try {
+    var file = DriveApp.getFileById(fileId);
+    var blob = file.getBlob();
+    var bytes = blob.getBytes();
+    var base64 = Utilities.base64Encode(bytes);
+    return { fileId: fileId, fileName: file.getName(), base64: base64 };
+  } catch (err) {
+    return { fileId: fileId, fileName: '', base64: '', error: err.message };
+  }
+}
+
+/**
+ * Google Driveのファイルをゴミ箱に移動（復元可能）
+ * @param {string} fileId - Google DriveのファイルID
+ * @returns {Object} { success: true, message }
+ */
+function trashDriveFile(fileId) {
+  if (!fileId) return { success: false, message: 'fileIdが必要です' };
+  try {
+    var file = DriveApp.getFileById(fileId);
+    var fileName = file.getName();
+    file.setTrashed(true);
+    return { success: true, message: fileName + ' をゴミ箱に移動しました' };
+  } catch (err) {
+    return { success: false, message: 'ゴミ箱移動エラー: ' + err.message };
+  }
 }

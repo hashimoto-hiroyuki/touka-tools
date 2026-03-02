@@ -757,7 +757,7 @@
 
     // Q14: 抜去位置の保存用フォーマット
     function formatToothForSave(val) {
-        if (!val) return '';
+        if (!val || val === 'none') return '';
         if (typeof val === 'string') return val;
         if (typeof val === 'object') {
             // 3行フォーマット: { 行1: {左右,上下,番号}, 行2: ..., 行3: ... }
