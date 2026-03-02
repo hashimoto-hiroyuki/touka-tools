@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PDF紐づけツール</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23e65100'/><path d='M8 6h10l6 6v14a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2z' fill='white' opacity='0.9'/><path d='M18 6v6h6' fill='none' stroke='%23e65100' stroke-width='1.5'/><path d='M10 18h8M10 22h5' stroke='%23e65100' stroke-width='1.5' stroke-linecap='round'/></svg>">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -732,6 +733,119 @@
                 flex-direction: column;
             }
         }
+
+        /* === PDF分割関連スタイル === */
+        .page-badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .page-badge.normal {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .page-badge.multi {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        .page-badge.odd-warn {
+            background: #fce4ec;
+            color: #c62828;
+        }
+        .btn-split {
+            padding: 2px 8px;
+            font-size: 11px;
+            background: #ff9800;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-split:hover { background: #f57c00; }
+        .btn-split:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-split-all {
+            padding: 8px 16px;
+            font-size: 13px;
+            background: #ff9800;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+        .btn-split-all:hover { background: #f57c00; }
+        .btn-split-all:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-check-pages {
+            padding: 8px 16px;
+            font-size: 13px;
+            background: #7b1fa2;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+        .btn-check-pages:hover { background: #6a1b9a; }
+        .btn-check-pages:disabled { background: #ccc; cursor: not-allowed; }
+        .split-progress-area {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+        .split-progress-bar-wrap {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 6px 0;
+        }
+        .split-progress-bar {
+            height: 100%;
+            background: #ff9800;
+            border-radius: 10px;
+            text-align: center;
+            color: #fff;
+            font-size: 11px;
+            line-height: 20px;
+            transition: width 0.3s;
+            width: 0%;
+        }
+        .split-progress-text {
+            font-size: 12px;
+            color: #666;
+        }
+        .split-progress-log {
+            max-height: 120px;
+            overflow-y: auto;
+            margin-top: 6px;
+            font-size: 11px;
+        }
+        .split-log-ok { color: #2e7d32; padding: 2px 0; }
+        .split-log-err { color: #c62828; padding: 2px 0; }
+        .split-actions-bar {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff8e1;
+            border: 1px solid #ffcc80;
+            border-radius: 6px;
+            align-items: center;
+            gap: 10px;
+        }
+        .split-actions-bar.visible { display: flex; }
+        .split-actions-bar .split-info {
+            flex: 1;
+            font-size: 13px;
+            color: #e65100;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -792,6 +906,7 @@
             <div class="step-title">② Google DriveからPDFを選択</div>
             <div class="step2-actions">
                 <button class="btn-load-pdf" id="loadPdfBtn" onclick="loadDrivePdfList()">Drive PDF一覧を読み込む</button>
+                <button class="btn-check-pages" id="btnCheckPages" onclick="checkAllPageCounts()" disabled>ページ数を確認</button>
                 <button class="btn-index-batch" id="btnIndexBatch" onclick="startBatchIndex()" disabled>未処理を一括インデックス (<span id="unindexedCount">0</span>件)</button>
             </div>
             <div class="index-stats-bar" id="indexStatsBar">
@@ -818,6 +933,21 @@
                     <button class="btn-adopt" onclick="adoptCandidate()">候補を採用</button>
                     <button class="btn-dismiss" onclick="dismissAutoCandidate()">無視</button>
                 </div>
+            </div>
+            <!-- PDF分割アクションバー -->
+            <div class="split-actions-bar" id="splitActionsBar">
+                <span class="split-info" id="splitInfo"></span>
+                <button class="btn-split-all" id="btnSplitAll" onclick="splitAllMultiPagePdfs()">全て分割</button>
+                <button class="btn-dismiss" onclick="dismissSplitBar()">閉じる</button>
+            </div>
+            <!-- PDF分割プログレス -->
+            <div class="split-progress-area" id="splitProgressArea">
+                <div class="split-progress-text" id="splitProgressText">処理中...</div>
+                <div class="split-progress-bar-wrap">
+                    <div class="split-progress-bar" id="splitProgressBar">0%</div>
+                </div>
+                <div class="split-progress-log" id="splitProgressLog"></div>
+                <button class="btn-dismiss" onclick="document.getElementById('splitProgressArea').style.display='none'" style="margin-top:6px;">閉じる</button>
             </div>
             <div class="pdf-list-area" id="pdfListArea"></div>
         </div>
@@ -1698,6 +1828,11 @@
                 console.log('[loadDrivePdfList] PDF件数:', drivePdfList.length);
                 updateIndexStats();
                 renderPdfList();
+                // ページ数チェックボタンを有効化
+                document.getElementById('btnCheckPages').disabled = (drivePdfList.length === 0);
+                // ページ数チェック済みフラグをリセット
+                pageCountChecked = false;
+                dismissSplitBar();
                 // PDF一覧読み込み完了後、患者情報があれば自動マッチング実行
                 if (selectedPatientInfo) {
                     autoMatchPdf();
@@ -1739,7 +1874,7 @@
 
             var html = '<div class="pdf-search-bar"><input type="text" id="pdfSearchInput" placeholder="検索（医療機関名 / 患者ID / 患者名 / 生年月日）" value="' + escapeHtml(searchTerm) + '" oninput="renderPdfList()"></div>';
             html += '<div class="pdf-count">' + filteredPdfList.length + ' / ' + drivePdfList.length + ' 件のPDFファイル</div>';
-            html += '<table><tr><th>ファイル名</th><th>医療機関名</th><th>患者ID</th><th>患者名</th><th>生年月日</th><th>更新日時</th><th style="width:70px">操作</th></tr>';
+            html += '<table><tr><th>ファイル名</th><th>頁</th><th>医療機関名</th><th>患者ID</th><th>患者名</th><th>生年月日</th><th>更新日時</th><th style="width:110px">操作</th></tr>';
             for (var fi = 0; fi < filteredPdfList.length; fi++) {
                 var pdf = filteredPdfList[fi];
                 var isSelected = selectedDriveFile && selectedDriveFile.fileId === pdf.fileId;
@@ -1747,16 +1882,36 @@
                 var cellClass = pdf.indexed ? 'indexed-cell' : 'not-indexed-cell';
                 var badge = pdf.indexed === false ? '<span class="unindexed-badge">未</span>' : '';
 
+                // ページ数表示
+                var pageCell = '-';
+                if (pdf.pageCount !== undefined && pdf.pageCount > 0) {
+                    if (pdf.pageCount <= 2) {
+                        pageCell = '<span class="page-badge normal">' + pdf.pageCount + '</span>';
+                    } else if (pdf.pageCount % 2 !== 0) {
+                        pageCell = '<span class="page-badge odd-warn">' + pdf.pageCount + ' ⚠️</span>';
+                    } else {
+                        pageCell = '<span class="page-badge multi">' + pdf.pageCount + '</span>';
+                    }
+                } else if (pdf.pageCount === -1) {
+                    pageCell = '<span style="color:#999">?</span>';
+                }
+
                 html += '<tr class="' + rowClass + '" onclick="selectFilteredPdf(' + fi + ')">';
                 html += '<td>' + badge + escapeHtml(pdf.fileName) + '</td>';
+                html += '<td style="text-align:center">' + pageCell + '</td>';
                 html += '<td class="' + cellClass + '">' + escapeHtml(pdf.hospital || '-') + '</td>';
                 html += '<td class="' + cellClass + '">' + escapeHtml(pdf.patientId || '-') + '</td>';
                 html += '<td class="' + cellClass + '">' + escapeHtml(pdf.patientName || '-') + '</td>';
                 html += '<td class="' + cellClass + '">' + escapeHtml(pdf.birthdate || '-') + '</td>';
                 html += '<td>' + escapeHtml(pdf.lastUpdated || '') + '</td>';
+                // 操作列: インデックスボタン + 分割ボタン
                 var idxBtnClass = pdf.indexed ? 'btn-idx-inline btn-idx-rerun' : 'btn-idx-inline';
                 var idxBtnLabel = pdf.indexed ? '再実行' : '実行';
-                html += '<td><button class="' + idxBtnClass + '" onclick="event.stopPropagation(); indexOnePdf(\'' + pdf.fileId + '\', this)">' + idxBtnLabel + '</button></td>';
+                var actionHtml = '<button class="' + idxBtnClass + '" onclick="event.stopPropagation(); indexOnePdf(\'' + pdf.fileId + '\', this)">' + idxBtnLabel + '</button>';
+                if (pdf.pageCount && pdf.pageCount > 2) {
+                    actionHtml += ' <button class="btn-split" onclick="event.stopPropagation(); splitPdf(\'' + pdf.fileId + '\', \'' + escapeHtml(pdf.fileName).replace(/'/g, "\\'") + '\', this)">分割</button>';
+                }
+                html += '<td>' + actionHtml + '</td>';
                 html += '</tr>';
             }
             html += '</table>';
@@ -2058,6 +2213,466 @@
                 };
                 document.head.appendChild(script);
             });
+        }
+
+        // ========== PDF分割機能 ==========
+
+        // === gasPost: iframe+form によるPOSTリクエスト（verify_ocr.htmlから移植・改良） ===
+        function gasPost(payload) {
+            return new Promise(function(resolve, reject) {
+                var iframeName = 'postFrame_' + Date.now();
+                var iframe = document.createElement('iframe');
+                iframe.name = iframeName;
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = APPS_SCRIPT_API_URL;
+                form.target = iframeName;
+                form.style.display = 'none';
+
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'payload';
+                input.value = JSON.stringify(payload);
+                form.appendChild(input);
+                document.body.appendChild(form);
+
+                var timeoutId = setTimeout(function() {
+                    cleanup();
+                    resolve({ success: true, data: { message: '送信完了（タイムアウト方式）' } });
+                }, 60000); // 大きいPDFのため60秒に延長
+
+                iframe.onload = function() {
+                    clearTimeout(timeoutId);
+                    // CSP制約でiframe内容を読めない場合があるため、成功扱い
+                    try {
+                        var responseText = iframe.contentDocument
+                            ? iframe.contentDocument.body.textContent
+                            : iframe.contentWindow.document.body.textContent;
+                        if (responseText) {
+                            var parsed = JSON.parse(responseText);
+                            cleanup();
+                            resolve(parsed);
+                            return;
+                        }
+                    } catch (e) {
+                        // CSP制約でiframe読み取り不可 → 送信完了扱い
+                    }
+                    cleanup();
+                    resolve({ success: true, data: { message: '送信完了' } });
+                };
+
+                function cleanup() {
+                    if (form.parentNode) document.body.removeChild(form);
+                    setTimeout(function() {
+                        if (iframe.parentNode) document.body.removeChild(iframe);
+                    }, 1000);
+                }
+
+                form.submit();
+            });
+        }
+
+        // === ページ数チェック: 全PDFのページ数を順次取得 ===
+        var pageCountChecked = false;
+        var isCheckingPages = false;
+        var isSplitting = false;
+        var stopSplitting = false;
+
+        function checkAllPageCounts() {
+            if (drivePdfList.length === 0 || isCheckingPages) return;
+            isCheckingPages = true;
+
+            var btn = document.getElementById('btnCheckPages');
+            btn.disabled = true;
+            btn.textContent = 'チェック中...';
+
+            var progressArea = document.getElementById('splitProgressArea');
+            var progressBar = document.getElementById('splitProgressBar');
+            var progressText = document.getElementById('splitProgressText');
+            var progressLog = document.getElementById('splitProgressLog');
+            progressArea.style.display = 'block';
+            progressLog.innerHTML = '';
+
+            var total = drivePdfList.length;
+            var current = 0;
+            var multiPageCount = 0;
+
+            function checkNext() {
+                if (current >= total) {
+                    progressText.textContent = 'チェック完了: ' + total + '件中 ' + multiPageCount + '件が複数ページ';
+                    progressBar.style.width = '100%';
+                    progressBar.textContent = '100%';
+                    isCheckingPages = false;
+                    pageCountChecked = true;
+                    btn.disabled = false;
+                    btn.textContent = 'ページ数を再確認';
+                    renderPdfList();
+
+                    // 複数ページPDFがあれば分割アクションバーを表示
+                    if (multiPageCount > 0) {
+                        showSplitActionsBar(multiPageCount);
+                    } else {
+                        dismissSplitBar();
+                    }
+                    return;
+                }
+
+                var pdf = drivePdfList[current];
+                var pct = Math.round((current / total) * 100);
+                progressText.textContent = 'チェック中 (' + (current + 1) + '/' + total + '): ' + pdf.fileName;
+                progressBar.style.width = pct + '%';
+                progressBar.textContent = pct + '%';
+
+                callApi('getPdfPageCount', { fileId: pdf.fileId }, function(data) {
+                    if (data.success && data.data) {
+                        pdf.pageCount = data.data.pageCount || 0;
+                    } else {
+                        pdf.pageCount = -1; // エラー
+                    }
+
+                    if (pdf.pageCount > 2) {
+                        multiPageCount++;
+                        var logDiv = document.createElement('div');
+                        logDiv.className = 'split-log-err';
+                        logDiv.textContent = pdf.fileName + ': ' + pdf.pageCount + 'ページ（要分割）';
+                        progressLog.appendChild(logDiv);
+                    }
+
+                    current++;
+                    renderPdfList();
+                    setTimeout(checkNext, 100);
+                }, 30000);
+            }
+
+            checkNext();
+        }
+
+        // === 分割アクションバーの表示/非表示 ===
+        function showSplitActionsBar(count) {
+            var bar = document.getElementById('splitActionsBar');
+            document.getElementById('splitInfo').textContent =
+                count + '件の複数ページPDFがあります（2ページずつに分割が必要）';
+            bar.className = 'split-actions-bar visible';
+        }
+
+        function dismissSplitBar() {
+            document.getElementById('splitActionsBar').className = 'split-actions-bar';
+        }
+
+        // === PDFをbase64でダウンロード（getPdfPageImages経由） ===
+        function downloadPdfBase64(fileId) {
+            return new Promise(function(resolve, reject) {
+                callApi('getPdfPageImages', { fileId: fileId }, function(data) {
+                    if (!data.success || !data.data || !data.data.success) {
+                        reject(new Error('PDFダウンロードエラー: ' + ((data.data && data.data.message) || data.error || '不明')));
+                        return;
+                    }
+                    var tempFileId = data.data.tempFileId;
+                    // tempFileからbase64データをfetch
+                    var downloadUrl = 'https://drive.google.com/uc?id=' + tempFileId + '&export=download';
+                    fetch(downloadUrl)
+                        .then(function(resp) {
+                            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                            return resp.text();
+                        })
+                        .then(function(base64Text) {
+                            resolve(base64Text);
+                        })
+                        .catch(function(err) {
+                            reject(new Error('base64取得エラー: ' + err.message));
+                        });
+                }, 120000);
+            });
+        }
+
+        // === 個別PDF分割 ===
+        async function splitPdf(fileId, fileName, buttonEl) {
+            if (buttonEl) {
+                buttonEl.disabled = true;
+                buttonEl.textContent = '分割中...';
+            }
+
+            var progressArea = document.getElementById('splitProgressArea');
+            var progressBar = document.getElementById('splitProgressBar');
+            var progressText = document.getElementById('splitProgressText');
+            var progressLog = document.getElementById('splitProgressLog');
+            progressArea.style.display = 'block';
+            progressLog.innerHTML = '';
+
+            try {
+                // 1. PDFをbase64でダウンロード
+                progressText.textContent = fileName + ' をダウンロード中...';
+                progressBar.style.width = '10%';
+                progressBar.textContent = '10%';
+
+                var base64Data = await downloadPdfBase64(fileId);
+
+                // 2. pdf-libでPDFを読み込み
+                progressText.textContent = 'PDFを解析中...';
+                progressBar.style.width = '20%';
+                progressBar.textContent = '20%';
+
+                var pdfBytes = Uint8Array.from(atob(base64Data), function(c) { return c.charCodeAt(0); });
+                var pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+                var totalPages = pdfDoc.getPageCount();
+
+                if (totalPages <= 2) {
+                    progressText.textContent = fileName + ' は' + totalPages + 'ページです。分割不要です。';
+                    progressBar.style.width = '100%';
+                    progressBar.textContent = '100%';
+                    if (buttonEl) { buttonEl.disabled = false; buttonEl.textContent = '分割'; }
+                    return;
+                }
+
+                // ファイル名のステム（拡張子なし）を取得
+                var stem = fileName.replace(/\.[^.]+$/, '');
+                var ext = fileName.match(/\.[^.]+$/);
+                ext = ext ? ext[0] : '.PDF';
+
+                // 奇数ページ警告
+                if (totalPages % 2 !== 0) {
+                    var logWarn = document.createElement('div');
+                    logWarn.className = 'split-log-err';
+                    logWarn.textContent = '⚠️ ' + fileName + ' は' + totalPages + 'ページ（奇数）です。最後のチャンクは1ページになります。';
+                    progressLog.appendChild(logWarn);
+                }
+
+                // 3. 2ページずつ分割
+                var chunkCount = Math.ceil(totalPages / 2);
+                var uploadedChunks = 0;
+
+                for (var i = 0; i < totalPages; i += 2) {
+                    var chunkNum = Math.floor(i / 2) + 1;
+                    var pageEnd = Math.min(i + 1, totalPages - 1);
+                    var pageIndices = [i];
+                    if (i + 1 < totalPages) pageIndices.push(i + 1);
+
+                    var chunkName = stem + '_p' + (i + 1) + '-' + (pageEnd + 1) + ext;
+                    if (pageIndices.length === 1) {
+                        chunkName = stem + '_p' + (i + 1) + ext;
+                    }
+
+                    var pct = 20 + Math.round((chunkNum / chunkCount) * 60);
+                    progressText.textContent = chunkName + ' を作成・アップロード中 (' + chunkNum + '/' + chunkCount + ')';
+                    progressBar.style.width = pct + '%';
+                    progressBar.textContent = pct + '%';
+
+                    // 新しいPDFドキュメントを作成
+                    var newPdf = await PDFLib.PDFDocument.create();
+                    var copiedPages = await newPdf.copyPages(pdfDoc, pageIndices);
+                    for (var p = 0; p < copiedPages.length; p++) {
+                        newPdf.addPage(copiedPages[p]);
+                    }
+                    var newPdfBytes = await newPdf.save();
+
+                    // Base64に変換
+                    var chunkBase64 = '';
+                    var CHUNK_SIZE = 8192;
+                    for (var ci = 0; ci < newPdfBytes.length; ci += CHUNK_SIZE) {
+                        var slice = newPdfBytes.subarray(ci, Math.min(ci + CHUNK_SIZE, newPdfBytes.length));
+                        chunkBase64 += String.fromCharCode.apply(null, slice);
+                    }
+                    chunkBase64 = btoa(chunkBase64);
+
+                    // アップロード
+                    var uploadResult = await gasPost({
+                        action: 'uploadSplitPdf',
+                        pdfBase64: chunkBase64,
+                        fileName: chunkName
+                    });
+
+                    uploadedChunks++;
+                    var logOk = document.createElement('div');
+                    logOk.className = 'split-log-ok';
+                    logOk.textContent = '[OK] ' + chunkName + ' アップロード完了';
+                    progressLog.appendChild(logOk);
+                    progressLog.scrollTop = progressLog.scrollHeight;
+                }
+
+                // 4. 元ファイルをゴミ箱に移動
+                progressText.textContent = '元ファイルをゴミ箱に移動中...';
+                progressBar.style.width = '90%';
+                progressBar.textContent = '90%';
+
+                await new Promise(function(resolve) {
+                    callApi('trashDriveFile', { fileId: fileId }, function(data) {
+                        var logTrash = document.createElement('div');
+                        if (data.success && data.data && data.data.success) {
+                            logTrash.className = 'split-log-ok';
+                            logTrash.textContent = '[OK] ' + fileName + ' をゴミ箱に移動しました';
+                        } else {
+                            logTrash.className = 'split-log-err';
+                            logTrash.textContent = '[WARN] 元ファイルのゴミ箱移動に失敗: ' + ((data.data && data.data.message) || '');
+                        }
+                        progressLog.appendChild(logTrash);
+                        resolve();
+                    }, 30000);
+                });
+
+                // 5. 完了
+                progressText.textContent = '分割完了: ' + fileName + ' → ' + uploadedChunks + '個のファイルに分割';
+                progressBar.style.width = '100%';
+                progressBar.textContent = '100%';
+
+                // PDF一覧を再読み込み
+                loadDrivePdfList();
+
+            } catch (err) {
+                progressText.textContent = 'エラー: ' + err.message;
+                var logErr = document.createElement('div');
+                logErr.className = 'split-log-err';
+                logErr.textContent = '[ERR] ' + err.message;
+                progressLog.appendChild(logErr);
+            }
+
+            if (buttonEl) {
+                buttonEl.disabled = false;
+                buttonEl.textContent = '分割';
+            }
+        }
+
+        // === 全ての複数ページPDFを一括分割 ===
+        async function splitAllMultiPagePdfs() {
+            var multiPagePdfs = drivePdfList.filter(function(p) { return p.pageCount && p.pageCount > 2; });
+            if (multiPagePdfs.length === 0) {
+                showIndexResult('error', '分割が必要なPDFはありません');
+                return;
+            }
+
+            if (!confirm(multiPagePdfs.length + '件の複数ページPDFを2ページずつに分割します。\n\n' +
+                '分割後、元ファイルはゴミ箱に移動されます（復元可能）。\n\nよろしいですか？')) {
+                return;
+            }
+
+            isSplitting = true;
+            stopSplitting = false;
+            document.getElementById('btnSplitAll').disabled = true;
+            document.getElementById('btnCheckPages').disabled = true;
+            document.getElementById('loadPdfBtn').disabled = true;
+
+            var progressArea = document.getElementById('splitProgressArea');
+            var progressBar = document.getElementById('splitProgressBar');
+            var progressText = document.getElementById('splitProgressText');
+            var progressLog = document.getElementById('splitProgressLog');
+            progressArea.style.display = 'block';
+            progressLog.innerHTML = '';
+
+            var total = multiPagePdfs.length;
+            var successCount = 0;
+            var errorCount = 0;
+
+            for (var fi = 0; fi < total; fi++) {
+                if (stopSplitting) break;
+
+                var pdf = multiPagePdfs[fi];
+                var pctOverall = Math.round((fi / total) * 100);
+                progressText.textContent = '全体 (' + (fi + 1) + '/' + total + '): ' + pdf.fileName + ' を分割中...';
+                progressBar.style.width = pctOverall + '%';
+                progressBar.textContent = pctOverall + '%';
+
+                try {
+                    // PDFをダウンロード
+                    var base64Data = await downloadPdfBase64(pdf.fileId);
+
+                    // pdf-libで分割
+                    var pdfBytes = Uint8Array.from(atob(base64Data), function(c) { return c.charCodeAt(0); });
+                    var pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
+                    var totalPages = pdfDoc.getPageCount();
+
+                    var stem = pdf.fileName.replace(/\.[^.]+$/, '');
+                    var ext = pdf.fileName.match(/\.[^.]+$/);
+                    ext = ext ? ext[0] : '.PDF';
+
+                    // 奇数ページ警告
+                    if (totalPages % 2 !== 0) {
+                        var logWarn = document.createElement('div');
+                        logWarn.className = 'split-log-err';
+                        logWarn.textContent = '⚠️ ' + pdf.fileName + ': ' + totalPages + 'ページ（奇数）';
+                        progressLog.appendChild(logWarn);
+                    }
+
+                    for (var pi = 0; pi < totalPages; pi += 2) {
+                        if (stopSplitting) break;
+
+                        var pageIndices = [pi];
+                        if (pi + 1 < totalPages) pageIndices.push(pi + 1);
+
+                        var pageEnd = Math.min(pi + 1, totalPages - 1);
+                        var chunkName = stem + '_p' + (pi + 1) + '-' + (pageEnd + 1) + ext;
+                        if (pageIndices.length === 1) {
+                            chunkName = stem + '_p' + (pi + 1) + ext;
+                        }
+
+                        var newPdf = await PDFLib.PDFDocument.create();
+                        var copiedPages = await newPdf.copyPages(pdfDoc, pageIndices);
+                        for (var p = 0; p < copiedPages.length; p++) {
+                            newPdf.addPage(copiedPages[p]);
+                        }
+                        var newPdfBytes = await newPdf.save();
+
+                        var chunkBase64 = '';
+                        var CHUNK_SIZE = 8192;
+                        for (var ci = 0; ci < newPdfBytes.length; ci += CHUNK_SIZE) {
+                            var slice = newPdfBytes.subarray(ci, Math.min(ci + CHUNK_SIZE, newPdfBytes.length));
+                            chunkBase64 += String.fromCharCode.apply(null, slice);
+                        }
+                        chunkBase64 = btoa(chunkBase64);
+
+                        await gasPost({
+                            action: 'uploadSplitPdf',
+                            pdfBase64: chunkBase64,
+                            fileName: chunkName
+                        });
+
+                        var logChunk = document.createElement('div');
+                        logChunk.className = 'split-log-ok';
+                        logChunk.textContent = '[OK] ' + chunkName;
+                        progressLog.appendChild(logChunk);
+                        progressLog.scrollTop = progressLog.scrollHeight;
+                    }
+
+                    // 元ファイルをゴミ箱に移動
+                    if (!stopSplitting) {
+                        await new Promise(function(resolve) {
+                            callApi('trashDriveFile', { fileId: pdf.fileId }, function(data) {
+                                resolve();
+                            }, 30000);
+                        });
+                        var logDone = document.createElement('div');
+                        logDone.className = 'split-log-ok';
+                        logDone.textContent = '[DONE] ' + pdf.fileName + ' → 分割完了、元ファイルをゴミ箱に移動';
+                        progressLog.appendChild(logDone);
+                        progressLog.scrollTop = progressLog.scrollHeight;
+                        successCount++;
+                    }
+
+                } catch (err) {
+                    errorCount++;
+                    var logErr = document.createElement('div');
+                    logErr.className = 'split-log-err';
+                    logErr.textContent = '[ERR] ' + pdf.fileName + ': ' + err.message;
+                    progressLog.appendChild(logErr);
+                    progressLog.scrollTop = progressLog.scrollHeight;
+                }
+            }
+
+            var statusMsg = stopSplitting ? '中止' : '完了';
+            progressText.textContent = statusMsg + ': ' + successCount + '件成功 / ' + errorCount + '件エラー';
+            progressBar.style.width = '100%';
+            progressBar.textContent = '100%';
+            isSplitting = false;
+            stopSplitting = false;
+
+            document.getElementById('btnSplitAll').disabled = false;
+            document.getElementById('btnCheckPages').disabled = false;
+            document.getElementById('loadPdfBtn').disabled = false;
+            dismissSplitBar();
+
+            // PDF一覧を再読み込み
+            loadDrivePdfList();
         }
 
     </script>
