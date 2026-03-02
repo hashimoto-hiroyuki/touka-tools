@@ -2428,28 +2428,15 @@
             document.getElementById('splitActionsBar').className = 'split-actions-bar';
         }
 
-        // === PDFをbase64でダウンロード（getPdfPageImages経由） ===
+        // === PDFをbase64でダウンロード（GAS getPdfBase64 API経由、CORS回避） ===
         function downloadPdfBase64(fileId) {
             return new Promise(function(resolve, reject) {
-                callApi('getPdfPageImages', { fileId: fileId }, function(data) {
-                    if (!data.success || !data.data || !data.data.success) {
-                        reject(new Error('PDFダウンロードエラー: ' + ((data.data && data.data.message) || data.error || '不明')));
+                callApi('getPdfBase64', { fileId: fileId }, function(data) {
+                    if (!data.success || !data.data || !data.data.base64) {
+                        reject(new Error('PDFダウンロードエラー: ' + ((data.data && data.data.error) || data.error || '不明')));
                         return;
                     }
-                    var tempFileId = data.data.tempFileId;
-                    // tempFileからbase64データをfetch
-                    var downloadUrl = 'https://drive.google.com/uc?id=' + tempFileId + '&export=download';
-                    fetch(downloadUrl)
-                        .then(function(resp) {
-                            if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                            return resp.text();
-                        })
-                        .then(function(base64Text) {
-                            resolve(base64Text);
-                        })
-                        .catch(function(err) {
-                            reject(new Error('base64取得エラー: ' + err.message));
-                        });
+                    resolve(data.data.base64);
                 }, 120000);
             });
         }
