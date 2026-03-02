@@ -370,6 +370,50 @@
             border-bottom: 1px solid #e8ecf4;
             word-break: break-all;
         }
+        .compare-panel .detail-table-wrap-compare input[type="text"],
+        .compare-panel .detail-table-wrap-compare textarea {
+            width: 100%;
+            padding: 3px 6px;
+            border: 1px solid #d0d8f0;
+            border-radius: 4px;
+            font-size: 13px;
+            font-family: inherit;
+            box-sizing: border-box;
+            background: #fff;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .compare-panel .detail-table-wrap-compare input[type="text"]:focus,
+        .compare-panel .detail-table-wrap-compare textarea:focus {
+            border-color: #1976D2;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(25,118,210,0.15);
+        }
+        .detail-save-area {
+            padding: 10px;
+            text-align: center;
+            border-top: 1px solid #e8ecf4;
+            background: #f9fbff;
+            position: sticky;
+            bottom: 0;
+        }
+        .detail-save-btn {
+            padding: 8px 24px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+            background: #ccc;
+            border: none;
+            border-radius: 6px;
+            cursor: not-allowed;
+            transition: background 0.2s;
+        }
+        .detail-save-btn.active {
+            background: #4CAF50;
+            cursor: pointer;
+        }
+        .detail-save-btn.active:hover {
+            background: #388E3C;
+        }
         .pdf-preview-panel {
             border: 1px solid #ffcc80;
             border-radius: 8px;
@@ -1038,6 +1082,9 @@
         let selectedDriveFile = null; // { fileId, fileName }
         let isIndexing = false;   // 一括インデックス処理中フラグ
         let stopIndexing = false; // 一括処理中止フラグ
+        let detailOriginalData = {}; // 編集前の元データ
+        let detailHeaders = [];      // viewData のヘッダー配列
+        let detailSheetName = '';    // 対象シート名
 
         // === JSONP汎用API呼び出し（インデックス機能用） ===
         function callApi(action, params, callback, timeoutMs) {
@@ -1720,12 +1767,16 @@
                 }
 
                 var headers = result.data.headers;
+                detailHeaders = headers;
                 var noIdx = headers.indexOf('No.');
                 var found = false;
 
                 for (var i = 0; i < result.data.rows.length; i++) {
                     var row = result.data.rows[i];
                     if (String(row[noIdx]) === String(no)) {
+                        // シート名を保存
+                        var sheetIdx = headers.indexOf('シート名');
+                        detailSheetName = (sheetIdx >= 0 && row[sheetIdx]) ? String(row[sheetIdx]) : '';
                         wrap.innerHTML = buildDetailTable(headers, row);
                         found = true;
                         // 患者情報を抽出してPDF自動マッチング
@@ -1757,19 +1808,192 @@
             document.head.appendChild(detailScript);
         }
 
+        var READ_ONLY_COLUMNS = ['No.', 'タイムスタンプ', 'シート名'];
+
         function buildDetailTable(headers, row) {
+            detailOriginalData = {};
             var html = '<table>';
             for (var i = 0; i < headers.length; i++) {
-                var val = (row[i] !== undefined && row[i] !== null && row[i] !== '') ? String(row[i]) : '-';
-                html += '<tr><th>' + escapeHtml(headers[i]) + '</th><td>' + escapeHtml(val) + '</td></tr>';
+                var h = headers[i];
+                var val = (row[i] !== undefined && row[i] !== null && row[i] !== '') ? String(row[i]) : '';
+                detailOriginalData[h] = val;
+                var displayVal = val || '-';
+
+                if (READ_ONLY_COLUMNS.indexOf(h) >= 0) {
+                    html += '<tr><th>' + escapeHtml(h) + '</th><td>' + escapeHtml(displayVal) + '</td></tr>';
+                } else {
+                    var needTextarea = val.length > 40 || h.indexOf('コメント') >= 0 || h.indexOf('抜去位置') >= 0 || h.indexOf('その他') >= 0;
+                    var inputHtml;
+                    if (needTextarea) {
+                        inputHtml = '<textarea data-header="' + escapeHtml(h) + '" data-original="' + escapeHtml(val) + '" '
+                            + 'oninput="onDetailFieldChanged()" rows="2" '
+                            + 'style="resize:vertical;">' + escapeHtml(val) + '</textarea>';
+                    } else {
+                        inputHtml = '<input type="text" data-header="' + escapeHtml(h) + '" data-original="' + escapeHtml(val) + '" '
+                            + 'value="' + escapeHtml(val) + '" oninput="onDetailFieldChanged()">';
+                    }
+                    html += '<tr><th>' + escapeHtml(h) + '</th><td>' + inputHtml + '</td></tr>';
+                }
             }
             html += '</table>';
+            html += '<div class="detail-save-area">'
+                + '<button class="detail-save-btn" id="detailSaveBtn" onclick="saveDetailChanges()" disabled>保存</button>'
+                + '<span id="detailSaveStatus" style="margin-left:10px; font-size:12px; color:#888;"></span>'
+                + '</div>';
             return html;
         }
 
         function escapeHtml(str) {
             if (str === null || str === undefined) return '';
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // =============================================
+        // アンケート内容の編集・保存
+        // =============================================
+        function onDetailFieldChanged() {
+            var btn = document.getElementById('detailSaveBtn');
+            if (!btn) return;
+            var hasChanges = false;
+            var wrap = document.getElementById('compareDetailWrap');
+            var inputs = wrap.querySelectorAll('input[data-header], textarea[data-header]');
+            for (var i = 0; i < inputs.length; i++) {
+                var current = inputs[i].value;
+                var original = inputs[i].getAttribute('data-original') || '';
+                if (current !== original) {
+                    hasChanges = true;
+                    inputs[i].style.borderColor = '#ff9800';
+                    inputs[i].style.background = '#fff8e1';
+                } else {
+                    inputs[i].style.borderColor = '#d0d8f0';
+                    inputs[i].style.background = '#fff';
+                }
+            }
+            if (hasChanges) {
+                btn.disabled = false;
+                btn.classList.add('active');
+            } else {
+                btn.disabled = true;
+                btn.classList.remove('active');
+            }
+            document.getElementById('detailSaveStatus').textContent = hasChanges ? '変更あり' : '';
+        }
+
+        function saveDetailChanges() {
+            if (!selectedNo) { alert('No.が選択されていません'); return; }
+            var btn = document.getElementById('detailSaveBtn');
+            var status = document.getElementById('detailSaveStatus');
+
+            // 変更フィールドを収集
+            var wrap = document.getElementById('compareDetailWrap');
+            var inputs = wrap.querySelectorAll('input[data-header], textarea[data-header]');
+            var changes = {};
+            var changeCount = 0;
+            for (var i = 0; i < inputs.length; i++) {
+                var header = inputs[i].getAttribute('data-header');
+                var current = inputs[i].value;
+                var original = inputs[i].getAttribute('data-original') || '';
+                if (current !== original) {
+                    changes[header] = current;
+                    changeCount++;
+                }
+            }
+            if (changeCount === 0) return;
+
+            if (!confirm(changeCount + ' 件の変更を保存しますか？\n\nNo.' + selectedNo + ' のデータを更新します。')) return;
+
+            btn.disabled = true;
+            btn.classList.remove('active');
+            btn.textContent = '保存中...';
+            status.textContent = '';
+
+            var dataStr = encodeURIComponent(JSON.stringify(changes));
+            var params = { no: selectedNo, data: dataStr };
+            if (detailSheetName) params.sheetName = detailSheetName;
+
+            // URL長チェック（7000文字制限）
+            var testUrl = APPS_SCRIPT_API_URL + '?action=updateSurveyRow&no=' + selectedNo + '&data=' + dataStr;
+            if (testUrl.length < 7000) {
+                callApi('updateSurveyRow', params, function(result) {
+                    handleDetailSaveResult(result, inputs, btn, status);
+                }, 30000);
+            } else {
+                // POST フォールバック
+                postDetailSave(selectedNo, changes, function(result) {
+                    handleDetailSaveResult(result, inputs, btn, status);
+                });
+            }
+        }
+
+        function handleDetailSaveResult(result, inputs, btn, status) {
+            btn.textContent = '保存';
+            var innerResult = result.data || result;
+            if (result.success && innerResult.success) {
+                status.textContent = '✓ ' + (innerResult.message || '保存しました');
+                status.style.color = '#4CAF50';
+                // 元データを更新
+                for (var i = 0; i < inputs.length; i++) {
+                    inputs[i].setAttribute('data-original', inputs[i].value);
+                    inputs[i].style.borderColor = '#d0d8f0';
+                    inputs[i].style.background = '#fff';
+                }
+                btn.disabled = true;
+                btn.classList.remove('active');
+                setTimeout(function() { status.textContent = ''; }, 5000);
+            } else {
+                status.textContent = 'エラー: ' + (innerResult.message || result.error || '不明');
+                status.style.color = '#c62828';
+                btn.disabled = false;
+                btn.classList.add('active');
+            }
+        }
+
+        function postDetailSave(no, changes, callback) {
+            var iframeName = 'postFrame_' + Date.now();
+            var iframe = document.createElement('iframe');
+            iframe.name = iframeName;
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = APPS_SCRIPT_API_URL;
+            form.target = iframeName;
+
+            var payload = JSON.stringify({
+                action: 'updateSurveyRow',
+                no: no,
+                data: changes,
+                sheetName: detailSheetName || ''
+            });
+
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'payload';
+            input.value = payload;
+            form.appendChild(input);
+            document.body.appendChild(form);
+
+            var done = false;
+            iframe.onload = function() {
+                if (done) return;
+                done = true;
+                setTimeout(function() {
+                    callback({ success: true, data: { success: true, message: '送信完了' } });
+                    try { document.body.removeChild(iframe); } catch(e) {}
+                    try { document.body.removeChild(form); } catch(e) {}
+                }, 1000);
+            };
+
+            setTimeout(function() {
+                if (done) return;
+                done = true;
+                callback({ success: true, data: { success: true, message: '送信完了（応答確認不可）' } });
+                try { document.body.removeChild(iframe); } catch(e) {}
+                try { document.body.removeChild(form); } catch(e) {}
+            }, 30000);
+
+            form.submit();
         }
 
         function closeCompareView() {

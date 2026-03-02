@@ -180,6 +180,12 @@ function doGet(e) {
       case 'trashDriveFile':
         result = { success: true, data: trashDriveFile(e.parameter.fileId) };
         break;
+      case 'updateSurveyRow':
+        var rowNo = e.parameter.no;
+        var rowData = JSON.parse(decodeURIComponent(e.parameter.data));
+        var sheetName = e.parameter.sheetName || '';
+        result = { success: true, data: updateSurveyRow(rowNo, rowData, sheetName) };
+        break;
       default:
         result = { success: false, error: 'Unknown action' };
     }
@@ -543,6 +549,9 @@ function doPost(e) {
       // ========== PDF分割アップロード ==========
       case 'uploadSplitPdf':
         result = { success: true, data: uploadSplitPdf(body) };
+        break;
+      case 'updateSurveyRow':
+        result = { success: true, data: updateSurveyRow(body.no, body.data, body.sheetName || '') };
         break;
       default:
         result = { success: false, error: 'Unknown action: ' + action };
@@ -2157,6 +2166,77 @@ function updateExtractionPosition(targetNo, extractionPosition) {
     }
   }
   return { success: false, message: 'No.' + targetNo + ' が見つかりません' };
+}
+
+/**
+ * アンケート行の複数列を一括更新
+ * @param {number} targetNo - 対象のNo.
+ * @param {Object} data - { headerName: newValue, ... } 更新対象の列と値
+ * @param {string} sheetName - シート名（省略時はRESPONSE_SHEET_NAME）
+ * @returns {Object} 結果
+ */
+function updateSurveyRow(targetNo, data, sheetName) {
+  if (!targetNo || !data || typeof data !== 'object') {
+    return { success: false, message: 'パラメータが不足しています' };
+  }
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet;
+  if (sheetName) {
+    sheet = ss.getSheetByName(sheetName);
+    if (!sheet) return { success: false, message: 'シート「' + sheetName + '」が見つかりません' };
+  } else {
+    sheet = ss.getSheetByName(RESPONSE_SHEET_NAME);
+  }
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const lastRow = sheet.getLastRow();
+  const noCol = headers.indexOf('No.');
+
+  if (noCol < 0) return { success: false, message: 'No.列が見つかりません' };
+
+  // No.で対象行を検索
+  const noValues = sheet.getRange(2, noCol + 1, lastRow - 1, 1).getValues();
+  var targetRowIndex = -1;
+  for (var i = 0; i < noValues.length; i++) {
+    if (String(noValues[i][0]).trim() === String(targetNo).trim()) {
+      targetRowIndex = i;
+      break;
+    }
+  }
+  if (targetRowIndex < 0) {
+    return { success: false, message: 'No.' + targetNo + ' が見つかりません' };
+  }
+
+  var rowNum = targetRowIndex + 2; // 1-indexed + header
+  var updatedCount = 0;
+  var skippedKeys = [];
+
+  // 保護列（更新不可）
+  var protectedColumns = ['No.', 'タイムスタンプ', 'メールアドレス'];
+
+  for (var key in data) {
+    if (protectedColumns.indexOf(key) >= 0) {
+      skippedKeys.push(key);
+      continue;
+    }
+    var colIdx = headers.indexOf(key);
+    if (colIdx < 0) {
+      skippedKeys.push(key + '(列なし)');
+      continue;
+    }
+    sheet.getRange(rowNum, colIdx + 1).setValue(data[key]);
+    updatedCount++;
+  }
+
+  Logger.log('updateSurveyRow: No.' + targetNo + ' / ' + updatedCount + '列更新');
+
+  return {
+    success: true,
+    message: 'No.' + targetNo + ' の ' + updatedCount + ' 列を更新しました',
+    updatedCount: updatedCount,
+    skippedKeys: skippedKeys
+  };
 }
 // ========== OCR照合（共有版）==========
 /**
