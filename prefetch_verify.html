@@ -109,6 +109,19 @@
             color: #2e7d32;
         }
 
+        /* ページ区切り */
+        .page-separator {
+            background: #fff3e0;
+            border: 2px dashed #ff9800;
+            border-radius: 8px;
+            padding: 12px 20px;
+            margin: 20px 0 10px 0;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #e65100;
+        }
+
         /* 画像表示 */
         .q-image {
             max-width: 100%;
@@ -266,6 +279,27 @@
 
     <!-- メインコンテンツ -->
     <div class="main" id="mainContent">
+        <!-- ローカルサーバー起動案内（GitHub Pages表示時） -->
+        <div class="done-screen" id="setupGuide" style="display:none;">
+            <div style="font-size:48px; margin-bottom:16px;">🖥️</div>
+            <h2 style="color:#1565c0; margin-bottom:12px;">ローカルサーバーの起動が必要です</h2>
+            <p style="color:#666; margin-bottom:24px;">このツールはローカルPCでPDF処理を行うため、Pythonサーバーの起動が必要です。</p>
+            <div style="background:#fff; border-radius:10px; padding:20px; max-width:600px; margin:0 auto; text-align:left; box-shadow:0 1px 4px rgba(0,0,0,0.1);">
+                <p style="font-weight:700; font-size:14px; color:#1565c0; margin-bottom:12px;">起動方法</p>
+                <p style="font-size:13px; color:#333; margin-bottom:8px;"><b>方法1:</b> バッチファイルをダブルクリック</p>
+                <div style="background:#263238; color:#4fc3f7; padding:10px 14px; border-radius:6px; font-family:monospace; font-size:13px; margin-bottom:12px;">start_prefetch_verify.bat</div>
+                <p style="font-size:13px; color:#333; margin-bottom:8px;"><b>方法2:</b> コマンドラインで実行</p>
+                <div style="background:#263238; color:#4fc3f7; padding:10px 14px; border-radius:6px; font-family:monospace; font-size:12px; margin-bottom:16px; word-break:break-all;">cd "C:\Users\hashi\大久保先生\糖化\アンケート\Cloade Code\test-OCR"<br>.\venv\Scripts\python.exe prefetch_verify.py</div>
+                <p style="font-size:13px; color:#666; margin-bottom:12px;">サーバー起動後、自動でブラウザが開きます。<br>開かない場合は下のボタンをクリックしてください。</p>
+                <div style="text-align:center; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+                    <a href="http://localhost:8767/" target="_blank" style="display:inline-block; padding:10px 24px; background:#1565c0; color:#fff; border-radius:8px; text-decoration:none; font-weight:700; font-size:14px;">localhost:8767 を開く</a>
+                    <a href="http://localhost:8768/" target="_blank" style="display:inline-block; padding:10px 24px; background:#42a5f5; color:#fff; border-radius:8px; text-decoration:none; font-weight:600; font-size:14px;">:8768</a>
+                    <a href="http://localhost:8769/" target="_blank" style="display:inline-block; padding:10px 24px; background:#42a5f5; color:#fff; border-radius:8px; text-decoration:none; font-weight:600; font-size:14px;">:8769</a>
+                </div>
+            </div>
+            <button onclick="tryConnect()" style="margin-top:20px; padding:10px 20px; font-size:14px; cursor:pointer; border:1px solid #ccc; border-radius:6px; background:#fff;">サーバー接続を再試行</button>
+        </div>
+        <!-- 通常のローディング（ローカルサーバー接続時） -->
         <div class="done-screen" id="initialLoading">
             <div style="width:40px;height:40px;border:4px solid #e0e0e0;border-top-color:#1565c0;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;"></div>
             <p>最初のPDFを処理中です...</p>
@@ -300,6 +334,7 @@
     let confirmedSet = new Set();
     let pollTimer = null;
     let isSaving = false;  // 二重実行防止フラグ
+    let isRemote = false;  // GitHub Pages等リモート環境フラグ
 
     // =============================================
     // API呼び出し
@@ -316,12 +351,49 @@
     }
 
     // =============================================
-    // 初期化
+    // 初期化（ローカルサーバー判定）
     // =============================================
     window.addEventListener('load', function() {
-        pollStatus();
-        loadCurrent();
+        var host = location.hostname;
+        if (host === 'localhost' || host === '127.0.0.1') {
+            // ローカルサーバーで動作中 → 通常起動
+            document.getElementById('setupGuide').style.display = 'none';
+            document.getElementById('initialLoading').style.display = '';
+            pollStatus();
+            loadCurrent();
+        } else {
+            // GitHub Pages等 → セットアップガイドを表示
+            isRemote = true;
+            document.getElementById('setupGuide').style.display = '';
+            document.getElementById('initialLoading').style.display = 'none';
+            document.querySelector('.footer-bar').style.display = 'none';
+        }
     });
+
+    // サーバー接続を再試行
+    function tryConnect() {
+        var ports = [8767, 8768, 8769];
+        var statusEl = document.getElementById('setupGuide');
+        var found = false;
+
+        function tryPort(idx) {
+            if (idx >= ports.length) {
+                alert('ローカルサーバーに接続できませんでした。\nサーバーが起動しているか確認してください。');
+                return;
+            }
+            var url = 'http://localhost:' + ports[idx] + '/api/status';
+            fetch(url, { mode: 'cors' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    // 接続成功 → リダイレクト
+                    window.location.href = 'http://localhost:' + ports[idx] + '/';
+                })
+                .catch(function() {
+                    tryPort(idx + 1);
+                });
+        }
+        tryPort(0);
+    }
 
     // =============================================
     // ステータスポーリング
@@ -411,6 +483,7 @@
         var labels = data.question_labels || {};
         var images = data.images || {};
         var displayVals = data.display_values || {};
+        var isNewFormat = data.is_new_format || false;
 
         for (var i = 0; i < order.length; i++) {
             var key = order[i];
@@ -418,6 +491,11 @@
             var val = displayVals[key] || '';
             var imgSrc = images[key] || '';
             var rows = (val.split('\n').length > 1 || val.length > 40) ? Math.max(val.split('\n').length, 2) : 1;
+
+            // 新フォーマット: 質問14の前にページ区切りを挿入
+            if (isNewFormat && key === '質問14_歯の抜去位置') {
+                html += '<div class="page-separator">--- ページ2（裏面・医師記入欄） ---</div>';
+            }
 
             html += '<div class="question-block" data-key="' + key + '" id="qblock_' + i + '">';
             html += '<div class="q-header">';
