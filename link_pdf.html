@@ -1401,7 +1401,23 @@
             if (!s1 || !s2) return 0;
 
             if (s1 === s2) return 10;
-            if (s1.indexOf(s2) >= 0 || s2.indexOf(s1) >= 0) return 5;
+            if (s1.indexOf(s2) >= 0 || s2.indexOf(s1) >= 0) return 7;
+            // 1〜2文字違いの近似一致（OCR誤読対応）
+            if (s1.length === s2.length && s1.length >= 3) {
+                var diffCount = 0;
+                for (var i = 0; i < s1.length; i++) {
+                    if (s1[i] !== s2[i]) diffCount++;
+                }
+                if (diffCount === 1) return 7;  // 1文字違い
+                if (diffCount === 2) return 4;  // 2文字違い
+            }
+            // 数字部分の一致率チェック（異なる長さでも）
+            var n1 = s1.replace(/\D/g, '');
+            var n2 = s2.replace(/\D/g, '');
+            if (n1.length >= 3 && n2.length >= 3) {
+                if (n1 === n2) return 8;
+                if (n1.indexOf(n2) >= 0 || n2.indexOf(n1) >= 0) return 5;
+            }
             return 0;
         }
 
@@ -1529,8 +1545,8 @@
                 return;
             }
             var s = scorePdfMatch(pdf, selectedPatientInfo);
-            // 候補なし判定: 名前=0 かつ 生年月日=0 かつ ID=0
-            if (s.name === 0 && s.birthdate === 0 && s.id === 0) {
+            // 候補なし判定: 合計スコアが低すぎる場合のみ
+            if (s.total < 10) {
                 el.textContent = '[候補なし]';
                 var body = document.getElementById('pdfPreviewBody');
                 body.innerHTML = '<div class="pp-placeholder">このPDFは候補に該当しません</div>';
