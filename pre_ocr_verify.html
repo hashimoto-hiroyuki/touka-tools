@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>事前OCR照合</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%236a1b9a'/><path d='M7 10h18M7 16h18M7 22h12' stroke='white' stroke-width='2' stroke-linecap='round'/><circle cx='24' cy='22' r='4' fill='%2343a047' stroke='white' stroke-width='1.5'/><path d='M22.5 22l1 1 2-2' stroke='white' stroke-width='1.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', 'Yu Gothic UI', 'Meiryo', sans-serif; background: #f5f5f5; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        .header { background: linear-gradient(135deg, #6a1b9a 0%, #4a148c 100%); padding: 10px 20px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); flex-shrink: 0; color: #fff; }
+        .header h1 { font-size: 17px; font-weight: 700; }
+        .header .subtitle { font-size: 11px; color: rgba(255,255,255,0.7); }
+        .header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+        .user-badge { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; }
+        .user-badge:hover { background: rgba(255,255,255,0.25); }
+        .main-layout { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+        /* サイドバー */
+        .sidebar { width: 280px; background: #fff; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; }
+        .sidebar-header { padding: 12px 16px; border-bottom: 1px solid #e0e0e0; font-weight: 600; font-size: 13px; background: #fafafa; display: flex; align-items: center; justify-content: space-between; }
+        .sidebar-header .count { font-weight: 400; color: #888; font-size: 11px; }
+        .btn-refresh { background: none; border: 1px solid #ddd; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; color: #555; }
+        .btn-refresh:hover { background: #f0f0f0; }
+        .file-list { flex: 1; overflow-y: auto; }
+        .file-item { padding: 10px 16px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.15s; font-size: 12px; }
+        .file-item:hover { background: #f3e5f5; }
+        .file-item.active { background: #e1bee7; border-left: 3px solid #7b1fa2; }
+        .file-item.no-ocr { opacity: 0.5; }
+        .file-item .fi-name { font-weight: 600; color: #333; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-item .fi-info { color: #888; margin-top: 2px; font-size: 11px; }
+        .fi-badge { display: inline-block; padding: 1px 6px; border-radius: 8px; font-size: 9px; font-weight: 600; }
+        .fi-badge.done { background: #e8f5e9; color: #2e7d32; }
+        .fi-badge.pending { background: #fff3e0; color: #e65100; }
+        .fi-badge.saved { background: #e3f2fd; color: #1565c0; }
+        /* メインパネル */
+        .main-panel { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+        .welcome-view { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #999; gap: 12px; }
+        .welcome-view .icon-big { font-size: 64px; opacity: 0.3; }
+        .welcome-view p { font-size: 14px; }
+        /* 横並びレイアウト */
+        .split-layout { display: flex; flex: 1; overflow: hidden; min-height: 0; }
+        .split-left { width: 50%; min-width: 300px; border-right: 2px solid #e0e0e0; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+        .split-right { width: 50%; min-width: 300px; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+        .pdf-preview-section { background: #fff; padding: 8px 12px; flex-shrink: 0; }
+        .pdf-preview-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+        .pdf-preview-header h3 { font-size: 13px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .btn-toggle { background: none; border: 1px solid #ddd; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer; color: #555; flex-shrink: 0; }
+        .btn-toggle:hover { background: #f5f5f5; }
+        .pdf-iframe-wrapper { flex: 1; border: 1px solid #ddd; border-radius: 4px; overflow: auto; position: relative; background: #e0e0e0; overscroll-behavior: contain; min-height: 0; }
+        .pdf-pages-container { position: relative; display: inline-block; min-width: 100%; }
+        .pdf-page-wrapper { position: relative; margin-bottom: 4px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+        .pdf-page-wrapper canvas { display: block; width: 100%; height: auto; }
+        .pdf-highlight-rect { position: absolute; border: 3px solid #7b1fa2; background: rgba(123,31,162,0.15); border-radius: 3px; transition: all 0.3s ease; box-shadow: 0 0 12px rgba(123,31,162,0.35); z-index: 5; pointer-events: none; display: none; }
+        .pdf-loading { text-align: center; padding: 40px; color: #999; font-size: 14px; }
+        /* ナビマーカー */
+        .pdf-nav-marker { position: absolute; left: 2px; width: 22px; height: 16px; background: #7b1fa2; color: #fff; font-size: 8px; font-weight: 700; text-align: center; line-height: 16px; border-radius: 3px; cursor: pointer; transition: all 0.2s; z-index: 11; }
+        .pdf-nav-marker:hover { background: #6a1b9a; transform: scale(1.15); }
+        .pdf-nav-marker.active { background: #ab47bc; box-shadow: 0 0 6px rgba(171,71,188,0.6); transform: scale(1.2); }
+        /* OCR結果なしメッセージ */
+        .no-ocr-msg { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #999; gap: 8px; padding: 20px; text-align: center; }
+        .no-ocr-msg .icon { font-size: 40px; opacity: 0.3; }
+        /* 質問エリア */
+        .questions-area { padding: 12px 16px; overflow-y: auto; flex: 1; overscroll-behavior: contain; min-height: 0; }
+        .q-block { background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 8px; padding: 12px 16px; display: flex; align-items: flex-start; gap: 12px; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s; cursor: pointer; }
+        .q-block.q-active { border-color: #ab47bc; box-shadow: 0 0 0 2px rgba(171,71,188,0.25); }
+        .q-block.confirmed { border-color: #a5d6a7; background: #f1f8e9; }
+        .q-content { flex: 1; }
+        .q-label { font-size: 12px; font-weight: 600; color: #555; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .q-pos-hint { font-size: 9px; font-weight: 400; color: #999; background: #f5f5f5; padding: 1px 5px; border-radius: 8px; }
+        .q-input { width: 100%; border: 1px solid #ddd; border-radius: 4px; padding: 6px 8px; font-size: 13px; font-family: inherit; resize: vertical; }
+        .q-input:focus { border-color: #7b1fa2; outline: none; box-shadow: 0 0 0 2px rgba(123,31,162,0.15); }
+        .q-input:disabled { background: #f5f5f5; color: #333; }
+        .q-actions { display: flex; gap: 6px; margin-left: 8px; flex-shrink: 0; align-self: center; }
+        .btn-ok { padding: 6px 14px; background: #43a047; color: #fff; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .btn-ok:hover { background: #388e3c; }
+        .btn-ok.confirmed-btn { background: #a5d6a7; color: #2e7d32; cursor: default; }
+        .btn-edit { padding: 6px 14px; background: #fff; color: #555; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; cursor: pointer; }
+        .btn-edit:hover { background: #f5f5f5; }
+        .confirm-all-wrapper { text-align: right; padding: 8px 20px; flex-shrink: 0; }
+        .btn-confirm-all { padding: 10px 25px; background: #ab47bc; color: #fff; border: none; border-radius: 4px; font-size: 15px; font-weight: 700; cursor: pointer; }
+        .btn-confirm-all:hover { background: #9c27b0; }
+        .bottom-bar { background: #fff; border-top: 1px solid #e0e0e0; padding: 10px 20px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+        .progress-badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .progress-badge.partial { background: #f3e5f5; color: #7b1fa2; }
+        .progress-badge.all-ok { background: #e8f5e9; color: #2e7d32; }
+        .btn-save { padding: 8px 24px; background: #43a047; color: #fff; border: none; border-radius: 4px; font-size: 14px; font-weight: 700; cursor: pointer; }
+        .btn-save:hover { background: #388e3c; }
+        .btn-save:disabled { background: #ccc; cursor: not-allowed; }
+        #statusText { font-size: 12px; color: #666; flex: 1; }
+        .loading-spinner { text-align: center; padding: 40px; color: #999; font-size: 14px; }
+        .loading-spinner::before { content: ''; display: block; width: 32px; height: 32px; margin: 0 auto 12px; border: 3px solid #eee; border-top-color: #7b1fa2; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>事前OCR照合</h1>
+            <div class="subtitle">事前OCR済みの結果を読み込み、PDFと並べて照合・保存</div>
+        </div>
+        <div class="header-right">
+            <div class="user-badge" onclick="changeUser()" title="クリックして変更">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span id="userName">-</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <span>事前OCR済みPDF <span class="count" id="fileCount"></span></span>
+                <button class="btn-refresh" onclick="loadPdfList()">更新</button>
+            </div>
+            <div class="file-list" id="fileList"></div>
+        </div>
+
+        <div class="main-panel" id="mainPanel">
+            <div class="welcome-view" id="welcomeView">
+                <div class="icon-big">📋</div>
+                <p>左のリストからOCR済みPDFを選択してください</p>
+                <p style="font-size:12px; color:#bbb;">事前OCR処理アプリで先にOCRを実行してください</p>
+            </div>
+
+            <div id="activeView" style="display:none;" class="split-layout">
+                <!-- 左: PDFプレビュー -->
+                <div class="split-left">
+                    <div class="pdf-preview-section">
+                        <div class="pdf-preview-header">
+                            <h3 id="pdfTitle">-</h3>
+                            <span id="pageIndicator" style="display:none; font-size:11px; color:#7b1fa2; font-weight:600; background:#f3e5f5; padding:2px 8px; border-radius:10px;"></span>
+                            <button class="btn-toggle" onclick="zoomPdf(-1)">−</button>
+                            <span id="zoomLevel" style="font-size:11px; color:#555; min-width:36px; text-align:center;">100%</span>
+                            <button class="btn-toggle" onclick="zoomPdf(1)">＋</button>
+                        </div>
+                    </div>
+                    <div class="pdf-iframe-wrapper" id="iframeWrapper">
+                        <div id="pdfNavBar" style="position:absolute;left:0;top:0;width:28px;height:100%;background:rgba(0,0,0,0.03);z-index:10;overflow:visible;"></div>
+                        <div class="pdf-pages-container" id="pdfPagesContainer">
+                            <div class="pdf-loading" id="pdfLoading">PDFを選択してください</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 右: OCR結果照合 -->
+                <div class="split-right">
+                    <div class="no-ocr-msg" id="noOcrMsg" style="display:none;">
+                        <div class="icon">⚠️</div>
+                        <p>このPDFは事前OCR未処理です</p>
+                        <p style="font-size:11px;">事前OCR処理アプリでOCRを実行してください</p>
+                    </div>
+                    <div class="loading-spinner" id="ocrLoading" style="display:none;">事前OCR結果を読み込み中...</div>
+                    <div class="questions-area" id="questionsArea" style="display:none;"></div>
+                    <div class="confirm-all-wrapper" id="confirmAllWrapper" style="display:none;">
+                        <button class="btn-confirm-all" onclick="confirmAllRemaining()">残り全てOK</button>
+                    </div>
+                    <div class="bottom-bar" id="bottomBar" style="display:none;">
+                        <span class="progress-badge partial" id="progressBadge">0/17 確認済み</span>
+                        <span id="statusText">各項目を確認してください（Shift+OKで一括確認）</span>
+                        <button class="btn-save" id="saveBtn" disabled onclick="saveVerified()">照合完了・保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 定数 ==========
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyYnnni3ww8q2KJIPom0ljkVjseQuPMGULQq2lHh21BN63EwLECb_6XsEX9yMpPG_Ri/exec';
+
+        const QUESTION_ORDER = [
+            '医療機関名', '患者さんID',
+            '質問1_名前', '質問2_生年月日', '質問3_性別', '質問4_血液型', '質問5_身体情報',
+            '質問6_糖尿病', '質問7_脂質異常症', '質問8_兄弟糖尿病歴', '質問9_両親糖尿病歴',
+            '質問10_運動', '質問11_飲み物', '質問12_お菓子', '質問13_飲酒習慣',
+            '質問14_歯の抜去位置', '質問15_コメント'
+        ];
+
+        const QUESTION_LABELS = {
+            '医療機関名': '医療機関名', '患者さんID': '患者さんID',
+            '質問1_名前': '質問1: 名前（カタカナ）', '質問2_生年月日': '質問2: 生年月日',
+            '質問3_性別': '質問3: 性別', '質問4_血液型': '質問4: 血液型',
+            '質問5_身体情報': '質問5: 身長・体重', '質問6_糖尿病': '質問6: 糖尿病',
+            '質問7_脂質異常症': '質問7: 脂質異常症', '質問8_兄弟糖尿病歴': '質問8: 兄弟の糖尿病歴',
+            '質問9_両親糖尿病歴': '質問9: 両親の糖尿病歴', '質問10_運動': '質問10: 運動習慣',
+            '質問11_飲み物': '質問11: 飲み物', '質問12_お菓子': '質問12: お菓子',
+            '質問13_飲酒習慣': '質問13: 飲酒習慣',
+            '質問14_歯の抜去位置': '質問14: 歯の抜去位置', '質問15_コメント': '質問15: コメント欄'
+        };
+
+        var QUESTION_HINTS = {
+            '医療機関名': 'P1 最上部', '患者さんID': 'P1 上部',
+            '質問1_名前': 'P1 上部', '質問2_生年月日': 'P1 上部',
+            '質問3_性別': 'P1 上部', '質問4_血液型': 'P1 上部',
+            '質問5_身体情報': 'P1 上〜中', '質問6_糖尿病': 'P1 中部',
+            '質問7_脂質異常症': 'P1 中部', '質問8_兄弟糖尿病歴': 'P1 中部',
+            '質問9_両親糖尿病歴': 'P1 中部', '質問10_運動': 'P1 中〜下',
+            '質問11_飲み物': 'P1 中〜下', '質問12_お菓子': 'P1 下部',
+            '質問13_飲酒習慣': 'P1 下部',
+            '質問14_歯の抜去位置': 'P2 中部', '質問15_コメント': 'P2 下部'
+        };
+
+        var questionRects = JSON.parse(localStorage.getItem('webOcrQuestionRects') || '{}');
+
+        // ========== State ==========
+        let currentUser = '';
+        let pdfList = [];
+        let currentFileId = null;
+        let currentFileName = null;
+        let currentOcrData = null;
+        let questionStates = {};
+        let jsonpCounter = 0;
+        var activeQuestionIdx = -1;
+        var pdfDoc = null;
+        var currentScale = 1.5;
+        var baseScale = 1.5;
+        var pdfPageWrappers = [];
+
+        // ========== 初期化 ==========
+        window.addEventListener('DOMContentLoaded', function() {
+            initUser();
+            loadPdfList();
+            loadQuestionRectsFromDrive();
+        });
+
+        function loadQuestionRectsFromDrive() {
+            gasCall('getQuestionRects', null, 15000).then(function(data) {
+                if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+                    questionRects = data;
+                    localStorage.setItem('webOcrQuestionRects', JSON.stringify(questionRects));
+                    buildNavBar();
+                }
+            }).catch(function() {});
+        }
+
+        function initUser() {
+            currentUser = localStorage.getItem('webOcrUser') || '';
+            if (!currentUser) { changeUser(); }
+            else { document.getElementById('userName').textContent = currentUser; }
+        }
+
+        function changeUser() {
+            var name = prompt('照合者名を入力してください（例: 田中）:', currentUser || '');
+            if (name && name.trim()) {
+                currentUser = name.trim();
+                localStorage.setItem('webOcrUser', currentUser);
+                document.getElementById('userName').textContent = currentUser;
+            }
+        }
+
+        // ========== GAS通信 ==========
+        function gasCall(action, params, timeoutMs) {
+            return new Promise(function(resolve, reject) {
+                var cbName = 'gasCb_' + Date.now() + '_' + (jsonpCounter++);
+                var url = GAS_API_URL + '?action=' + action + '&callback=' + cbName;
+                if (params) {
+                    for (var key in params) url += '&' + encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+                }
+                var timeout = timeoutMs || 30000;
+                var done = false;
+                window[cbName] = function(res) {
+                    done = true; delete window[cbName];
+                    var s = document.getElementById('jsonp_' + cbName); if (s) s.remove();
+                    if (res && res.success) resolve(res.data);
+                    else reject(new Error((res && res.error) || '不明なエラー'));
+                };
+                var s = document.createElement('script');
+                s.id = 'jsonp_' + cbName; s.src = url;
+                s.onerror = function() { if (!done) { done = true; delete window[cbName]; s.remove(); reject(new Error('通信エラー')); } };
+                document.body.appendChild(s);
+                setTimeout(function() { if (!done) { done = true; delete window[cbName]; var el = document.getElementById('jsonp_' + cbName); if (el) el.remove(); reject(new Error('タイムアウト')); } }, timeout);
+            });
+        }
+
+        function gasPost(payload) {
+            return new Promise(function(resolve, reject) {
+                var iframe = document.createElement('iframe');
+                iframe.name = 'postFrame_' + Date.now();
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                var form = document.createElement('form');
+                form.method = 'POST'; form.action = GAS_API_URL; form.target = iframe.name;
+                var input = document.createElement('input');
+                input.type = 'hidden'; input.name = 'payload'; input.value = JSON.stringify(payload);
+                form.appendChild(input);
+                document.body.appendChild(form);
+                iframe.onload = function() { setTimeout(function() { iframe.remove(); form.remove(); resolve(); }, 500); };
+                iframe.onerror = function() { iframe.remove(); form.remove(); reject(new Error('POST送信エラー')); };
+                form.submit();
+            });
+        }
+
+        // ========== PDF一覧 ==========
+        function loadPdfList() {
+            document.getElementById('fileList').innerHTML = '<div class="loading-spinner">読み込み中...</div>';
+            gasCall('getPreOcrStatus', null, 30000).then(function(data) {
+                pdfList = data || [];
+                renderPdfList();
+            }).catch(function(err) {
+                document.getElementById('fileList').innerHTML = '<div style="padding:20px;color:#c62828;font-size:12px;">エラー: ' + err.message + '</div>';
+            });
+        }
+
+        function renderPdfList() {
+            var listEl = document.getElementById('fileList');
+            if (pdfList.length === 0) {
+                listEl.innerHTML = '<div style="padding:30px;text-align:center;color:#999;font-size:13px;">PDFがありません</div>';
+                document.getElementById('fileCount').textContent = '';
+                return;
+            }
+            var ocrCount = pdfList.filter(function(p) { return p.hasPreOcr; }).length;
+            document.getElementById('fileCount').textContent = '(' + ocrCount + '/' + pdfList.length + ' OCR済み)';
+            var html = '';
+            // OCR済みを先に表示
+            var sorted = pdfList.slice().sort(function(a, b) {
+                if (a.hasPreOcr && !b.hasPreOcr) return -1;
+                if (!a.hasPreOcr && b.hasPreOcr) return 1;
+                return a.fileName.localeCompare(b.fileName);
+            });
+            for (var i = 0; i < sorted.length; i++) {
+                var p = sorted[i];
+                var isActive = p.fileId === currentFileId;
+                var cls = 'file-item' + (isActive ? ' active' : '') + (!p.hasPreOcr ? ' no-ocr' : '');
+                var badge = p.hasPreOcr ? '<span class="fi-badge done">OCR済</span>' : '<span class="fi-badge pending">未処理</span>';
+                html += '<div class="' + cls + '" onclick="selectPdf(\'' + p.fileId + '\',\'' + escapeAttr(p.fileName) + '\',' + (p.hasPreOcr ? 'true' : 'false') + ')">';
+                html += '<div class="fi-name">' + escapeHtml(p.fileName) + '</div>';
+                html += '<div class="fi-info">' + badge + '</div>';
+                html += '</div>';
+            }
+            listEl.innerHTML = html;
+        }
+
+        // ========== PDF選択 ==========
+        function selectPdf(fileId, fileName, hasPreOcr) {
+            currentFileId = fileId;
+            currentFileName = fileName;
+            currentOcrData = null;
+            questionStates = {};
+            activeQuestionIdx = -1;
+
+            document.getElementById('welcomeView').style.display = 'none';
+            document.getElementById('activeView').style.display = '';
+            document.getElementById('questionsArea').style.display = 'none';
+            document.getElementById('questionsArea').innerHTML = '';
+            document.getElementById('confirmAllWrapper').style.display = 'none';
+            document.getElementById('bottomBar').style.display = 'none';
+            document.getElementById('noOcrMsg').style.display = 'none';
+            document.getElementById('ocrLoading').style.display = 'none';
+            document.getElementById('pdfTitle').textContent = fileName;
+
+            renderPdfList();
+            loadPdfWithPdfJs(fileId);
+
+            if (hasPreOcr) {
+                // 事前OCR結果を読み込み
+                document.getElementById('ocrLoading').style.display = '';
+                gasCall('getPreOcrResult', { fileId: fileId }, 30000).then(function(data) {
+                    document.getElementById('ocrLoading').style.display = 'none';
+                    if (data && data.ocrData) {
+                        currentOcrData = data.ocrData;
+                        renderQuestions(currentOcrData);
+                    } else {
+                        document.getElementById('noOcrMsg').style.display = 'flex';
+                    }
+                }).catch(function(err) {
+                    document.getElementById('ocrLoading').style.display = 'none';
+                    document.getElementById('noOcrMsg').style.display = 'flex';
+                    document.querySelector('#noOcrMsg p').textContent = '読み込みエラー: ' + err.message;
+                });
+            } else {
+                document.getElementById('noOcrMsg').style.display = 'flex';
+            }
+        }
+
+        // ========== PDF.js表示 ==========
+        function loadPdfWithPdfJs(fileId) {
+            var container = document.getElementById('pdfPagesContainer');
+            container.innerHTML = '<div class="pdf-loading">PDF読み込み中...</div>';
+            pdfPageWrappers = [];
+            pdfDoc = null;
+
+            gasCall('getPdfBase64', { fileId: fileId }, 60000).then(function(data) {
+                if (!data || !data.base64) throw new Error('PDF取得失敗');
+                var binary = atob(data.base64);
+                var bytes = new Uint8Array(binary.length);
+                for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                return pdfjsLib.getDocument({ data: bytes }).promise;
+            }).then(function(pdf) {
+                pdfDoc = pdf;
+                container.innerHTML = '';
+                var renderPage = function(num) {
+                    if (num > pdf.numPages) { buildNavBar(); return; }
+                    pdf.getPage(num).then(function(page) {
+                        var viewport = page.getViewport({ scale: currentScale });
+                        var wrapper = document.createElement('div');
+                        wrapper.className = 'pdf-page-wrapper';
+                        wrapper.id = 'pdfPage_' + num;
+                        wrapper.style.width = viewport.width + 'px';
+                        wrapper.style.height = viewport.height + 'px';
+                        var canvas = document.createElement('canvas');
+                        canvas.width = viewport.width;
+                        canvas.height = viewport.height;
+                        wrapper.appendChild(canvas);
+                        // ハイライト矩形
+                        var rect = document.createElement('div');
+                        rect.className = 'pdf-highlight-rect';
+                        rect.id = 'pdfHighlight_' + num;
+                        wrapper.appendChild(rect);
+                        container.appendChild(wrapper);
+                        pdfPageWrappers.push(wrapper);
+                        page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise.then(function() {
+                            renderPage(num + 1);
+                        });
+                    });
+                };
+                renderPage(1);
+            }).catch(function(err) {
+                container.innerHTML = '<div class="pdf-loading" style="color:#c62828;">PDF表示エラー: ' + err.message + '</div>';
+            });
+        }
+
+        function zoomPdf(dir) {
+            if (!pdfDoc) return;
+            currentScale = Math.max(0.5, Math.min(3.0, currentScale + dir * 0.25));
+            var pct = Math.round((currentScale / baseScale) * 100);
+            document.getElementById('zoomLevel').textContent = pct + '%';
+            // 再レンダリング
+            var container = document.getElementById('pdfPagesContainer');
+            container.innerHTML = '';
+            pdfPageWrappers = [];
+            var renderPage = function(num) {
+                if (num > pdfDoc.numPages) { buildNavBar(); if (activeQuestionIdx >= 0) highlightPdfPosition(activeQuestionIdx); return; }
+                pdfDoc.getPage(num).then(function(page) {
+                    var viewport = page.getViewport({ scale: currentScale });
+                    var wrapper = document.createElement('div');
+                    wrapper.className = 'pdf-page-wrapper';
+                    wrapper.id = 'pdfPage_' + num;
+                    wrapper.style.width = viewport.width + 'px';
+                    wrapper.style.height = viewport.height + 'px';
+                    var canvas = document.createElement('canvas');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    wrapper.appendChild(canvas);
+                    var rect = document.createElement('div');
+                    rect.className = 'pdf-highlight-rect';
+                    rect.id = 'pdfHighlight_' + num;
+                    wrapper.appendChild(rect);
+                    container.appendChild(wrapper);
+                    pdfPageWrappers.push(wrapper);
+                    page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise.then(function() { renderPage(num + 1); });
+                });
+            };
+            renderPage(1);
+        }
+
+        // ========== ナビゲーション ==========
+        function highlightPdfPosition(idx) {
+            var key = QUESTION_ORDER[idx];
+            var prevActive = document.querySelector('.q-block.q-active');
+            if (prevActive) prevActive.classList.remove('q-active');
+            var prevMarker = document.querySelector('.pdf-nav-marker.active');
+            if (prevMarker) prevMarker.classList.remove('active');
+            var block = document.getElementById('qblock_' + idx);
+            if (block) block.classList.add('q-active');
+            activeQuestionIdx = idx;
+            var marker = document.getElementById('navMarker_' + idx);
+            if (marker) marker.classList.add('active');
+            // ハイライト矩形
+            var allHighlights = document.querySelectorAll('.pdf-highlight-rect');
+            for (var h = 0; h < allHighlights.length; h++) allHighlights[h].style.display = 'none';
+            var qr = questionRects[key];
+            if (qr) {
+                var pageNum = qr.page || 1;
+                var rectEl = document.getElementById('pdfHighlight_' + pageNum);
+                if (rectEl) {
+                    rectEl.style.left = qr.x1 + '%'; rectEl.style.top = qr.y1 + '%';
+                    rectEl.style.width = (qr.x2 - qr.x1) + '%'; rectEl.style.height = (qr.y2 - qr.y1) + '%';
+                    rectEl.style.display = 'block';
+                }
+            }
+            // ページインジケーター
+            var hint = QUESTION_HINTS[key] || '';
+            if (hint.indexOf('P2') >= 0) {
+                document.getElementById('pageIndicator').textContent = '2ページ目';
+                document.getElementById('pageIndicator').style.display = '';
+            } else {
+                document.getElementById('pageIndicator').style.display = 'none';
+            }
+            scrollPdfToQuestion(key, idx);
+        }
+
+        function scrollPdfToQuestion(key, idx) {
+            var wrapper = document.getElementById('iframeWrapper');
+            if (!wrapper) return;
+            var questionsArea = document.getElementById('questionsArea');
+            var block = document.getElementById('qblock_' + idx);
+            if (!block || !questionsArea) return;
+            var qr = questionRects[key];
+            var pageNum = 1;
+            var pageEl = null;
+            if (qr) {
+                pageNum = qr.page || 1;
+                pageEl = document.getElementById('pdfPage_' + pageNum);
+            } else {
+                var hint = QUESTION_HINTS[key] || '';
+                pageNum = hint.indexOf('P2') >= 0 ? 2 : 1;
+                pageEl = document.getElementById('pdfPage_' + pageNum);
+                if (!pageEl) return;
+                var samePageKeys = QUESTION_ORDER.filter(function(k) { var h = QUESTION_HINTS[k] || ''; return (hint.indexOf('P2') >= 0) === (h.indexOf('P2') >= 0); });
+                var posInPage = samePageKeys.indexOf(key);
+                var yRatio = (posInPage >= 0 && samePageKeys.length > 1) ? posInPage / samePageKeys.length : 0.5;
+                qr = { y1: yRatio * 100, page: pageNum };
+            }
+            if (!pageEl) return;
+            var pdfTopMargin = 4;
+            var pageRect = pageEl.getBoundingClientRect();
+            var wrapperRect = wrapper.getBoundingClientRect();
+            var rectCurrentScreenY = pageRect.top + (pageEl.offsetHeight * qr.y1 / 100);
+            var pdfScrollDelta = rectCurrentScreenY - wrapperRect.top - pdfTopMargin;
+            var pdfDesiredScroll = wrapper.scrollTop + pdfScrollDelta;
+            var pdfMaxScroll = wrapper.scrollHeight - wrapper.clientHeight;
+            var pdfActualScroll = Math.max(0, Math.min(pdfDesiredScroll, Math.max(0, pdfMaxScroll)));
+            var pdfActualDelta = pdfActualScroll - wrapper.scrollTop;
+            var rectFinalScreenY = rectCurrentScreenY - pdfActualDelta;
+            var blockCurrentScreenY = block.getBoundingClientRect().top;
+            var blockScrollDelta = blockCurrentScreenY - rectFinalScreenY;
+            var blockDesiredScroll = questionsArea.scrollTop + blockScrollDelta;
+            var blockActualScroll = Math.max(0, blockDesiredScroll);
+            var qaMaxScroll = questionsArea.scrollHeight - questionsArea.clientHeight;
+            if (blockActualScroll > qaMaxScroll && qaMaxScroll >= 0) {
+                var shortfall = blockActualScroll - qaMaxScroll;
+                blockActualScroll = qaMaxScroll;
+                pdfActualScroll = Math.max(0, pdfActualScroll - shortfall);
+            }
+            wrapper.scrollTo({ top: pdfActualScroll, behavior: 'smooth' });
+            questionsArea.scrollTo({ top: blockActualScroll, behavior: 'smooth' });
+        }
+
+        function buildNavBar() {
+            var navBar = document.getElementById('pdfNavBar');
+            if (!navBar) return;
+            navBar.innerHTML = '';
+            for (var i = 0; i < QUESTION_ORDER.length; i++) {
+                var key = QUESTION_ORDER[i];
+                var marker = document.createElement('div');
+                marker.className = 'pdf-nav-marker';
+                marker.id = 'navMarker_' + i;
+                marker.style.top = (i / QUESTION_ORDER.length * 95 + 1) + '%';
+                var shortLabel = '';
+                if (key === '医療機関名') shortLabel = '機';
+                else if (key === '患者さんID') shortLabel = 'ID';
+                else { var m = key.match(/質問(\d+)/); shortLabel = m ? 'Q' + m[1] : key.charAt(0); }
+                if (questionRects[key]) { marker.title = shortLabel + ' (定義済み)'; }
+                else { marker.style.opacity = '0.4'; marker.title = shortLabel + ' (未定義)'; }
+                marker.textContent = shortLabel;
+                marker.onclick = (function(idx) { return function(e) { e.stopPropagation(); highlightPdfPosition(idx); }; })(i);
+                navBar.appendChild(marker);
+            }
+        }
+
+        // ========== キーボードショートカット ==========
+        document.addEventListener('keydown', function(e) {
+            var tag = e.target.tagName;
+            if (e.key === 'Tab') {
+                if (tag === 'INPUT' || tag === 'TEXTAREA') e.preventDefault();
+                e.preventDefault();
+                if (QUESTION_ORDER.length === 0) return;
+                var nextIdx;
+                if (e.shiftKey) { nextIdx = (activeQuestionIdx > 0) ? activeQuestionIdx - 1 : QUESTION_ORDER.length - 1; }
+                else { nextIdx = (activeQuestionIdx < QUESTION_ORDER.length - 1) ? activeQuestionIdx + 1 : 0; }
+                highlightPdfPosition(nextIdx);
+                document.activeElement && document.activeElement.blur();
+                return;
+            }
+            if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+                if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+                e.preventDefault();
+                if (QUESTION_ORDER.length === 0 || activeQuestionIdx <= 0) return;
+                highlightPdfPosition(activeQuestionIdx - 1);
+                document.activeElement && document.activeElement.blur();
+                return;
+            }
+        });
+
+        // ========== 照合UI ==========
+        function renderQuestions(ocrData) {
+            var area = document.getElementById('questionsArea');
+            var html = '';
+            for (var idx = 0; idx < QUESTION_ORDER.length; idx++) {
+                var key = QUESTION_ORDER[idx];
+                var label = QUESTION_LABELS[key] || key;
+                var value = getDisplayValue(key, ocrData);
+                var hint = QUESTION_HINTS[key] || '';
+                var defined = questionRects[key] ? '✓' : '';
+                var posHint = hint ? '<span class="q-pos-hint">' + defined + escapeHtml(hint) + '</span>' : '';
+                var isMultiLine = (key === '質問13_飲酒習慣' || key === '質問14_歯の抜去位置');
+                var isMedium = (key === '質問1_名前' || key === '質問2_生年月日' || key === '質問5_身体情報' || key === '質問15_コメント');
+                var inputHtml;
+                if (isMultiLine) { inputHtml = '<textarea class="q-input" id="input_' + idx + '" rows="4">' + escapeHtml(value) + '</textarea>'; }
+                else if (isMedium) { inputHtml = '<textarea class="q-input" id="input_' + idx + '" rows="2">' + escapeHtml(value) + '</textarea>'; }
+                else { inputHtml = '<input type="text" class="q-input" id="input_' + idx + '" value="' + escapeAttr(value) + '">'; }
+                html += '<div class="q-block" id="qblock_' + idx + '">';
+                html += '<div class="q-content"><div class="q-label">' + escapeHtml(label) + posHint + '</div>' + inputHtml + '</div>';
+                html += '<div class="q-actions">';
+                html += '<button class="btn-ok" id="okBtn_' + idx + '" onclick="confirmQuestion(' + idx + ', event)">OK</button>';
+                html += '<button class="btn-edit" onclick="editQuestion(' + idx + ')">編集</button>';
+                html += '</div></div>';
+            }
+            area.innerHTML = html;
+            area.style.display = '';
+            document.getElementById('confirmAllWrapper').style.display = '';
+            document.getElementById('bottomBar').style.display = 'flex';
+            questionStates = {};
+            updateProgress();
+            buildNavBar();
+            for (var j = 0; j < QUESTION_ORDER.length; j++) {
+                (function(idx) {
+                    var block = document.getElementById('qblock_' + idx);
+                    if (block) {
+                        block.addEventListener('click', function(e) {
+                            if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                            highlightPdfPosition(idx);
+                        });
+                    }
+                })(j);
+            }
+            highlightPdfPosition(0);
+        }
+
+        // ========== 表示値取得 ==========
+        var KEY_MAP = {
+            '医療機関名': ['医療機関名'], '患者さんID': ['患者さんID'],
+            '質問1_名前': ['質問1_名前', '質問1_名前_カタカナ'], '質問2_生年月日': ['質問2_生年月日'],
+            '質問3_性別': ['質問3_性別'], '質問4_血液型': ['質問4_血液型'],
+            '質問5_身体情報': ['質問5_身長', '質問5_体重'], '質問6_糖尿病': ['質問6_糖尿病'],
+            '質問7_脂質異常症': ['質問7_脂質異常症'], '質問8_兄弟糖尿病歴': ['質問8_兄弟糖尿病歴', '質問8_兄弟に糖尿病歴'],
+            '質問9_両親糖尿病歴': ['質問9_両親糖尿病歴', '質問9_両親に糖尿病歴'], '質問10_運動': ['質問10_運動', '質問10_普段の運動'],
+            '質問11_飲み物': ['質問11_飲み物', '質問11_最もよく飲む飲み物'], '質問12_お菓子': ['質問12_お菓子', '質問12_お菓子スイーツの頻度'],
+            '質問13_飲酒習慣': ['質問13_飲酒習慣'], '質問14_歯の抜去位置': ['質問14_抜去位置', '質問14_歯の抜去位置', '医師記入欄'],
+            '質問15_コメント': ['質問15_コメント']
+        };
+
+        function findValue(ocrData, key) {
+            if (ocrData[key] !== undefined) return ocrData[key];
+            var answData = ocrData['回答データ'];
+            if (answData && answData[key] !== undefined) return answData[key];
+            var candidates = KEY_MAP[key] || [];
+            for (var i = 0; i < candidates.length; i++) {
+                if (ocrData[candidates[i]] !== undefined) return ocrData[candidates[i]];
+                if (answData && answData[candidates[i]] !== undefined) return answData[candidates[i]];
+            }
+            return undefined;
+        }
+
+        function getDisplayValue(key, ocrData) {
+            if (key === '質問5_身体情報') {
+                var h = findValue(ocrData, '質問5_身長');
+                var w = findValue(ocrData, '質問5_体重');
+                if (h || w) return '身長: ' + (h || '') + ' / 体重: ' + (w || '');
+                var body = findValue(ocrData, '質問5_身体情報');
+                if (body && typeof body === 'object') return '身長: ' + (body['身長_cm'] || '') + 'cm / 体重: ' + (body['体重_kg'] || '') + 'kg';
+                return body ? String(body) : '';
+            }
+            var val = findValue(ocrData, key);
+            if (val === undefined || val === null) return '';
+            if (typeof val === 'string') return val;
+            if (typeof val === 'number') return String(val);
+            if (typeof val === 'object' && !Array.isArray(val)) {
+                if (key === '患者さんID') return val['値'] || val['value'] || JSON.stringify(val);
+                if (key === '質問1_名前') { if (val['氏'] || val['名']) return (val['氏'] || '') + ' ' + (val['名'] || ''); }
+                if (key === '質問2_生年月日') { if (val['年号']) return val['年号'] + (val['年'] || '') + '年' + (val['月'] ? val['月'] + '月' : '') + (val['日'] ? val['日'] + '日' : ''); }
+                if (key === '質問13_飲酒習慣') return formatAlcohol(val);
+                if (key === '質問14_歯の抜去位置') return formatTooth(val);
+                if (key === '質問15_コメント') { if (val['内容'] !== undefined) return String(val['内容']); if (val['その他'] !== undefined) return String(val['その他']); }
+                if (val['回答'] !== undefined) return String(val['回答']);
+                var parts = [];
+                for (var k in val) { var v = val[k]; if (v === null || v === undefined || v === '') continue; if (typeof v === 'object') v = JSON.stringify(v); parts.push(k + ': ' + v); }
+                return parts.join('\n');
+            }
+            return String(val);
+        }
+
+        var ALCOHOL_TYPE_LIST = ['ビール','日本酒','焼酎','チューハイ','ワイン','ウイスキー','ブランデー','梅酒','泡盛'];
+        var ALCOHOL_SIZE_LIST = ['350ml缶','500ml缶','750mlビン','375mlビン','コップ','水割り','お湯割り','ロック','小ジョッキ','中ジョッキ','大ジョッキ'];
+
+        function appendAlcoholNum(value, list) {
+            if (!value) return '';
+            var idx = -1;
+            for (var i = 0; i < list.length; i++) { if (list[i] === value || value.indexOf(list[i]) >= 0 || list[i].indexOf(value) >= 0) { idx = i; break; } }
+            if (idx >= 0) return value + '(' + (idx + 1) + ')';
+            var num = parseInt(value, 10);
+            if (!isNaN(num) && num >= 1 && num <= list.length) return list[num - 1] + '(' + num + ')';
+            return value;
+        }
+
+        function formatAlcohol(val) {
+            var sel = val['飲酒状況'] || val['選択'] || '';
+            if (!sel || sel === '未回答') return '未回答';
+            if (sel.indexOf('飲まない') >= 0 || sel === 'いいえ') return '飲まない';
+            var lines = [sel.indexOf('飲む') >= 0 ? '飲む' : sel];
+            for (var i = 1; i <= 3; i++) {
+                var block = val['回答' + i]; if (!block) continue;
+                var p = [];
+                var typeVal = block['お酒の種類'] || block['酒類'] || '';
+                if (typeVal) p.push('酒類: ' + appendAlcoholNum(typeVal, ALCOHOL_TYPE_LIST));
+                if (block['週に何回'] || block['頻度_週']) p.push('週' + (block['週に何回'] || block['頻度_週']));
+                var sizeVal = block['サイズ_飲み方'] || block['サイズ'] || '';
+                if (sizeVal) p.push('サイズ: ' + appendAlcoholNum(sizeVal, ALCOHOL_SIZE_LIST));
+                if (block['数量']) p.push('数量: ' + block['数量']);
+                if (p.length > 0) lines.push('回答' + i + ': ' + p.join(' / '));
+            }
+            return lines.join('\n');
+        }
+
+        function formatTooth(val) {
+            if (val['行1'] || val['行2'] || val['行3']) {
+                var lines = [];
+                for (var r = 1; r <= 3; r++) {
+                    var row = val['行' + r]; if (!row) continue;
+                    var p = [];
+                    if (row['左右']) p.push(row['左右']); if (row['上下']) p.push(row['上下']); if (row['番号']) p.push('番号: ' + row['番号']);
+                    if (p.length > 0) lines.push('行' + r + ': ' + p.join(' / '));
+                }
+                return lines.join('\n');
+            }
+            var parts = [];
+            if (val['左右']) parts.push(val['左右']); if (val['上下']) parts.push(val['上下']); if (val['番号']) parts.push('番号: ' + val['番号']);
+            return parts.length > 0 ? parts.join(' / ') : '';
+        }
+
+        // ========== 確認・編集 ==========
+        function confirmQuestion(idx, event) {
+            if (event && event.shiftKey) { for (var i = idx; i < QUESTION_ORDER.length; i++) doConfirm(i); }
+            else {
+                doConfirm(idx);
+                var nextIdx = -1;
+                for (var i = idx + 1; i < QUESTION_ORDER.length; i++) { if (questionStates[i] !== 'confirmed') { nextIdx = i; break; } }
+                if (nextIdx >= 0) highlightPdfPosition(nextIdx);
+            }
+            updateProgress();
+        }
+
+        function doConfirm(idx) {
+            questionStates[idx] = 'confirmed';
+            var block = document.getElementById('qblock_' + idx);
+            var input = document.getElementById('input_' + idx);
+            var okBtn = document.getElementById('okBtn_' + idx);
+            block.classList.add('confirmed');
+            input.disabled = true;
+            okBtn.textContent = '確認済'; okBtn.classList.add('confirmed-btn');
+        }
+
+        function editQuestion(idx) {
+            questionStates[idx] = 'editing';
+            var block = document.getElementById('qblock_' + idx);
+            var input = document.getElementById('input_' + idx);
+            var okBtn = document.getElementById('okBtn_' + idx);
+            block.classList.remove('confirmed');
+            input.disabled = false; input.focus();
+            okBtn.textContent = 'OK'; okBtn.classList.remove('confirmed-btn');
+            updateProgress();
+        }
+
+        function confirmAllRemaining() {
+            for (var i = 0; i < QUESTION_ORDER.length; i++) { if (questionStates[i] !== 'confirmed') doConfirm(i); }
+            updateProgress();
+        }
+
+        function updateProgress() {
+            var confirmed = 0, total = QUESTION_ORDER.length;
+            for (var i = 0; i < total; i++) { if (questionStates[i] === 'confirmed') confirmed++; }
+            var badge = document.getElementById('progressBadge');
+            badge.textContent = confirmed + '/' + total + ' 確認済み';
+            badge.className = (confirmed === total) ? 'progress-badge all-ok' : 'progress-badge partial';
+            document.getElementById('saveBtn').disabled = (confirmed < total);
+            document.getElementById('confirmAllWrapper').style.display = (confirmed < total) ? '' : 'none';
+            document.getElementById('statusText').textContent = (confirmed === total) ? '全項目確認済み。「照合完了・保存」で保存できます。' : confirmed + '/' + total + ' 項目確認済み（Shift+OKで一括確認）';
+        }
+
+        // ========== 保存 ==========
+        function saveVerified() {
+            if (!currentFileId || !currentOcrData) return;
+            var saveBtn = document.getElementById('saveBtn');
+            saveBtn.disabled = true; saveBtn.textContent = '保存中...';
+            document.getElementById('statusText').textContent = 'スプレッドシートに保存中...';
+
+            var inputData = {};
+            for (var idx = 0; idx < QUESTION_ORDER.length; idx++) {
+                inputData[QUESTION_ORDER[idx]] = document.getElementById('input_' + idx).value;
+            }
+            var surveyData = convertToSurveyFormat(inputData);
+            surveyData['元PDFファイル名'] = currentFileName || '';
+
+            var payload = {
+                action: 'saveWebOcrResult',
+                surveyData: surveyData,
+                fileId: currentFileId,
+                fileName: currentFileName || ''
+            };
+
+            gasPost(payload).then(function() {
+                saveBtn.textContent = '保存完了!';
+                document.getElementById('statusText').textContent = '保存完了! スプレッドシート追加・PDF移動完了。';
+                document.getElementById('statusText').style.color = '#2e7d32';
+                pdfList = pdfList.filter(function(p) { return p.fileId !== currentFileId; });
+                setTimeout(function() {
+                    document.getElementById('statusText').style.color = '';
+                    saveBtn.textContent = '照合完了・保存';
+                    currentFileId = null; currentOcrData = null;
+                    renderPdfList();
+                    if (pdfList.length > 0) { selectPdf(pdfList[0].fileId, pdfList[0].fileName, pdfList[0].hasPreOcr); }
+                    else {
+                        document.getElementById('activeView').style.display = 'none';
+                        document.getElementById('welcomeView').style.display = 'flex';
+                        document.getElementById('bottomBar').style.display = 'none';
+                    }
+                }, 2000);
+            }).catch(function(err) {
+                saveBtn.disabled = false; saveBtn.textContent = '照合完了・保存';
+                document.getElementById('statusText').textContent = '保存エラー: ' + err.message;
+                document.getElementById('statusText').style.color = '#c62828';
+            });
+        }
+
+        // ========== スプレッドシート変換 ==========
+        function parseName(value) { if (!value) return null; var m = value.match(/氏:\s*(.+?)\s*\/\s*名:\s*(.+)/); return m ? (m[1].trim() + ' ' + m[2].trim()) : value.trim() || null; }
+        function parseBirthdate(value) { if (!value) return [null,null,null,null]; var m = value.split('\n')[0].trim().match(/(昭和|平成|令和)\s*(\d+)\s*年\s*(\d+)\s*月\s*(\d+)\s*日/); return m ? [m[1],m[2],m[3],m[4]] : [null,null,null,null]; }
+        function parseBodyInfo(value) { if (!value) return [null,null]; var hm = value.match(/身長:\s*(\d+(?:\.\d+)?)\s*cm/); var wm = value.match(/体重:\s*(\d+(?:\.\d+)?)\s*kg/); return [hm?hm[1]:null, wm?wm[1]:null]; }
+        function parseDisease(value) { if (!value) return [null,null]; var v = value.trim(); if (v==='なし') return ['いいえ',null]; if (v==='はい') return ['はい',null]; if (v==='いいえ') return ['いいえ',null]; if (v==='未回答') return [null,null]; if (v==='5年未満') return ['はい','5年未満']; if (v==='5〜10年前'||v==='5～10年前') return ['はい','5〜10年前']; if (v==='10年以上前') return ['はい','10年以上前']; if (v==='わからない') return ['はい','わからない']; return [v,null]; }
+        function parseGender(value) { if (!value) return null; var map = {'男':'男性','男性':'男性','女':'女性','女性':'女性','その他':'その他','未回答':null}; return map[value.trim()]!==undefined ? map[value.trim()] : value.trim(); }
+        function parseExercise(value) { if (!value) return null; var v = value.trim(); if (v==='未回答') return null; return v; }
+        function parseSweets(value) { if (!value) return null; var map = {'ほぼ毎日':'ほぼ毎日','週2~3回':'週2～3回','週2～3回':'週2～3回','週1回以下':'週1回以下','食べない':'食べない','未回答':null}; return map[value.trim()]!==undefined ? map[value.trim()] : value.trim(); }
+        function parseDrinks(value) { if (!value) return null; if (value.indexOf('有糖')>=0) return '有糖飲料(ジュース、炭酸飲料、スポーツドリンク、加糖コーヒーなど)'; if (value.indexOf('無糖')>=0) return '無糖飲料(お茶、水、炭酸水、無糖コーヒーなど)'; if (value.trim()==='未回答') return null; return value.trim(); }
+        function parseAlcohol(value) {
+            var keys = ['24. お酒（ビール、ワイン、焼酎、ウイスキーなど）を習慣的に飲みますか？','25. お酒の種類','26. 週に何回飲みますか？(回)','27. 1回あたりのサイズ/飲み方は？','28. 数量','29. 他にもよく飲むお酒はありますか？','30. お酒の種類','31. 週に何回飲みますか？(回)','32. 1回あたりのサイズ/飲み方は？','33. 数量','34. 他にもよく飲むお酒はありますか？','35. お酒の種類','36. 週に何回飲みますか？(回)','37. 1回あたりのサイズ/飲み方は？','38. 数量','39. 他にもよく飲むお酒はありますか？'];
+            var r = {}; for (var i=0;i<keys.length;i++) r[keys[i]]='';
+            if (!value) return r;
+            var lines = value.trim().split('\n'); var sel = lines[0]||'';
+            if (sel.indexOf('飲まない')>=0) { r[keys[0]]='いいえ（ほとんど飲まない）'; return r; }
+            if (sel.indexOf('飲む')>=0) r[keys[0]]='はい（習慣的に飲む）'; else return r;
+            var blocks=[],cur=null;
+            for (var i=1;i<lines.length;i++) { var line=lines[i].trim(); if (line.match(/^回答\d/)) { if(cur!==null)blocks.push(cur); cur=line; } else if(cur!==null) { cur+=' '+line; } }
+            if (cur!==null) blocks.push(cur);
+            for (var i=0;i<Math.min(blocks.length,3);i++) { var b=blocks[i],base=1+i*5; var km=b.match(/酒類[:：]\s*(\S+)/); if(km) r[keys[base]]=km[1]; var fm=b.match(/週\s*(\d+)\s*回/); if(fm) r[keys[base+1]]=fm[1]; var sm=b.match(/サイズ[:：]\s*(.+?)(?:\s+数量|$)/); if(sm) r[keys[base+2]]=sm[1].trim(); var qm=b.match(/数量[:：]\s*(\d+)/); if(qm) r[keys[base+3]]=qm[1]; r[keys[base+4]]=(i<blocks.length-1)?'ある':'ない'; }
+            return r;
+        }
+
+        function formatToothForSave(val) {
+            if (!val || val === 'none') return '';
+            if (typeof val === 'string') return val;
+            if (typeof val === 'object') {
+                if (val['行1'] || val['行2'] || val['行3']) {
+                    var parts = [];
+                    for (var r = 1; r <= 3; r++) { var row = val['行' + r]; if (!row || typeof row !== 'object') continue; var s = (row['左右']||'') + (row['上下']||'') + (row['番号']||''); if (s) parts.push(s); }
+                    return parts.join(', ');
+                }
+                if (val['左右'] || val['上下'] || val['番号']) return (val['左右']||'') + (val['上下']||'') + (val['番号']||'');
+                return JSON.stringify(val);
+            }
+            return String(val);
+        }
+
+        function convertToSurveyFormat(input) {
+            var o = {};
+            o['1. 受診中の歯科医院を選んでください。'] = input['医療機関名'] || '';
+            o['2. ID番号'] = input['患者さんID'] || '';
+            o['3. 名前（カタカナ）'] = parseName(input['質問1_名前']) || '';
+            var bd = parseBirthdate(input['質問2_生年月日']);
+            o['4. 生年月日 - 年号'] = bd[0] || ''; o['5. - 年（半角数字）'] = bd[1] || ''; o['6. - 月（半角数字）'] = bd[2] || ''; o['7. - 日（半角数字）'] = bd[3] || '';
+            o['9. 性別'] = parseGender(input['質問3_性別']) || '';
+            o['10. 血液型'] = (input['質問4_血液型'] && input['質問4_血液型'] !== '未回答') ? input['質問4_血液型'] : '';
+            var bi = parseBodyInfo(input['質問5_身体情報']);
+            o['11. 身長 cm'] = bi[0] || ''; o['12. 体重 kg'] = bi[1] || '';
+            var dm = parseDisease(input['質問6_糖尿病']);
+            o['13. 糖尿病と診断されていますか？'] = dm[0] || ''; o['14. 何年前からですか？'] = dm[1] || '';
+            var dl = parseDisease(input['質問7_脂質異常症']);
+            o['15. 脂質異常症と診断されていますか？'] = dl[0] || ''; o['16. 何年前からですか？'] = dl[1] || '';
+            var sb = parseDisease(input['質問8_兄弟糖尿病歴']);
+            o['17. ご兄弟に糖尿病歴はありますか？'] = sb[0] || ''; o['18. 何年前からですか？'] = sb[1] || '';
+            var pr = parseDisease(input['質問9_両親糖尿病歴']);
+            o['19. ご両親に糖尿病歴はありますか？'] = pr[0] || ''; o['20. 何年前からですか？'] = pr[1] || '';
+            o['21. 普段、運動をしてますか？'] = parseExercise(input['質問10_運動']) || '';
+            o['22. 普段、飲む物は何ですか？'] = parseDrinks(input['質問11_飲み物']) || '';
+            o['23. 普段、お菓子、スイーツなどは食べますか？'] = parseSweets(input['質問12_お菓子']) || '';
+            var alc = parseAlcohol(input['質問13_飲酒習慣']);
+            for (var k in alc) o[k] = alc[k];
+            o['抜去位置'] = formatToothForSave(input['質問14_歯の抜去位置']);
+            o['コメント'] = input['質問15_コメント'] || '';
+            return o;
+        }
+
+        // ========== ユーティリティ ==========
+        function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+        function escapeAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+    </script>
+</body>
+</html>

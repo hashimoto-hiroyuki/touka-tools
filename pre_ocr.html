@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>事前OCR処理</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%237b1fa2'/><path d='M8 8h16v16H8z' fill='none' stroke='white' stroke-width='1.5'/><path d='M11 13h10M11 17h7' stroke='white' stroke-width='1.5' stroke-linecap='round'/><circle cx='22' cy='22' r='5' fill='%2343a047' stroke='white' stroke-width='1.5'/><path d='M20 22l1.5 1.5 3-3' stroke='white' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', 'Yu Gothic UI', 'Meiryo', sans-serif; background: #f5f5f5; min-height: 100vh; }
+        .header { background: linear-gradient(135deg, #7b1fa2 0%, #4a148c 100%); padding: 16px 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); color: #fff; }
+        .header h1 { font-size: 20px; font-weight: 700; }
+        .header .subtitle { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .stats { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-card { background: #fff; border-radius: 8px; padding: 16px 20px; flex: 1; min-width: 150px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .stat-card .stat-num { font-size: 28px; font-weight: 700; }
+        .stat-card .stat-label { font-size: 12px; color: #888; margin-top: 2px; }
+        .stat-card.total .stat-num { color: #7b1fa2; }
+        .stat-card.done .stat-num { color: #43a047; }
+        .stat-card.pending .stat-num { color: #e65100; }
+        .actions { display: flex; gap: 10px; margin-bottom: 16px; align-items: center; flex-wrap: wrap; }
+        .btn { padding: 8px 20px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .btn-primary { background: #7b1fa2; color: #fff; }
+        .btn-primary:hover { background: #6a1b9a; }
+        .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-stop { background: #c62828; color: #fff; display: none; }
+        .btn-stop:hover { background: #b71c1c; }
+        .btn-outline { background: #fff; color: #555; border: 1px solid #ddd; }
+        .btn-outline:hover { background: #f5f5f5; }
+        .progress-section { background: #fff; border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); display: none; }
+        .progress-bar-wrap { background: #e0e0e0; border-radius: 10px; height: 20px; overflow: hidden; margin-bottom: 8px; }
+        .progress-bar { background: linear-gradient(90deg, #7b1fa2, #ab47bc); height: 100%; border-radius: 10px; transition: width 0.3s; width: 0%; }
+        .progress-text { font-size: 12px; color: #666; }
+        .log-area { max-height: 120px; overflow-y: auto; font-size: 11px; color: #555; margin-top: 8px; font-family: 'Consolas', monospace; background: #fafafa; padding: 8px; border-radius: 4px; border: 1px solid #eee; }
+        .log-area div.log-ok { color: #2e7d32; }
+        .log-area div.log-err { color: #c62828; }
+        .log-area div.log-skip { color: #888; }
+        table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        th { background: #f5f5f5; padding: 10px 12px; text-align: left; font-size: 12px; font-weight: 600; color: #555; border-bottom: 2px solid #e0e0e0; white-space: nowrap; }
+        td { padding: 8px 12px; font-size: 12px; border-bottom: 1px solid #f0f0f0; }
+        tr:hover { background: #fafafa; }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .badge-done { background: #e8f5e9; color: #2e7d32; }
+        .badge-pending { background: #fff3e0; color: #e65100; }
+        .badge-running { background: #e3f2fd; color: #1565c0; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .btn-sm { padding: 4px 10px; font-size: 11px; border: 1px solid #ddd; border-radius: 4px; background: #fff; cursor: pointer; }
+        .btn-sm:hover { background: #f5f5f5; }
+        .btn-sm:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-sm.btn-danger { color: #c62828; border-color: #ef9a9a; }
+        .btn-sm.btn-danger:hover { background: #ffebee; }
+        .file-name { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ocr-summary { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #666; font-size: 11px; }
+        .search-box { padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; width: 200px; }
+        .search-box:focus { border-color: #7b1fa2; outline: none; }
+        .elapsed { font-size: 12px; color: #888; margin-left: 12px; }
+        /* モーダル */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: #fff; border-radius: 8px; width: 90%; max-width: 700px; max-height: 80vh; display: flex; flex-direction: column; }
+        .modal-header { padding: 14px 20px; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: space-between; }
+        .modal-header h3 { font-size: 15px; }
+        .modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+        .modal-body pre { font-size: 12px; white-space: pre-wrap; word-break: break-all; font-family: 'Consolas', monospace; background: #f5f5f5; padding: 12px; border-radius: 4px; }
+        .btn-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #888; }
+        .btn-close:hover { color: #333; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>事前OCR処理</h1>
+        <div class="subtitle">元PDFフォルダの全PDFをGeminiで一括OCR → 結果をJSONで保存</div>
+    </div>
+
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card total"><div class="stat-num" id="statTotal">-</div><div class="stat-label">全PDF</div></div>
+            <div class="stat-card done"><div class="stat-num" id="statDone">-</div><div class="stat-label">OCR済み</div></div>
+            <div class="stat-card pending"><div class="stat-num" id="statPending">-</div><div class="stat-label">未処理</div></div>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-outline" onclick="loadStatus()">一覧更新</button>
+            <button class="btn btn-primary" id="btnStart" onclick="startBatchOcr()" disabled>未処理を一括OCR</button>
+            <button class="btn btn-stop" id="btnStop" onclick="stopBatch()">停止</button>
+            <span class="elapsed" id="elapsedTime"></span>
+            <div style="flex:1;"></div>
+            <input type="text" class="search-box" id="searchBox" placeholder="ファイル名で検索..." oninput="renderTable()">
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar"></div></div>
+            <div class="progress-text" id="progressText">準備中...</div>
+            <div class="log-area" id="logArea"></div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>ファイル名</th>
+                    <th>サイズ</th>
+                    <th>OCR状態</th>
+                    <th>OCR結果概要</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr><td colspan="6" style="text-align:center; color:#999; padding:40px;">読み込み中...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 結果モーダル -->
+    <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">OCR結果</h3>
+                <button class="btn-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <pre id="modalContent"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyYnnni3ww8q2KJIPom0ljkVjseQuPMGULQq2lHh21BN63EwLECb_6XsEX9yMpPG_Ri/exec';
+        var pdfList = [];
+        var batchRunning = false;
+        var batchStopped = false;
+        var jsonpCounter = 0;
+        var batchStartTime = null;
+        var elapsedTimer = null;
+
+        window.addEventListener('DOMContentLoaded', loadStatus);
+
+        // ========== API通信 ==========
+        function callApi(action, params, callback, timeoutMs) {
+            var cbName = 'cb_' + Date.now() + '_' + (jsonpCounter++);
+            var url = GAS_API_URL + '?action=' + action + '&callback=' + cbName;
+            if (params) {
+                for (var k in params) url += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+            }
+            var timeout = timeoutMs || 30000;
+            var done = false;
+            window[cbName] = function(data) {
+                done = true;
+                delete window[cbName];
+                var s = document.getElementById('jsonp_' + cbName);
+                if (s) s.remove();
+                callback(null, data);
+            };
+            var s = document.createElement('script');
+            s.id = 'jsonp_' + cbName;
+            s.src = url;
+            s.onerror = function() {
+                if (!done) { done = true; delete window[cbName]; s.remove(); callback('通信エラー'); }
+            };
+            document.body.appendChild(s);
+            setTimeout(function() {
+                if (!done) { done = true; delete window[cbName]; var el = document.getElementById('jsonp_' + cbName); if (el) el.remove(); callback('タイムアウト'); }
+            }, timeout);
+        }
+
+        // ========== データ読み込み ==========
+        function loadStatus() {
+            document.getElementById('tableBody').innerHTML = '<tr><td colspan="6" style="text-align:center; color:#999; padding:40px;">読み込み中...</td></tr>';
+            callApi('getPreOcrStatus', null, function(err, res) {
+                if (err || !res || !res.success) {
+                    document.getElementById('tableBody').innerHTML = '<tr><td colspan="6" style="text-align:center; color:#c62828; padding:40px;">読み込みエラー: ' + (err || (res && res.error) || '不明') + '</td></tr>';
+                    return;
+                }
+                pdfList = res.data || [];
+                updateStats();
+                renderTable();
+            });
+        }
+
+        function updateStats() {
+            var total = pdfList.length;
+            var done = pdfList.filter(function(p) { return p.hasPreOcr; }).length;
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statDone').textContent = done;
+            document.getElementById('statPending').textContent = total - done;
+            document.getElementById('btnStart').disabled = (total - done === 0);
+        }
+
+        function renderTable() {
+            var search = (document.getElementById('searchBox').value || '').toLowerCase();
+            var filtered = pdfList;
+            if (search) {
+                filtered = pdfList.filter(function(p) { return p.fileName.toLowerCase().indexOf(search) >= 0; });
+            }
+            if (filtered.length === 0) {
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="6" style="text-align:center; color:#999; padding:30px;">該当なし</td></tr>';
+                return;
+            }
+            var html = '';
+            for (var i = 0; i < filtered.length; i++) {
+                var p = filtered[i];
+                var sizeKB = p.fileSize ? Math.round(p.fileSize / 1024) + ' KB' : '-';
+                var badge = p.hasPreOcr
+                    ? '<span class="badge badge-done">OCR済み</span>'
+                    : '<span class="badge badge-pending">未処理</span>';
+                var summary = p.hasPreOcr ? (p.ocrUpdated || '') : '';
+                var actions = '';
+                if (p.hasPreOcr) {
+                    actions += '<button class="btn-sm" onclick="viewResult(\'' + p.fileId + '\', \'' + escapeAttr(p.fileName) + '\')">表示</button> ';
+                    actions += '<button class="btn-sm" onclick="reRunOcr(\'' + p.fileId + '\', \'' + escapeAttr(p.fileName) + '\', this)">再OCR</button> ';
+                    actions += '<button class="btn-sm btn-danger" onclick="deleteResult(\'' + p.fileId + '\', \'' + escapeAttr(p.fileName) + '\', this)">削除</button>';
+                } else {
+                    actions += '<button class="btn-sm" onclick="runSingleOcr(\'' + p.fileId + '\', \'' + escapeAttr(p.fileName) + '\', this)">OCR実行</button>';
+                }
+                html += '<tr id="row_' + p.fileId + '">';
+                html += '<td>' + (i + 1) + '</td>';
+                html += '<td class="file-name" title="' + escapeAttr(p.fileName) + '">' + escapeHtml(p.fileName) + '</td>';
+                html += '<td>' + sizeKB + '</td>';
+                html += '<td id="badge_' + p.fileId + '">' + badge + '</td>';
+                html += '<td class="ocr-summary" id="summary_' + p.fileId + '">' + escapeHtml(summary) + '</td>';
+                html += '<td id="actions_' + p.fileId + '">' + actions + '</td>';
+                html += '</tr>';
+            }
+            document.getElementById('tableBody').innerHTML = html;
+        }
+
+        // ========== 個別OCR ==========
+        function runSingleOcr(fileId, fileName, btn) {
+            if (btn) { btn.disabled = true; btn.textContent = '処理中...'; }
+            var badgeEl = document.getElementById('badge_' + fileId);
+            if (badgeEl) badgeEl.innerHTML = '<span class="badge badge-running">処理中...</span>';
+            callApi('preOcrSinglePdf', { fileId: fileId }, function(err, res) {
+                if (err || !res || !res.success || !res.data || !res.data.success) {
+                    var msg = err || (res && res.data && res.data.message) || (res && res.error) || '不明なエラー';
+                    if (badgeEl) badgeEl.innerHTML = '<span class="badge badge-pending">エラー</span>';
+                    if (btn) { btn.disabled = false; btn.textContent = 'OCR実行'; }
+                    alert('OCRエラー (' + fileName + '): ' + msg);
+                    return;
+                }
+                // 成功 → リスト更新
+                for (var i = 0; i < pdfList.length; i++) {
+                    if (pdfList[i].fileId === fileId) {
+                        pdfList[i].hasPreOcr = true;
+                        pdfList[i].ocrUpdated = new Date().toLocaleString('ja-JP');
+                        break;
+                    }
+                }
+                updateStats();
+                renderTable();
+            }, 180000);
+        }
+
+        function reRunOcr(fileId, fileName, btn) {
+            if (!confirm(fileName + ' を再OCRしますか？')) return;
+            runSingleOcr(fileId, fileName, btn);
+        }
+
+        // ========== 結果表示 ==========
+        function viewResult(fileId, fileName) {
+            document.getElementById('modalTitle').textContent = fileName + ' のOCR結果';
+            document.getElementById('modalContent').textContent = '読み込み中...';
+            document.getElementById('modalOverlay').classList.add('show');
+            callApi('getPreOcrResult', { fileId: fileId }, function(err, res) {
+                if (err || !res || !res.success || !res.data || !res.data.success) {
+                    document.getElementById('modalContent').textContent = 'エラー: ' + (err || (res && res.data && res.data.message) || '不明');
+                    return;
+                }
+                document.getElementById('modalContent').textContent = JSON.stringify(res.data.ocrData, null, 2);
+            }, 30000);
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('show');
+        }
+
+        // ========== 削除 ==========
+        function deleteResult(fileId, fileName, btn) {
+            if (!confirm(fileName + ' のOCR結果を削除しますか？')) return;
+            if (btn) btn.disabled = true;
+            callApi('deletePreOcrResult', { fileId: fileId }, function(err, res) {
+                if (err || !res || !res.success) {
+                    if (btn) btn.disabled = false;
+                    alert('削除エラー');
+                    return;
+                }
+                for (var i = 0; i < pdfList.length; i++) {
+                    if (pdfList[i].fileId === fileId) {
+                        pdfList[i].hasPreOcr = false;
+                        pdfList[i].ocrUpdated = null;
+                        break;
+                    }
+                }
+                updateStats();
+                renderTable();
+            });
+        }
+
+        // ========== バッチ処理 ==========
+        function startBatchOcr() {
+            var pendingList = pdfList.filter(function(p) { return !p.hasPreOcr; });
+            if (pendingList.length === 0) { alert('未処理のPDFはありません'); return; }
+            if (!confirm(pendingList.length + '件の未処理PDFをOCR処理します。\n1件あたり20〜60秒かかります。よろしいですか？')) return;
+
+            batchRunning = true;
+            batchStopped = false;
+            batchStartTime = Date.now();
+            document.getElementById('btnStart').disabled = true;
+            document.getElementById('btnStop').style.display = '';
+            document.getElementById('progressSection').style.display = '';
+            document.getElementById('logArea').innerHTML = '';
+
+            // 経過時間タイマー
+            elapsedTimer = setInterval(function() {
+                var sec = Math.floor((Date.now() - batchStartTime) / 1000);
+                var min = Math.floor(sec / 60);
+                sec = sec % 60;
+                document.getElementById('elapsedTime').textContent = '経過: ' + min + '分' + (sec < 10 ? '0' : '') + sec + '秒';
+            }, 1000);
+
+            var total = pendingList.length;
+            var current = 0;
+            var successCount = 0;
+            var errorCount = 0;
+
+            function processNext() {
+                if (batchStopped || current >= total) {
+                    finishBatch(successCount, errorCount, total);
+                    return;
+                }
+                var pdf = pendingList[current];
+                current++;
+                var pct = Math.round((current / total) * 100);
+                document.getElementById('progressBar').style.width = pct + '%';
+                document.getElementById('progressText').textContent = current + '/' + total + ' 処理中: ' + pdf.fileName;
+
+                var badgeEl = document.getElementById('badge_' + pdf.fileId);
+                if (badgeEl) badgeEl.innerHTML = '<span class="badge badge-running">処理中...</span>';
+
+                callApi('preOcrSinglePdf', { fileId: pdf.fileId }, function(err, res) {
+                    var logDiv = document.createElement('div');
+                    if (err || !res || !res.success || !res.data || !res.data.success) {
+                        errorCount++;
+                        var msg = err || (res && res.data && res.data.message) || (res && res.error) || '不明';
+                        logDiv.className = 'log-err';
+                        logDiv.textContent = '[NG] ' + pdf.fileName + ': ' + msg;
+                        if (badgeEl) badgeEl.innerHTML = '<span class="badge badge-pending">エラー</span>';
+                    } else {
+                        successCount++;
+                        var summary = res.data.summary || '';
+                        logDiv.className = 'log-ok';
+                        logDiv.textContent = '[OK] ' + pdf.fileName + (summary ? ' → ' + summary : '');
+                        for (var i = 0; i < pdfList.length; i++) {
+                            if (pdfList[i].fileId === pdf.fileId) {
+                                pdfList[i].hasPreOcr = true;
+                                pdfList[i].ocrUpdated = new Date().toLocaleString('ja-JP');
+                                break;
+                            }
+                        }
+                        updateStats();
+                        if (badgeEl) badgeEl.innerHTML = '<span class="badge badge-done">OCR済み</span>';
+                    }
+                    var logArea = document.getElementById('logArea');
+                    logArea.appendChild(logDiv);
+                    logArea.scrollTop = logArea.scrollHeight;
+
+                    setTimeout(processNext, 500);
+                }, 180000);
+            }
+
+            processNext();
+        }
+
+        function stopBatch() {
+            batchStopped = true;
+            document.getElementById('btnStop').style.display = 'none';
+            addLog('log-skip', '[停止] ユーザーにより中断');
+        }
+
+        function finishBatch(success, errors, total) {
+            batchRunning = false;
+            if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
+            document.getElementById('btnStart').disabled = false;
+            document.getElementById('btnStop').style.display = 'none';
+            document.getElementById('progressBar').style.width = '100%';
+            var msg = '完了: ' + success + '件成功';
+            if (errors > 0) msg += ', ' + errors + '件エラー';
+            if (batchStopped) msg += ' (中断)';
+            document.getElementById('progressText').textContent = msg;
+            addLog('log-ok', msg);
+            renderTable();
+        }
+
+        function addLog(cls, text) {
+            var div = document.createElement('div');
+            div.className = cls;
+            div.textContent = text;
+            var logArea = document.getElementById('logArea');
+            logArea.appendChild(div);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        // ========== ユーティリティ ==========
+        function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+        function escapeAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+    </script>
+</body>
+</html>

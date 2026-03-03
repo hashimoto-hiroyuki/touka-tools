@@ -11,6 +11,7 @@ const SCAN_PDF_FOLDER_ID = '1blx2Ia2X9blWcYAkGKPGST8MFN3VgJGL';  // 元PDFフォ
 const DONE_PDF_FOLDER_ID = '1iFx7ngwNSJo80bElYcqw0dyHQyhm0N0N';  // 入力済みPDFフォルダ
 const OCR_RESULTS_FOLDER_NAME = 'OCR照合結果';  // OCR照合結果フォルダ名
 const OCR_LOCK_TIMEOUT_MIN = 30;  // ファイルロックのタイムアウト（分）
+const PRE_OCR_FOLDER_NAME = '事前OCR';  // 事前OCR結果保存フォルダ名
 const SPECIMEN_SPREADSHEET_ID = '1y4z8dZjKuJKOS0HUxmnSSfkkvhRWkQpb--TXGm5amvs';  // 検体PpP値シート
 const SPECIMEN_SHEET_NAME = 'シート1';
 const TRACKING_SPREADSHEET_ID = '1jr25zPPv2qCHkgXNA6oHV5eoSq0RcxpXEirWq0V5YA8';  // HbA1c追跡シート
@@ -185,6 +186,19 @@ function doGet(e) {
         var rowData = JSON.parse(decodeURIComponent(e.parameter.data));
         var sheetName = e.parameter.sheetName || '';
         result = { success: true, data: updateSurveyRow(rowNo, rowData, sheetName) };
+        break;
+      // ========== 事前OCR処理 ==========
+      case 'getPreOcrStatus':
+        result = { success: true, data: getPreOcrStatus() };
+        break;
+      case 'preOcrSinglePdf':
+        result = { success: true, data: preOcrSinglePdf(e.parameter.fileId) };
+        break;
+      case 'getPreOcrResult':
+        result = { success: true, data: getPreOcrResult(e.parameter.fileId) };
+        break;
+      case 'deletePreOcrResult':
+        result = { success: true, data: deletePreOcrResult(e.parameter.fileId) };
         break;
       default:
         result = { success: false, error: 'Unknown action' };
@@ -2250,6 +2264,205 @@ function getOrCreateOcrFolder() {
     return folders.next();
   }
   return parentFolder.createFolder(OCR_RESULTS_FOLDER_NAME);
+}
+
+// ========== 事前OCR処理 ==========
+/**
+ * 事前OCRフォルダを取得または作成
+ */
+function getOrCreatePreOcrFolder() {
+  var parentFolder = DriveApp.getFolderById(JSON_PARENT_FOLDER_ID);
+  var folders = parentFolder.getFoldersByName(PRE_OCR_FOLDER_NAME);
+  if (folders.hasNext()) {
+    return folders.next();
+  }
+  return parentFolder.createFolder(PRE_OCR_FOLDER_NAME);
+}
+
+/**
+ * 全PDFの事前OCR状態を取得
+ */
+function getPreOcrStatus() {
+  var pdfList = getDrivePdfList();
+  var folder = getOrCreatePreOcrFolder();
+  // 事前OCRフォルダ内の全JSONファイル名を収集
+  var existingFiles = {};
+  var files = folder.getFiles();
+  while (files.hasNext()) {
+    var f = files.next();
+    var name = f.getName();
+    if (name.indexOf('preocr_') === 0 && name.indexOf('.json') > 0) {
+      var fid = name.replace('preocr_', '').replace('.json', '');
+      existingFiles[fid] = { fileId: f.getId(), size: f.getSize(), updated: Utilities.formatDate(f.getLastUpdated(), 'Asia/Tokyo', 'yyyy-MM-dd HH:mm') };
+    }
+  }
+  var result = [];
+  for (var i = 0; i < pdfList.length; i++) {
+    var pdf = pdfList[i];
+    var ocrInfo = existingFiles[pdf.fileId] || null;
+    result.push({
+      fileId: pdf.fileId,
+      fileName: pdf.fileName,
+      fileSize: pdf.fileSize,
+      lastUpdated: pdf.lastUpdated,
+      hasPreOcr: !!ocrInfo,
+      ocrFileId: ocrInfo ? ocrInfo.fileId : null,
+      ocrSize: ocrInfo ? ocrInfo.size : null,
+      ocrUpdated: ocrInfo ? ocrInfo.updated : null
+    });
+  }
+  return result;
+}
+
+/**
+ * 1件のPDFを事前OCR処理（Gemini API）
+ */
+function preOcrSinglePdf(fileId) {
+  if (!fileId) return { success: false, message: 'fileIdが必要です' };
+  if (!GEMINI_API_KEY) return { success: false, message: 'GEMINI_API_KEYが未設定' };
+  var file;
+  try { file = DriveApp.getFileById(fileId); } catch (e) {
+    return { success: false, message: 'ファイルが見つかりません: ' + e.toString() };
+  }
+  var fileName = file.getName();
+  var blob = file.getBlob();
+  var base64Data = Utilities.base64Encode(blob.getBytes());
+  // ocrFullPdfWithGeminiと同じプロンプト
+  var prompt = 'あなたは紙のアンケート用紙を読み込むエキスパートです。\n' +
+    'このPDFはスキャンされた手書きアンケートです。全質問の回答をJSONで返してください。\n\n' +
+    '【注意事項】\n' +
+    '- 患者さんIDは1文字ずつ枠で区切られています。枠線を文字と誤認しないでください\n' +
+    '- 最初の文字はアルファベット（A,B,C等）の可能性が高いです\n' +
+    '- 名前はカタカナです。氏と名をスペースで区切ってください\n' +
+    '- 生年月日は昭和・平成・令和の丸囲み＋手書き数字です\n' +
+    '- 空欄・未記入は null または "" にしてください\n' +
+    '- 質問13の飲酒は最大3種類の回答欄があります\n' +
+    '- 質問14（歯の抜去位置）と質問15（コメント）は2ページ目にある場合があります\n\n' +
+    '以下のフラットなJSON形式で出力してください。ネストは質問13と質問14のみ。\n' +
+    'JSONのみ出力し、説明文は不要です。\n\n' +
+    '```json\n' +
+    '{\n' +
+    '  "医療機関名": "○○医院",\n' +
+    '  "患者さんID": "A1234",\n' +
+    '  "質問1_名前": "ヤマダ タロウ",\n' +
+    '  "質問2_生年月日": "昭和50年1月15日",\n' +
+    '  "質問3_性別": "男",\n' +
+    '  "質問4_血液型": "A型",\n' +
+    '  "質問5_身長": "170cm",\n' +
+    '  "質問5_体重": "65kg",\n' +
+    '  "質問6_糖尿病": "なし",\n' +
+    '  "質問7_脂質異常症": "なし",\n' +
+    '  "質問8_兄弟糖尿病歴": "いいえ",\n' +
+    '  "質問9_両親糖尿病歴": "いいえ",\n' +
+    '  "質問10_運動": "しない",\n' +
+    '  "質問11_飲み物": "無糖飲料",\n' +
+    '  "質問12_お菓子": "週1回以下",\n' +
+    '  "質問13_飲酒習慣": {\n' +
+    '    "飲酒状況": "飲む",\n' +
+    '    "回答1": {"お酒の種類":"ビール","週に何回":"3回","サイズ_飲み方":"350ml缶","数量":"2"},\n' +
+    '    "回答2": null,\n' +
+    '    "回答3": null\n' +
+    '  },\n' +
+    '  "質問14_抜去位置": {\n' +
+    '    "行1": {"左右":"右","上下":"上","番号":"6"},\n' +
+    '    "行2": null,\n' +
+    '    "行3": null\n' +
+    '  },\n' +
+    '  "質問15_コメント": ""\n' +
+    '}\n' +
+    '```\n\n' +
+    '【質問6の選択肢】なし / 5年未満 / 5〜10年前 / 10年以上前 / わからない\n' +
+    '【質問7の選択肢】なし / 5年未満 / 5〜10年前 / 10年以上前 / わからない\n' +
+    '【質問8,9の選択肢】はい / いいえ / わからない\n' +
+    '【質問10の選択肢】ほぼ毎日 / 週2〜3回 / 週1回以下 / しない\n' +
+    '【質問11の選択肢】有糖飲料 / 無糖飲料\n' +
+    '【質問12の選択肢】ほぼ毎日 / 週2〜3回 / 週1回以下 / 食べない';
+  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=' + GEMINI_API_KEY;
+  var payload = {
+    contents: [{
+      parts: [
+        { text: prompt },
+        { inline_data: { mime_type: 'application/pdf', data: base64Data } }
+      ]
+    }],
+    generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+  };
+  var options = { method: 'post', contentType: 'application/json', payload: JSON.stringify(payload), muteHttpExceptions: true };
+  var response = UrlFetchApp.fetch(apiUrl, options);
+  if (response.getResponseCode() !== 200) {
+    return { success: false, message: 'Gemini APIエラー (' + response.getResponseCode() + '): ' + response.getContentText().substring(0, 300) };
+  }
+  var geminiResult = JSON.parse(response.getContentText());
+  var textContent = '';
+  try { textContent = geminiResult.candidates[0].content.parts[0].text; } catch (e) {
+    return { success: false, message: 'Gemini APIレスポンス解析エラー' };
+  }
+  // JSON抽出
+  var jsonText = textContent.trim();
+  if (jsonText.indexOf('```json') >= 0) {
+    jsonText = jsonText.split('```json')[1].split('```')[0].trim();
+  } else if (jsonText.indexOf('```') >= 0) {
+    jsonText = jsonText.split('```')[1].split('```')[0].trim();
+  }
+  var firstBrace = jsonText.indexOf('{');
+  var lastBrace = jsonText.lastIndexOf('}');
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    jsonText = jsonText.substring(firstBrace, lastBrace + 1);
+  }
+  jsonText = jsonText.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
+  jsonText = jsonText.replace(/[\x00-\x1F\x7F]/g, function(c) {
+    if (c === '\n' || c === '\r' || c === '\t') return c;
+    return '';
+  });
+  var ocrData;
+  try { ocrData = JSON.parse(jsonText); } catch (e) {
+    var cleaned = jsonText.replace(/\/\/[^\n]*/g, '');
+    try { ocrData = JSON.parse(cleaned); } catch (e2) {
+      cleaned = cleaned.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']').replace(/'/g, '"');
+      try { ocrData = JSON.parse(cleaned); } catch (e3) {
+        return { success: false, message: 'OCR結果JSON解析エラー: ' + e.message + ' | ' + jsonText.substring(0, 500) };
+      }
+    }
+  }
+  // 事前OCRフォルダに保存
+  var preOcrFolder = getOrCreatePreOcrFolder();
+  var preOcrFileName = 'preocr_' + fileId + '.json';
+  var existing = preOcrFolder.getFilesByName(preOcrFileName);
+  if (existing.hasNext()) {
+    existing.next().setContent(JSON.stringify(ocrData, null, 2));
+  } else {
+    preOcrFolder.createFile(preOcrFileName, JSON.stringify(ocrData, null, 2), MimeType.PLAIN_TEXT);
+  }
+  return { success: true, fileName: fileName, summary: (ocrData['質問1_名前'] || '') + ' / ' + (ocrData['医療機関名'] || '') };
+}
+
+/**
+ * 事前OCR結果を取得
+ */
+function getPreOcrResult(fileId) {
+  if (!fileId) return { success: false, message: 'fileIdが必要です' };
+  var folder = getOrCreatePreOcrFolder();
+  var files = folder.getFilesByName('preocr_' + fileId + '.json');
+  if (!files.hasNext()) {
+    return { success: false, message: '事前OCR未実行' };
+  }
+  var content = files.next().getBlob().getDataAsString();
+  var ocrData = JSON.parse(content);
+  return { success: true, ocrData: ocrData };
+}
+
+/**
+ * 事前OCR結果を削除
+ */
+function deletePreOcrResult(fileId) {
+  if (!fileId) return { success: false, message: 'fileIdが必要です' };
+  var folder = getOrCreatePreOcrFolder();
+  var files = folder.getFilesByName('preocr_' + fileId + '.json');
+  if (!files.hasNext()) {
+    return { success: false, message: '該当ファイルなし' };
+  }
+  files.next().setTrashed(true);
+  return { success: true, message: '削除しました' };
 }
 /**
  * OCR結果JSONをGoogle Driveに保存（auto_ocr.pyから呼び出し）
