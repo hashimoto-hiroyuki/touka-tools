@@ -174,23 +174,28 @@
         .result.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .result.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .result.info { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
-        table {
+        .vertical-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
         }
-        th {
-            background: #e67e22;
-            color: #fff;
-            padding: 10px 8px;
+        .vertical-table th {
+            background: #f5e6d0;
+            color: #8b5e3c;
+            padding: 7px 12px;
             text-align: left;
             font-size: 13px;
+            white-space: nowrap;
+            width: 35%;
+            font-weight: bold;
         }
-        td {
-            padding: 8px;
-            border-bottom: 1px solid #eee;
+        .vertical-table td {
+            padding: 7px 12px;
+            border-bottom: 1px solid #f0e6d8;
+            word-break: break-all;
         }
-        tr:hover td { background: #fef9f0; }
+        .vertical-table tr:hover td,
+        .vertical-table tr:hover th { background: #fef9f0; }
         .empty-msg {
             text-align: center;
             color: #aaa;
@@ -689,32 +694,29 @@
                     return;
                 }
 
-                // テーブルヘッダー生成
-                var html = '<table><tr>';
-                for (var h = 0; h < headers.length; h++) {
-                    var parsed = parseHeader(headers[h]);
-                    var thText = parsed.name;
-                    if (parsed.unit) thText += '(' + parsed.unit + ')';
-                    html += '<th>' + thText + '</th>';
-                }
-                html += '</tr>';
-
-                // テーブルデータ行生成
+                // 縦方向テーブル生成（各レコードをキーバリュー形式で表示）
+                var html = '';
                 for (var i = 0; i < data.rows.length; i++) {
                     var row = data.rows[i];
-                    html += '<tr>';
+                    if (i > 0) html += '<hr style="border:none;border-top:2px solid #f0e6d8;margin:12px 0;">';
+                    html += '<table class="vertical-table"><tbody>';
                     for (var c = 0; c < headers.length; c++) {
+                        var parsed = parseHeader(headers[c]);
+                        var thText = parsed.name;
+                        if (parsed.unit) thText += '(' + parsed.unit + ')';
                         var val = (row[c] !== undefined && row[c] !== null && row[c] !== '') ? String(row[c]) : '';
+                        html += '<tr>';
+                        html += '<th>' + escapeHtml(thText) + '</th>';
                         // URLはクリック可能なリンクとして表示
                         if (val.match(/^https?:\/\//)) {
                             html += '<td><a href="' + escapeHtml(val) + '" target="_blank" style="color:#e67e22;word-break:break-all;">🔗 リンク</a></td>';
                         } else {
                             html += '<td>' + escapeHtml(val) + '</td>';
                         }
+                        html += '</tr>';
                     }
-                    html += '</tr>';
+                    html += '</tbody></table>';
                 }
-                html += '</table>';
                 container.innerHTML = html;
             });
         }
