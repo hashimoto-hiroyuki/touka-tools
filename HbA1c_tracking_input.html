@@ -311,6 +311,15 @@
             </div>
         </div>
 
+        <!-- 登録済みデータ -->
+        <div class="card">
+            <div class="card-title">
+                登録済みデータ
+                <button class="btn-refresh" onclick="loadTrackingList()">更新</button>
+            </div>
+            <div id="trackingTable"></div>
+        </div>
+
         <!-- 追跡データ入力 -->
         <div class="card">
             <div class="card-title">追跡データ入力</div>
@@ -327,15 +336,6 @@
             <button class="btn-submit" id="submitBtn" onclick="submitTracking()">入力する</button>
             <div class="result" id="resultArea"></div>
             <button class="btn-add-column" onclick="openAddColumnDialog()">＋ 記録項目を追加</button>
-        </div>
-
-        <!-- 登録済みデータ -->
-        <div class="card">
-            <div class="card-title">
-                登録済みデータ
-                <button class="btn-refresh" onclick="loadTrackingList()">更新</button>
-            </div>
-            <div id="trackingTable"></div>
         </div>
     </div>
 
