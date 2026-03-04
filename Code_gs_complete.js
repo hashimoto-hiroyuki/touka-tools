@@ -1756,7 +1756,10 @@ function addTracking(params) {
     if (h === '備考') return params.note || '';
     // 動的項目: ヘッダー名をそのままキーとして使用
     var val = params[h] || '';
-    return val !== '' ? Number(val) : '';
+    if (val === '') return '';
+    // 数値に変換可能なら数値、そうでなければ文字列（URL等）としてそのまま保存
+    var num = Number(val);
+    return isNaN(num) ? val : num;
   });
   const newRow = sheet.getLastRow() + 1;
   sheet.getRange(newRow, 1, 1, rowData.length).setValues([rowData]);
