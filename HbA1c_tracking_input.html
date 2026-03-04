@@ -213,6 +213,21 @@
             cursor: pointer;
         }
         .btn-refresh:hover { background: #fef5e7; }
+        .btn-open-sheet {
+            display: block;
+            text-align: center;
+            margin-top: 12px;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #2e7d32;
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            border-radius: 8px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .btn-open-sheet:hover { background: #c8e6c9; }
 
         /* モーダル */
         .modal-overlay {
@@ -322,7 +337,10 @@
                 登録済みデータ
                 <button class="btn-refresh" onclick="loadTrackingList()">更新</button>
             </div>
-            <div id="trackingTable"></div>
+            <div id="trackingTable"><div class="empty-msg">患者を検索すると登録済みデータが表示されます</div></div>
+            <a class="btn-open-sheet" href="https://docs.google.com/spreadsheets/d/1jr25zPPv2qCHkgXNA6oHV5eoSq0RcxpXEirWq0V5YA8/edit?gid=0#gid=0" target="_blank">
+                📊 追跡データをスプレッドシートで開く
+            </a>
         </div>
 
         <!-- 追跡データ入力 -->
@@ -380,7 +398,8 @@
         document.addEventListener('DOMContentLoaded', function() {
             var today = new Date().toISOString().split('T')[0];
             document.getElementById('measureDate').value = today;
-            loadTrackingList();
+            // ヘッダー情報のみ取得（動的フォーム欄生成用）
+            loadHeadersOnly();
         });
 
         // JSONP通信ヘルパー
@@ -675,6 +694,18 @@
                 } else {
                     resultArea.className = 'result error';
                     resultArea.textContent = result.data.message || result.error || '登録に失敗しました';
+                }
+            });
+        }
+
+        // ヘッダー情報のみ取得（初期化時の動的フォーム欄生成用）
+        function loadHeadersOnly() {
+            var url = APPS_SCRIPT_API_URL + '?action=getTrackingList&no=0';
+            jsonpRequest(url, function(err, result) {
+                if (err || !result.success) return;
+                var headers = result.data.headers || [];
+                if (headers.length > 0) {
+                    buildDynamicFields(headers);
                 }
             });
         }
