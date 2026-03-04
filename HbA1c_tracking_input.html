@@ -368,24 +368,41 @@
         </div>
 
         <!-- 登録済みデータ -->
-        <div class="card">
-            <div class="card-title">
+        <div class="card" id="dataCard">
+            <div class="card-title" id="dataCardTitle">
                 登録済みデータ
                 <button class="btn-refresh" onclick="loadTrackingList()">更新</button>
             </div>
-            <div id="trackingTable"><div class="empty-msg">患者を検索すると登録済みデータが表示されます</div></div>
-            <a class="btn-open-sheet" href="https://docs.google.com/spreadsheets/d/1jr25zPPv2qCHkgXNA6oHV5eoSq0RcxpXEirWq0V5YA8/edit?gid=0#gid=0" target="_blank">
-                📊 追跡データをスプレッドシートで開く
-            </a>
+            <!-- 通常表示 -->
+            <div id="dataViewArea">
+                <div id="trackingTable"><div class="empty-msg">患者を検索すると登録済みデータが表示されます</div></div>
+                <a class="btn-open-sheet" href="https://docs.google.com/spreadsheets/d/1jr25zPPv2qCHkgXNA6oHV5eoSq0RcxpXEirWq0V5YA8/edit?gid=0#gid=0" target="_blank">
+                    📊 追跡データをスプレッドシートで開く
+                </a>
+            </div>
+            <!-- 編集フォーム（通常は非表示） -->
+            <div id="editFormArea" style="display:none;">
+                <div class="edit-banner" id="editBanner">
+                    <span>✏️ <strong class="edit-row-info"></strong></span>
+                    <button class="btn-cancel-edit" onclick="cancelEdit()">キャンセル</button>
+                </div>
+                <div class="form-row">
+                    <label>測定日</label>
+                    <input type="date" id="editDate">
+                </div>
+                <div id="editDynamicFields"></div>
+                <div class="form-row">
+                    <label>備考</label>
+                    <input type="text" id="editNote" placeholder="特記事項があれば">
+                </div>
+                <button class="btn-submit" id="editSubmitBtn" onclick="submitEdit()">更新する</button>
+                <div class="result" id="editResultArea"></div>
+            </div>
         </div>
 
         <!-- 追跡データ入力 -->
         <div class="card" id="inputCard">
             <div class="card-title">追跡データ入力</div>
-            <div class="edit-banner" id="editBanner" style="display:none;">
-                <span>✏️ <strong class="edit-row-info"></strong></span>
-                <button class="btn-cancel-edit" onclick="cancelEdit()">キャンセル</button>
-            </div>
             <div class="form-row">
                 <label>測定日</label>
                 <input type="date" id="measureDate">
@@ -687,8 +704,7 @@
             }
 
             // 確認メッセージ
-            var isEdit = editMode && editRowNumber;
-            var confirmMsg = (isEdit ? '【更新】' : '') + 'No.' + no + ' / ' + measureDate;
+            var confirmMsg = 'No.' + no + ' / ' + measureDate;
             for (var key in params) {
                 if (params[key]) {
                     var parsed = parseHeader(key);
@@ -696,29 +712,24 @@
                     if (parsed.unit) confirmMsg += parsed.unit;
                 }
             }
-            confirmMsg += '\n\n' + (isEdit ? '更新しますか？' : '登録しますか？');
+            confirmMsg += '\n\n登録しますか？';
 
             if (!confirm(confirmMsg)) {
                 return;
             }
 
             submitBtn.disabled = true;
-            submitBtn.textContent = isEdit ? '更新中...' : '入力中...';
+            submitBtn.textContent = '入力中...';
             resultArea.className = 'result info';
-            resultArea.textContent = isEdit ? '更新処理中...' : '登録処理中...';
+            resultArea.textContent = '登録処理中...';
             resultArea.style.display = 'block';
 
             // URL組み立て
-            var action = isEdit ? 'updateTracking' : 'addTracking';
             var url = APPS_SCRIPT_API_URL
-                + '?action=' + action
+                + '?action=addTracking'
                 + '&no=' + encodeURIComponent(no)
                 + '&date=' + encodeURIComponent(measureDate)
                 + '&note=' + encodeURIComponent(note);
-
-            if (isEdit) {
-                url += '&rowNumber=' + encodeURIComponent(editRowNumber);
-            }
 
             // 動的項目をURLパラメータに追加
             for (var key in params) {
@@ -727,7 +738,7 @@
 
             jsonpRequest(url, function(err, result) {
                 submitBtn.disabled = false;
-                submitBtn.textContent = isEdit ? '更新する' : '入力する';
+                submitBtn.textContent = '入力する';
 
                 if (err) {
                     resultArea.className = 'result error';
@@ -737,11 +748,7 @@
 
                 if (result.success && result.data.success !== false) {
                     resultArea.className = 'result success';
-                    resultArea.innerHTML = '<strong>' + (isEdit ? '更新完了' : '登録完了') + ':</strong> ' + (result.data.message || '');
-                    // 編集モード解除
-                    if (isEdit) {
-                        cancelEdit();
-                    }
+                    resultArea.innerHTML = '<strong>登録完了:</strong> ' + (result.data.message || '');
                     // フォームクリア（No.と測定日は残す）
                     var inputs = document.querySelectorAll('.dynamic-input');
                     for (var j = 0; j < inputs.length; j++) {
@@ -752,7 +759,7 @@
                     loadTrackingList();
                 } else {
                     resultArea.className = 'result error';
-                    resultArea.textContent = result.data.message || result.error || (isEdit ? '更新に失敗しました' : '登録に失敗しました');
+                    resultArea.textContent = result.data.message || result.error || '登録に失敗しました';
                 }
             });
         }
@@ -845,24 +852,57 @@
             editMode = true;
             editRowNumber = rowNumber;
 
-            // カードにeditingクラス付与
-            var inputCard = document.getElementById('inputCard');
-            inputCard.className = 'card editing';
+            // No.を取得
+            var noIdx = headers.indexOf('No.');
+            var editNo = (noIdx >= 0 && row[noIdx]) ? String(row[noIdx]) : '';
 
-            // 編集バナーを表示
-            var banner = document.getElementById('editBanner');
-            banner.style.display = 'flex';
-            banner.querySelector('.edit-row-info').textContent = '行' + rowNumber + ' を編集中';
+            // カードを編集モードに
+            var dataCard = document.getElementById('dataCard');
+            dataCard.className = 'card editing';
+            document.getElementById('dataCardTitle').innerHTML = '登録済みデータ — 編集中';
+            document.getElementById('dataViewArea').style.display = 'none';
+            document.getElementById('editFormArea').style.display = 'block';
 
-            // ボタンテキスト変更
-            document.getElementById('submitBtn').textContent = '更新する';
+            // バナーにNo.表示
+            document.getElementById('editBanner').querySelector('.edit-row-info').textContent = 'No.' + editNo + ' を編集中';
+
+            // 編集用動的フィールド生成
+            var editFields = document.getElementById('editDynamicFields');
+            editFields.innerHTML = '';
+            for (var i = 0; i < headers.length; i++) {
+                var h = headers[i];
+                if (FIXED_COLUMNS.indexOf(h) >= 0) continue;
+                var parsed = parseHeader(h);
+                var frow = document.createElement('div');
+                frow.className = 'form-row';
+                var label = document.createElement('label');
+                label.textContent = parsed.name;
+                frow.appendChild(label);
+                var input = document.createElement('input');
+                if (parsed.unit) {
+                    input.type = 'number';
+                    input.step = 'any';
+                } else {
+                    input.type = 'text';
+                    input.placeholder = 'テキストやURLも入力可';
+                }
+                input.setAttribute('data-header', h);
+                input.className = 'edit-dynamic-input';
+                frow.appendChild(input);
+                if (parsed.unit) {
+                    var unitSpan = document.createElement('span');
+                    unitSpan.className = 'unit';
+                    unitSpan.textContent = parsed.unit;
+                    frow.appendChild(unitSpan);
+                }
+                editFields.appendChild(frow);
+            }
 
             // フォームに既存値をセット
             for (var c = 0; c < headers.length; c++) {
                 var h = headers[c];
                 var val = (row[c] !== undefined && row[c] !== null && row[c] !== '') ? String(row[c]) : '';
                 if (h === '測定日') {
-                    // ISO日付→input[date]用にYYYY-MM-DD形式
                     if (/^\d{4}-\d{2}-\d{2}T/.test(val)) {
                         var d = new Date(val);
                         var y = d.getFullYear();
@@ -870,36 +910,106 @@
                         var day = ('0' + d.getDate()).slice(-2);
                         val = y + '-' + m + '-' + day;
                     }
-                    document.getElementById('measureDate').value = val;
+                    document.getElementById('editDate').value = val;
                 } else if (h === '備考') {
-                    document.getElementById('note').value = val;
+                    document.getElementById('editNote').value = val;
                 } else if (h !== 'No.') {
-                    var input = document.querySelector('.dynamic-input[data-header="' + h + '"]');
+                    var input = document.querySelector('.edit-dynamic-input[data-header="' + h + '"]');
                     if (input) input.value = val;
                 }
             }
 
-            // 入力パネルまでスクロール
-            inputCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // 編集パネルまでスクロール
+            dataCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         function cancelEdit() {
             editMode = false;
             editRowNumber = null;
 
-            var inputCard = document.getElementById('inputCard');
-            inputCard.className = 'card';
-            document.getElementById('editBanner').style.display = 'none';
-            document.getElementById('submitBtn').textContent = '入力する';
+            var dataCard = document.getElementById('dataCard');
+            dataCard.className = 'card';
+            document.getElementById('dataCardTitle').innerHTML = '登録済みデータ <button class="btn-refresh" onclick="loadTrackingList()">更新</button>';
+            document.getElementById('dataViewArea').style.display = 'block';
+            document.getElementById('editFormArea').style.display = 'none';
+            document.getElementById('editResultArea').style.display = 'none';
+        }
 
-            // フォームをクリア
-            document.getElementById('measureDate').value = new Date().toISOString().split('T')[0];
-            document.getElementById('note').value = '';
-            var inputs = document.querySelectorAll('.dynamic-input');
-            for (var j = 0; j < inputs.length; j++) {
-                inputs[j].value = '';
+        // 編集データ送信
+        function submitEdit() {
+            var no = document.getElementById('searchNo').value;
+            var measureDate = document.getElementById('editDate').value;
+            var note = document.getElementById('editNote').value;
+            var resultArea = document.getElementById('editResultArea');
+            var submitBtn = document.getElementById('editSubmitBtn');
+
+            if (!no) {
+                resultArea.className = 'result error';
+                resultArea.textContent = 'No.が指定されていません。';
+                resultArea.style.display = 'block';
+                return;
             }
-            document.getElementById('resultArea').style.display = 'none';
+
+            // 動的項目の値を収集
+            var editInputs = document.querySelectorAll('.edit-dynamic-input');
+            var params = {};
+            for (var i = 0; i < editInputs.length; i++) {
+                var headerName = editInputs[i].getAttribute('data-header');
+                params[headerName] = editInputs[i].value;
+            }
+
+            // 確認メッセージ
+            var confirmMsg = '【更新】No.' + no + ' / ' + measureDate;
+            for (var key in params) {
+                if (params[key]) {
+                    var parsed = parseHeader(key);
+                    confirmMsg += ' / ' + parsed.name + ': ' + params[key];
+                    if (parsed.unit) confirmMsg += parsed.unit;
+                }
+            }
+            confirmMsg += '\n\n更新しますか？';
+            if (!confirm(confirmMsg)) return;
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = '更新中...';
+            resultArea.className = 'result info';
+            resultArea.textContent = '更新処理中...';
+            resultArea.style.display = 'block';
+
+            var url = APPS_SCRIPT_API_URL
+                + '?action=updateTracking'
+                + '&no=' + encodeURIComponent(no)
+                + '&date=' + encodeURIComponent(measureDate)
+                + '&note=' + encodeURIComponent(note)
+                + '&rowNumber=' + encodeURIComponent(editRowNumber);
+
+            for (var key in params) {
+                url += '&' + encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+            }
+
+            jsonpRequest(url, function(err, result) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '更新する';
+
+                if (err) {
+                    resultArea.className = 'result error';
+                    resultArea.textContent = err;
+                    return;
+                }
+
+                if (result.success && result.data.success !== false) {
+                    resultArea.className = 'result success';
+                    resultArea.innerHTML = '<strong>更新完了:</strong> ' + (result.data.message || '');
+                    // 少し待ってから閲覧モードに戻る
+                    setTimeout(function() {
+                        cancelEdit();
+                        loadTrackingList();
+                    }, 1000);
+                } else {
+                    resultArea.className = 'result error';
+                    resultArea.textContent = result.data.message || result.error || '更新に失敗しました';
+                }
+            });
         }
 
         // === 項目追加モーダル ===
