@@ -438,6 +438,11 @@
         var editMode = false;
         var editRowNumber = null;
 
+        // 表示中のデータ（編集ボタン用）
+        var displayedRows = [];
+        var displayedRowNumbers = [];
+        var displayedHeaders = [];
+
         // 初期化
         document.addEventListener('DOMContentLoaded', function() {
             var today = new Date().toISOString().split('T')[0];
@@ -795,12 +800,15 @@
                     return;
                 }
 
+                // データを変数に保存（編集ボタンから参照用）
+                displayedRows = data.rows;
+                displayedRowNumbers = data.rowNumbers || [];
+                displayedHeaders = headers;
+
                 // 縦方向テーブル生成（各レコードをキーバリュー形式で表示）
-                var rowNumbers = data.rowNumbers || [];
                 var html = '';
                 for (var i = 0; i < data.rows.length; i++) {
                     var row = data.rows[i];
-                    var rn = rowNumbers[i] || 0;
                     if (i > 0) html += '<hr style="border:none;border-top:2px solid #f0e6d8;margin:12px 0;">';
                     html += '<table class="vertical-table"><tbody>';
                     for (var c = 0; c < headers.length; c++) {
@@ -821,7 +829,7 @@
                     }
                     // 編集ボタン行
                     html += '<tr><td colspan="2" style="text-align:right;border:none;padding-top:4px;">';
-                    html += '<button class="btn-edit" onclick="startEdit(' + rn + ',' + JSON.stringify(JSON.stringify(row)) + ',' + JSON.stringify(JSON.stringify(headers)) + ')">✏️ 編集</button>';
+                    html += '<button class="btn-edit" onclick="startEdit(' + i + ')">✏️ 編集</button>';
                     html += '</td></tr>';
                     html += '</tbody></table>';
                 }
@@ -830,9 +838,10 @@
         }
 
         // === 編集モード ===
-        function startEdit(rowNumber, rowJson, headersJson) {
-            var row = JSON.parse(rowJson);
-            var headers = JSON.parse(headersJson);
+        function startEdit(index) {
+            var row = displayedRows[index];
+            var headers = displayedHeaders;
+            var rowNumber = displayedRowNumbers[index] || 0;
             editMode = true;
             editRowNumber = rowNumber;
 
