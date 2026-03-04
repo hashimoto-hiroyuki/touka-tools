@@ -228,6 +228,42 @@
             cursor: pointer;
         }
         .btn-open-sheet:hover { background: #c8e6c9; }
+        .btn-edit {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 5px 16px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #fff;
+            background: #e67e22;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .btn-edit:hover { background: #cf6d17; }
+        .edit-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 8px;
+            margin-bottom: 14px;
+            font-size: 14px;
+            color: #856404;
+        }
+        .edit-banner .btn-cancel-edit {
+            padding: 4px 14px;
+            font-size: 13px;
+            color: #856404;
+            background: #fff;
+            border: 1px solid #ffeeba;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .edit-banner .btn-cancel-edit:hover { background: #fef5e7; }
+        .card.editing { border: 2px solid #e67e22; }
 
         /* モーダル */
         .modal-overlay {
@@ -344,8 +380,12 @@
         </div>
 
         <!-- 追跡データ入力 -->
-        <div class="card">
+        <div class="card" id="inputCard">
             <div class="card-title">追跡データ入力</div>
+            <div class="edit-banner" id="editBanner" style="display:none;">
+                <span>✏️ <strong class="edit-row-info"></strong></span>
+                <button class="btn-cancel-edit" onclick="cancelEdit()">キャンセル</button>
+            </div>
             <div class="form-row">
                 <label>測定日</label>
                 <input type="date" id="measureDate">
@@ -393,6 +433,10 @@
 
         // 現在のヘッダー情報（APIから取得）
         var currentHeaders = [];
+
+        // 編集モード状態
+        var editMode = false;
+        var editRowNumber = null;
 
         // 初期化
         document.addEventListener('DOMContentLoaded', function() {
@@ -638,7 +682,8 @@
             }
 
             // 確認メッセージ
-            var confirmMsg = 'No.' + no + ' / ' + measureDate;
+            var isEdit = editMode && editRowNumber;
+            var confirmMsg = (isEdit ? '【更新】' : '') + 'No.' + no + ' / ' + measureDate;
             for (var key in params) {
                 if (params[key]) {
                     var parsed = parseHeader(key);
@@ -646,24 +691,29 @@
                     if (parsed.unit) confirmMsg += parsed.unit;
                 }
             }
-            confirmMsg += '\n\n登録しますか？';
+            confirmMsg += '\n\n' + (isEdit ? '更新しますか？' : '登録しますか？');
 
             if (!confirm(confirmMsg)) {
                 return;
             }
 
             submitBtn.disabled = true;
-            submitBtn.textContent = '入力中...';
+            submitBtn.textContent = isEdit ? '更新中...' : '入力中...';
             resultArea.className = 'result info';
-            resultArea.textContent = '登録処理中...';
+            resultArea.textContent = isEdit ? '更新処理中...' : '登録処理中...';
             resultArea.style.display = 'block';
 
             // URL組み立て
+            var action = isEdit ? 'updateTracking' : 'addTracking';
             var url = APPS_SCRIPT_API_URL
-                + '?action=addTracking'
+                + '?action=' + action
                 + '&no=' + encodeURIComponent(no)
                 + '&date=' + encodeURIComponent(measureDate)
                 + '&note=' + encodeURIComponent(note);
+
+            if (isEdit) {
+                url += '&rowNumber=' + encodeURIComponent(editRowNumber);
+            }
 
             // 動的項目をURLパラメータに追加
             for (var key in params) {
@@ -672,7 +722,7 @@
 
             jsonpRequest(url, function(err, result) {
                 submitBtn.disabled = false;
-                submitBtn.textContent = '入力する';
+                submitBtn.textContent = isEdit ? '更新する' : '入力する';
 
                 if (err) {
                     resultArea.className = 'result error';
@@ -682,7 +732,11 @@
 
                 if (result.success && result.data.success !== false) {
                     resultArea.className = 'result success';
-                    resultArea.innerHTML = '<strong>登録完了:</strong> ' + (result.data.message || '');
+                    resultArea.innerHTML = '<strong>' + (isEdit ? '更新完了' : '登録完了') + ':</strong> ' + (result.data.message || '');
+                    // 編集モード解除
+                    if (isEdit) {
+                        cancelEdit();
+                    }
                     // フォームクリア（No.と測定日は残す）
                     var inputs = document.querySelectorAll('.dynamic-input');
                     for (var j = 0; j < inputs.length; j++) {
@@ -693,7 +747,7 @@
                     loadTrackingList();
                 } else {
                     resultArea.className = 'result error';
-                    resultArea.textContent = result.data.message || result.error || '登録に失敗しました';
+                    resultArea.textContent = result.data.message || result.error || (isEdit ? '更新に失敗しました' : '登録に失敗しました');
                 }
             });
         }
@@ -742,9 +796,11 @@
                 }
 
                 // 縦方向テーブル生成（各レコードをキーバリュー形式で表示）
+                var rowNumbers = data.rowNumbers || [];
                 var html = '';
                 for (var i = 0; i < data.rows.length; i++) {
                     var row = data.rows[i];
+                    var rn = rowNumbers[i] || 0;
                     if (i > 0) html += '<hr style="border:none;border-top:2px solid #f0e6d8;margin:12px 0;">';
                     html += '<table class="vertical-table"><tbody>';
                     for (var c = 0; c < headers.length; c++) {
@@ -763,10 +819,78 @@
                         }
                         html += '</tr>';
                     }
+                    // 編集ボタン行
+                    html += '<tr><td colspan="2" style="text-align:right;border:none;padding-top:4px;">';
+                    html += '<button class="btn-edit" onclick="startEdit(' + rn + ',' + JSON.stringify(JSON.stringify(row)) + ',' + JSON.stringify(JSON.stringify(headers)) + ')">✏️ 編集</button>';
+                    html += '</td></tr>';
                     html += '</tbody></table>';
                 }
                 container.innerHTML = html;
             });
+        }
+
+        // === 編集モード ===
+        function startEdit(rowNumber, rowJson, headersJson) {
+            var row = JSON.parse(rowJson);
+            var headers = JSON.parse(headersJson);
+            editMode = true;
+            editRowNumber = rowNumber;
+
+            // カードにeditingクラス付与
+            var inputCard = document.getElementById('inputCard');
+            inputCard.className = 'card editing';
+
+            // 編集バナーを表示
+            var banner = document.getElementById('editBanner');
+            banner.style.display = 'flex';
+            banner.querySelector('.edit-row-info').textContent = '行' + rowNumber + ' を編集中';
+
+            // ボタンテキスト変更
+            document.getElementById('submitBtn').textContent = '更新する';
+
+            // フォームに既存値をセット
+            for (var c = 0; c < headers.length; c++) {
+                var h = headers[c];
+                var val = (row[c] !== undefined && row[c] !== null && row[c] !== '') ? String(row[c]) : '';
+                if (h === '測定日') {
+                    // ISO日付→input[date]用にYYYY-MM-DD形式
+                    if (/^\d{4}-\d{2}-\d{2}T/.test(val)) {
+                        var d = new Date(val);
+                        var y = d.getFullYear();
+                        var m = ('0' + (d.getMonth() + 1)).slice(-2);
+                        var day = ('0' + d.getDate()).slice(-2);
+                        val = y + '-' + m + '-' + day;
+                    }
+                    document.getElementById('measureDate').value = val;
+                } else if (h === '備考') {
+                    document.getElementById('note').value = val;
+                } else if (h !== 'No.') {
+                    var input = document.querySelector('.dynamic-input[data-header="' + h + '"]');
+                    if (input) input.value = val;
+                }
+            }
+
+            // 入力パネルまでスクロール
+            inputCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function cancelEdit() {
+            editMode = false;
+            editRowNumber = null;
+
+            var inputCard = document.getElementById('inputCard');
+            inputCard.className = 'card';
+            document.getElementById('editBanner').style.display = 'none';
+            document.getElementById('submitBtn').textContent = '入力する';
+
+            // フォームをクリア
+            document.getElementById('measureDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('note').value = '';
+            var inputs = document.querySelectorAll('.dynamic-input');
+            for (var j = 0; j < inputs.length; j++) {
+                inputs[j].value = '';
+            }
+            document.getElementById('resultArea').style.display = 'none';
         }
 
         // === 項目追加モーダル ===

@@ -95,6 +95,9 @@ function doGet(e) {
       case 'getTrackingList':
         result = { success: true, data: getTrackingList(e.parameter.no || '') };
         break;
+      case 'updateTracking':
+        result = { success: true, data: updateTracking(e.parameter) };
+        break;
       case 'addTrackingColumn':
         result = { success: true, data: addTrackingColumn(e.parameter.columnName || '') };
         break;
@@ -1766,6 +1769,33 @@ function addTracking(params) {
   return { success: true, message: 'No.' + no + ' の追跡データを登録しました（行' + newRow + '）', row: newRow };
 }
 /**
+ * HbA1c追跡データを更新（既存行の上書き）
+ * @param {Object} params - rowNumber, no, date, note, 動的項目
+ * @return {Object} { success, message }
+ */
+function updateTracking(params) {
+  var rowNumber = Number(params.rowNumber);
+  if (!rowNumber || rowNumber < 2) return { success: false, message: '行番号が不正です' };
+  var no = params.no;
+  if (!no) return { success: false, message: 'No.が指定されていません' };
+  var ss = SpreadsheetApp.openById(TRACKING_SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(TRACKING_SHEET_NAME);
+  var lastRow = sheet.getLastRow();
+  if (rowNumber > lastRow) return { success: false, message: '指定された行が存在しません' };
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var rowData = headers.map(function(h) {
+    if (h === 'No.') return Number(no);
+    if (h === '測定日') return params.date || '';
+    if (h === '備考') return params.note || '';
+    var val = params[h] || '';
+    if (val === '') return '';
+    var num = Number(val);
+    return isNaN(num) ? val : num;
+  });
+  sheet.getRange(rowNumber, 1, 1, rowData.length).setValues([rowData]);
+  return { success: true, message: 'No.' + no + ' の追跡データを更新しました（行' + rowNumber + '）' };
+}
+/**
  * HbA1c追跡データ一覧を取得（ヘッダー情報付き・動的列対応）
  * @param {string} no - 指定No.（空なら全件）
  * @return {Object} { totalCount, rows(配列の配列), headers(配列) }
@@ -1781,11 +1811,13 @@ function getTrackingList(no) {
   const data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   const noIdx = headers.indexOf('No.');
   const rows = [];
+  const rowNumbers = [];
   for (var i = 0; i < data.length; i++) {
     if (no && String(data[i][noIdx]) !== String(no)) continue;
     rows.push(data[i]);
+    rowNumbers.push(i + 2); // スプレッドシートの実際の行番号（ヘッダーが1行目）
   }
-  return { totalCount: rows.length, rows: rows, headers: headers };
+  return { totalCount: rows.length, rows: rows, headers: headers, rowNumbers: rowNumbers };
 }
 /**
  * HbA1c追跡シートに記録項目（列）を追加
