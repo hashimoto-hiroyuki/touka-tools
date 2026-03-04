@@ -724,9 +724,9 @@
                         val = formatDateValue(val);
                         html += '<tr>';
                         html += '<th>' + escapeHtml(thText) + '</th>';
-                        // URLはクリック可能なリンクとして表示
+                        // URLはテキスト表示＋クリック可能なリンク
                         if (val.match(/^https?:\/\//)) {
-                            html += '<td><a href="' + escapeHtml(val) + '" target="_blank" style="color:#e67e22;word-break:break-all;">🔗 リンク</a></td>';
+                            html += '<td><a href="' + escapeHtml(val) + '" target="_blank" style="color:#e67e22;word-break:break-all;">' + escapeHtml(val) + '</a></td>';
                         } else {
                             html += '<td>' + escapeHtml(val) + '</td>';
                         }
