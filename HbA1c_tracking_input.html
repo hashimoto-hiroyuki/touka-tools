@@ -501,10 +501,6 @@
             var searchBtn = document.querySelector('.btn-search');
             searchBtn.disabled = true;
             searchBtn.textContent = '検索中';
-            document.getElementById('patientDetail').className = 'patient-detail';
-            document.getElementById('patientDetail').innerHTML = '';
-            document.getElementById('detailToggle').textContent = '▼ アンケート内容を表示';
-            document.getElementById('detailToggle').style.display = 'none';
 
             var url = APPS_SCRIPT_API_URL + '?action=viewData&password=' + encodeURIComponent('touka2026');
             jsonpRequest(url, function(err, result) {
