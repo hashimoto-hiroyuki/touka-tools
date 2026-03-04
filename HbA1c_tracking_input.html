@@ -324,7 +324,7 @@
                 <label>備考</label>
                 <input type="text" id="note" placeholder="特記事項があれば">
             </div>
-            <button class="btn-submit" id="submitBtn" onclick="submitTracking()">登録する</button>
+            <button class="btn-submit" id="submitBtn" onclick="submitTracking()">入力する</button>
             <div class="result" id="resultArea"></div>
             <button class="btn-add-column" onclick="openAddColumnDialog()">＋ 記録項目を追加</button>
         </div>
@@ -439,9 +439,14 @@
                 row.appendChild(label);
 
                 var input = document.createElement('input');
-                input.type = 'number';
-                input.step = 'any';
-                input.placeholder = '';
+                // 単位がある項目は数値入力、ない項目はテキスト入力（リンク等も可）
+                if (parsed.unit) {
+                    input.type = 'number';
+                    input.step = 'any';
+                } else {
+                    input.type = 'text';
+                    input.placeholder = 'テキストやURLも入力可';
+                }
                 input.setAttribute('data-header', h);
                 input.className = 'dynamic-input';
                 row.appendChild(input);
@@ -608,7 +613,7 @@
             }
 
             submitBtn.disabled = true;
-            submitBtn.textContent = '登録中...';
+            submitBtn.textContent = '入力中...';
             resultArea.className = 'result info';
             resultArea.textContent = '登録処理中...';
             resultArea.style.display = 'block';
@@ -627,7 +632,7 @@
 
             jsonpRequest(url, function(err, result) {
                 submitBtn.disabled = false;
-                submitBtn.textContent = '登録する';
+                submitBtn.textContent = '入力する';
 
                 if (err) {
                     resultArea.className = 'result error';
@@ -699,8 +704,13 @@
                     var row = data.rows[i];
                     html += '<tr>';
                     for (var c = 0; c < headers.length; c++) {
-                        var val = (row[c] !== undefined && row[c] !== null && row[c] !== '') ? row[c] : '';
-                        html += '<td>' + val + '</td>';
+                        var val = (row[c] !== undefined && row[c] !== null && row[c] !== '') ? String(row[c]) : '';
+                        // URLはクリック可能なリンクとして表示
+                        if (val.match(/^https?:\/\//)) {
+                            html += '<td><a href="' + escapeHtml(val) + '" target="_blank" style="color:#e67e22;word-break:break-all;">🔗 リンク</a></td>';
+                        } else {
+                            html += '<td>' + escapeHtml(val) + '</td>';
+                        }
                     }
                     html += '</tr>';
                 }
