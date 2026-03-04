@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HbA1c他 追跡データ入力ツール</title>
+    <title>追跡データ入力・閲覧・編集</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232196f3'/><path d='M6 22l5-8 4 5 5-10 6 13' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/></svg>">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -264,12 +264,34 @@
             border: none;
         }
         .btn-confirm:hover { background: #cf6d17; }
+
+        /* スピナー */
+        .spinner-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 0;
+            justify-content: center;
+            color: #888;
+            font-size: 14px;
+        }
+        .spinner {
+            width: 22px;
+            height: 22px;
+            border: 3px solid #eee;
+            border-top: 3px solid #e67e22;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>HbA1c他 追跡データ入力ツール</h1>
-        <p class="subtitle">アンケートNo.に紐づけてHbA1c等の追跡データを登録します</p>
+        <h1>追跡データ入力・閲覧・編集</h1>
+        <p class="subtitle">アンケートNo.に紐づけてHbA1c等の追跡データを登録・閲覧します</p>
 
         <!-- 患者検索 -->
         <div class="card">
@@ -472,11 +494,13 @@
             }
 
             var infoEl = document.getElementById('patientInfo');
-            infoEl.className = 'patient-info';
-            infoEl.style.display = 'block';
-            document.getElementById('patientId').textContent = '検索中...';
-            document.getElementById('patientName').textContent = '';
-            document.getElementById('patientHospital').textContent = '';
+            infoEl.className = 'patient-info visible';
+            infoEl.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div>患者情報を検索中...</div>';
+
+            // 検索ボタンを無効化
+            var searchBtn = document.querySelector('.btn-search');
+            searchBtn.disabled = true;
+            searchBtn.textContent = '検索中';
             document.getElementById('patientDetail').className = 'patient-detail';
             document.getElementById('patientDetail').innerHTML = '';
             document.getElementById('detailToggle').textContent = '▼ アンケート内容を表示';
@@ -484,12 +508,25 @@
 
             var url = APPS_SCRIPT_API_URL + '?action=viewData&password=' + encodeURIComponent('touka2026');
             jsonpRequest(url, function(err, result) {
+                // ボタン復元
+                searchBtn.disabled = false;
+                searchBtn.textContent = '検索';
+
+                // infoEl内容を復元
+                infoEl.innerHTML = '<span class="label">ID:</span> <span class="value" id="patientId">-</span>'
+                    + '<span class="label">名前:</span> <span class="value" id="patientName">-</span>'
+                    + '<span class="label">医療機関:</span> <span class="value" id="patientHospital">-</span>'
+                    + '<br><button class="patient-detail-toggle" id="detailToggle" onclick="toggleDetail()">▼ アンケート内容を表示</button>'
+                    + '<div class="patient-detail" id="patientDetail"></div>';
+
                 if (err) {
                     document.getElementById('patientId').textContent = 'エラー: ' + err;
+                    document.getElementById('detailToggle').style.display = 'none';
                     return;
                 }
                 if (!result.success) {
                     document.getElementById('patientId').textContent = 'エラー: ' + (result.error || '不明');
+                    document.getElementById('detailToggle').style.display = 'none';
                     return;
                 }
 
@@ -507,7 +544,6 @@
                         document.getElementById('patientName').textContent = row[nameIdx] || '-';
                         document.getElementById('patientHospital').textContent = row[hospIdx] || '-';
                         infoEl.className = 'patient-info visible';
-                        // アンケートデータ一覧を生成
                         document.getElementById('patientDetail').innerHTML = buildPatientDetailTable(headers, row);
                         document.getElementById('detailToggle').style.display = 'inline-block';
                         found = true;
@@ -521,6 +557,9 @@
                     document.getElementById('patientHospital').textContent = '';
                     document.getElementById('detailToggle').style.display = 'none';
                 }
+
+                // 検索後にその患者の追跡データも絞り込み表示
+                loadTrackingList();
             });
         }
 
@@ -621,7 +660,7 @@
         // 登録済みデータ一覧読み込み（ヘッダー駆動で動的テーブル生成）
         function loadTrackingList() {
             var container = document.getElementById('trackingTable');
-            container.innerHTML = '<div class="empty-msg">読み込み中...</div>';
+            container.innerHTML = '<div class="spinner-wrap"><div class="spinner"></div>データを読み込み中...</div>';
 
             var no = document.getElementById('searchNo').value;
             var url = APPS_SCRIPT_API_URL + '?action=getTrackingList' + (no ? '&no=' + encodeURIComponent(no) : '');
