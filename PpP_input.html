@@ -352,6 +352,7 @@
 
         // 患者情報保持用
         var currentPatient = { hospital: '', name: '', birthdate: '' };
+        var patientConfirmed = false;  // 患者検索済みフラグ
 
         // 患者検索
         function searchPatient() {
@@ -362,6 +363,7 @@
             }
 
             currentPatient = { hospital: '', name: '', birthdate: '' };
+            patientConfirmed = false;
 
             const infoEl = document.getElementById('patientInfo');
             infoEl.className = 'patient-info';
@@ -419,6 +421,7 @@
                         currentPatient.hospital = hospName !== '-' ? hospName : '';
                         currentPatient.name = patName !== '-' ? patName : '';
                         currentPatient.birthdate = bdStr;
+                        patientConfirmed = true;
                         // アンケートデータ一覧を生成
                         document.getElementById('patientDetail').innerHTML = buildPatientDetailTable(headers, row);
                         document.getElementById('detailToggle').style.display = 'inline-block';
@@ -460,9 +463,9 @@
             var resultArea = document.getElementById('resultArea');
             var submitBtn = document.getElementById('submitBtn');
 
-            if (!no) {
+            if (!no || !patientConfirmed) {
                 resultArea.className = 'result error';
-                resultArea.textContent = '先にNo.を入力して患者を検索してください。';
+                resultArea.textContent = '先にNo.を入力して「検索」ボタンを押してください。';
                 resultArea.style.display = 'block';
                 return;
             }
