@@ -473,7 +473,12 @@
                 return;
             }
 
-            if (!confirm('No.' + no + ' / ' + position + '\nPEN: ' + penValue + ' / PYD: ' + pydValue + ' / PpP値: ' + pppValue + '\n\n登録しますか？')) {
+            if (!confirm('No.' + no + ' / ' + position
+                + '\n医療機関: ' + (currentPatient.hospital || '(未取得)')
+                + '\n名前: ' + (currentPatient.name || '(未取得)')
+                + '\n生年月日: ' + (currentPatient.birthdate || '(未取得)')
+                + '\nPEN: ' + penValue + ' / PYD: ' + pydValue + ' / PpP値: ' + pppValue
+                + '\n\n登録しますか？')) {
                 return;
             }
 
