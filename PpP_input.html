@@ -248,8 +248,17 @@
                 </select>
             </div>
             <div class="form-row">
+                <label>PEN</label>
+                <input type="number" id="penValue" step="0.01" placeholder="PEN値を入力" oninput="calcPpP()">
+            </div>
+            <div class="form-row">
+                <label>PYD</label>
+                <input type="number" id="pydValue" step="0.01" placeholder="PYD値を入力" oninput="calcPpP()">
+            </div>
+            <div class="form-row">
                 <label>PpP値</label>
-                <input type="number" id="pppValue" step="0.01" placeholder="例: 0.35">
+                <input type="text" id="pppValue" readonly style="background:#f0f0f0; color:#333;" placeholder="PYD÷PENで自動計算">
+                <span class="unit">= PYD ÷ PEN</span>
             </div>
             <div class="form-row">
                 <label>分析日</label>
@@ -403,10 +412,24 @@
             });
         }
 
+        // PpP値自動計算（PYD ÷ PEN）
+        function calcPpP() {
+            var pen = parseFloat(document.getElementById('penValue').value);
+            var pyd = parseFloat(document.getElementById('pydValue').value);
+            var pppField = document.getElementById('pppValue');
+            if (!isNaN(pen) && !isNaN(pyd) && pen !== 0) {
+                pppField.value = (pyd / pen).toFixed(4);
+            } else {
+                pppField.value = '';
+            }
+        }
+
         // 検体データ登録
         function submitSpecimen() {
             var no = document.getElementById('searchNo').value;
             var position = document.getElementById('posLR').value + document.getElementById('posUD').value + document.getElementById('posNum').value;
+            var penValue = document.getElementById('penValue').value;
+            var pydValue = document.getElementById('pydValue').value;
             var pppValue = document.getElementById('pppValue').value;
             var analysisDate = document.getElementById('analysisDate').value;
             var note = document.getElementById('note').value;
@@ -419,14 +442,14 @@
                 resultArea.style.display = 'block';
                 return;
             }
-            if (!pppValue) {
+            if (!penValue || !pydValue) {
                 resultArea.className = 'result error';
-                resultArea.textContent = 'PpP値は必須です。';
+                resultArea.textContent = 'PENとPYDの両方を入力してください。';
                 resultArea.style.display = 'block';
                 return;
             }
 
-            if (!confirm('No.' + no + ' / ' + position + ' / PpP値: ' + pppValue + '\n\n登録しますか？')) {
+            if (!confirm('No.' + no + ' / ' + position + '\nPEN: ' + penValue + ' / PYD: ' + pydValue + ' / PpP値: ' + pppValue + '\n\n登録しますか？')) {
                 return;
             }
 
@@ -440,6 +463,8 @@
                 + '?action=addSpecimen'
                 + '&no=' + encodeURIComponent(no)
                 + '&position=' + encodeURIComponent(position)
+                + '&pen=' + encodeURIComponent(penValue)
+                + '&pyd=' + encodeURIComponent(pydValue)
                 + '&pppValue=' + encodeURIComponent(pppValue)
                 + '&analysisDate=' + encodeURIComponent(analysisDate)
                 + '&note=' + encodeURIComponent(note);
@@ -458,6 +483,8 @@
                     resultArea.className = 'result success';
                     resultArea.innerHTML = '<strong>登録完了:</strong> ' + (result.data.message || '');
                     // フォームクリア（No.と分析日と歯の位置は残す）
+                    document.getElementById('penValue').value = '';
+                    document.getElementById('pydValue').value = '';
                     document.getElementById('pppValue').value = '';
                     document.getElementById('note').value = '';
                     // 一覧を更新
@@ -493,12 +520,14 @@
                     return;
                 }
 
-                var html = '<table><tr><th>No.</th><th>歯の位置</th><th>PpP値</th><th>分析日</th><th>備考</th></tr>';
+                var html = '<table><tr><th>No.</th><th>歯の位置</th><th>PEN</th><th>PYD</th><th>PpP値</th><th>分析日</th><th>備考</th></tr>';
                 for (var i = 0; i < data.rows.length; i++) {
                     var r = data.rows[i];
                     html += '<tr>'
                         + '<td>' + r.no + '</td>'
                         + '<td>' + (r.position || '') + '</td>'
+                        + '<td>' + (r.pen !== '' && r.pen !== undefined ? r.pen : '') + '</td>'
+                        + '<td>' + (r.pyd !== '' && r.pyd !== undefined ? r.pyd : '') + '</td>'
                         + '<td>' + (r.pppValue !== '' ? r.pppValue : '') + '</td>'
                         + '<td>' + (r.analysisDate || '') + '</td>'
                         + '<td>' + (r.note || '') + '</td>'

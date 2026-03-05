@@ -1702,13 +1702,18 @@ function addSpecimen(params) {
   const sheet = ss.getSheetByName(SPECIMEN_SHEET_NAME);
   // ヘッダーがなければ作成
   if (sheet.getLastRow() < 1) {
-    sheet.getRange(1, 1, 1, 5).setValues([['No.', '歯の位置', 'PpP値', '分析日', '備考']]);
+    sheet.getRange(1, 1, 1, 7).setValues([['No.', '歯の位置', 'PEN', 'PYD', 'PpP値', '分析日', '備考']]);
   }
+  const pen = params.pen ? Number(params.pen) : '';
+  const pyd = params.pyd ? Number(params.pyd) : '';
+  const pppValue = params.pppValue ? Number(params.pppValue) : '';
   const newRow = sheet.getLastRow() + 1;
-  sheet.getRange(newRow, 1, 1, 5).setValues([[
+  sheet.getRange(newRow, 1, 1, 7).setValues([[
     Number(no),
     params.position || '',
-    params.pppValue ? Number(params.pppValue) : '',
+    pen,
+    pyd,
+    pppValue,
     params.analysisDate || '',
     params.note || ''
   ]]);
@@ -1723,16 +1728,18 @@ function getSpecimenList(no) {
   const sheet = ss.getSheetByName(SPECIMEN_SHEET_NAME);
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return { totalCount: 0, rows: [] };
-  const data = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+  const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
   const rows = [];
   for (let i = 0; i < data.length; i++) {
     if (no && String(data[i][0]) !== String(no)) continue;
     rows.push({
       no: data[i][0],
       position: data[i][1],
-      pppValue: data[i][2],
-      analysisDate: data[i][3],
-      note: data[i][4]
+      pen: data[i][2],
+      pyd: data[i][3],
+      pppValue: data[i][4],
+      analysisDate: data[i][5],
+      note: data[i][6]
     });
   }
   return { totalCount: rows.length, rows: rows };
