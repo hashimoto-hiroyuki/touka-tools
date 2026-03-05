@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>統合データエクスポート</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232e7d32'/><path d='M8 8h16v16H8z' fill='white' opacity='0.9' rx='2'/><path d='M11 13h10M11 17h10M11 21h6' stroke='%232e7d32' stroke-width='1.5' stroke-linecap='round'/><path d='M20 6l4 4h-4z' fill='%2366bb6a'/></svg>">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', 'Yu Gothic UI', 'Meiryo', sans-serif;
+            background: #f5f5f5;
+        }
+
+        /* --- ログイン画面 --- */
+        .login-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .login-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 40px;
+            width: 380px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .login-box h1 {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 6px;
+        }
+        .login-box .subtitle {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 28px;
+        }
+        .login-box input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        .login-box input[type="password"]:focus {
+            border-color: #2e7d32;
+        }
+        .login-box .btn-login {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .login-box .btn-login:hover { opacity: 0.9; }
+        .login-box .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
+        .login-error {
+            color: #e74c3c;
+            font-size: 13px;
+            margin-top: 12px;
+        }
+
+        /* --- データ画面 --- */
+        .data-screen {
+            display: none;
+        }
+        .toolbar {
+            background: #fff;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #e0e0e0;
+            flex-wrap: wrap;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .toolbar h2 {
+            font-size: 16px;
+            color: #2e7d32;
+            margin-right: 8px;
+        }
+        .toolbar .info {
+            font-size: 13px;
+            color: #666;
+            flex: 1;
+        }
+        .toolbar input[type="text"] {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            width: 220px;
+            outline: none;
+        }
+        .toolbar input[type="text"]:focus { border-color: #43a047; }
+        .btn-csv {
+            padding: 8px 18px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+            background: linear-gradient(135deg, #43a047 0%, #2e7d32 100%);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-csv:hover { opacity: 0.9; }
+
+        /* --- 凡例 --- */
+        .legend {
+            display: flex;
+            gap: 16px;
+            padding: 8px 20px;
+            background: #fafafa;
+            border-bottom: 1px solid #eee;
+            font-size: 12px;
+            color: #555;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .legend-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+        }
+
+        /* --- テーブル --- */
+        .table-container {
+            overflow: auto;
+            max-height: calc(100vh - 120px);
+        }
+        table {
+            border-collapse: collapse;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 4px 8px;
+        }
+        th {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        tr:hover td { background-color: #f0f7f0 !important; }
+
+        /* 列グループ色分け */
+        .col-base  { background: #fff; }
+        .col-ppp   { background: #e3f2fd; }
+        .col-track { background: #f3e5f5; }
+        th.col-base  { background: #e8e8e8; }
+        th.col-ppp   { background: #bbdefb; }
+        th.col-track { background: #e1bee7; }
+
+        /* ローディング */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+            font-size: 15px;
+        }
+        .spinner {
+            display: inline-block;
+            width: 28px; height: 28px;
+            border: 3px solid #ddd;
+            border-top-color: #43a047;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* 統計バー */
+        .stats-bar {
+            display: flex;
+            gap: 20px;
+            padding: 8px 20px;
+            background: #e8f5e9;
+            border-bottom: 1px solid #c8e6c9;
+            font-size: 13px;
+            color: #2e7d32;
+        }
+        .stats-bar span { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <!-- ログイン画面 -->
+    <div class="login-overlay" id="loginScreen">
+        <div class="login-box">
+            <h1>統合データエクスポート</h1>
+            <div class="subtitle">3シート統合ビッグデータ（1行/患者）</div>
+            <input type="password" id="passwordInput" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter')login()">
+            <button class="btn-login" id="loginBtn" onclick="login()">データを読み込む</button>
+            <div class="login-error" id="loginError"></div>
+        </div>
+    </div>
+
+    <!-- データ画面 -->
+    <div class="data-screen" id="dataScreen">
+        <div class="toolbar">
+            <h2>統合データ</h2>
+            <div class="info" id="dataInfo"></div>
+            <input type="text" id="searchInput" placeholder="検索（No. / 名前 / 医療機関名 ...）" oninput="filterTable()">
+            <button class="btn-csv" onclick="downloadCSV()">CSV ダウンロード</button>
+        </div>
+        <div class="stats-bar" id="statsBar"></div>
+        <div class="legend" id="legendBar">
+            <div class="legend-item"><div class="legend-swatch" style="background:#fff;"></div> 基本（アンケート）</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#e3f2fd;"></div> PpP検体値</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f3e5f5;"></div> 追跡データ</div>
+        </div>
+        <div class="table-container" id="tableContainer">
+            <div class="loading"><div class="spinner"></div><br>3つのスプレッドシートからデータを統合中...<br><small>（数十秒かかる場合があります）</small></div>
+        </div>
+    </div>
+
+    <script>
+        var APPS_SCRIPT_API_URL = 'https://script.google.com/macros/s/AKfycbyYnnni3ww8q2KJIPom0ljkVjseQuPMGULQq2lHh21BN63EwLECb_6XsEX9yMpPG_Ri/exec';
+
+        var allHeaders = [];
+        var allRows = [];
+        var baseColCount = 0;
+        var pppColCount = 0;
+        var trackColCount = 0;
+
+        function login() {
+            var password = document.getElementById('passwordInput').value;
+            var loginBtn = document.getElementById('loginBtn');
+            var errorEl = document.getElementById('loginError');
+
+            if (!password) {
+                errorEl.textContent = 'パスワードを入力してください';
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = '読み込み中...';
+            errorEl.textContent = '';
+
+            var callbackName = 'bigdataCb_' + Date.now();
+            var url = APPS_SCRIPT_API_URL
+                + '?action=generateBigData'
+                + '&password=' + encodeURIComponent(password)
+                + '&callback=' + callbackName;
+
+            window[callbackName] = function(result) {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                clearTimeout(timeoutId);
+
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'データを読み込む';
+
+                if (result.success) {
+                    allHeaders = result.data.headers;
+                    allRows = result.data.rows;
+
+                    // 列グループの範囲を計算
+                    var maxPpp = result.data.maxPpp || 0;
+                    var maxTrack = result.data.maxTrack || 0;
+                    var pppItemCount = result.data.pppItemCount || 0;
+                    var trackItemCount = result.data.trackItemCount || 0;
+                    pppColCount = maxPpp * pppItemCount;
+                    trackColCount = maxTrack * trackItemCount;
+                    baseColCount = allHeaders.length - pppColCount - trackColCount;
+
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('dataScreen').style.display = 'block';
+
+                    // 統計表示
+                    var statsHtml = '患者数: <span>' + result.data.totalCount + '</span> 人';
+                    statsHtml += ' | 列数: <span>' + allHeaders.length + '</span>';
+                    statsHtml += ' | 基本: <span>' + baseColCount + '</span> 列';
+                    if (pppColCount > 0) statsHtml += ' | PpP: <span>' + pppColCount + '</span> 列（最大' + maxPpp + '件）';
+                    if (trackColCount > 0) statsHtml += ' | 追跡: <span>' + trackColCount + '</span> 列（最大' + maxTrack + '件）';
+                    document.getElementById('statsBar').innerHTML = statsHtml;
+                    document.getElementById('dataInfo').textContent = '全 ' + result.data.totalCount + ' 件';
+
+                    renderTable(allHeaders, allRows);
+                } else {
+                    errorEl.textContent = result.error || '認証に失敗しました';
+                }
+            };
+
+            var timeoutId = setTimeout(function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'データを読み込む';
+                errorEl.textContent = '通信がタイムアウトしました（60秒）。データ量が多い場合は再試行してください。';
+            }, 60000);
+
+            var script = document.createElement('script');
+            script.src = url;
+            script.onerror = function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                clearTimeout(timeoutId);
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'データを読み込む';
+                errorEl.textContent = '通信エラーが発生しました';
+            };
+            document.head.appendChild(script);
+        }
+
+        function getColClass(colIndex) {
+            if (colIndex < baseColCount) return 'col-base';
+            if (colIndex < baseColCount + pppColCount) return 'col-ppp';
+            return 'col-track';
+        }
+
+        function renderTable(headers, rows) {
+            var html = '<table><thead><tr>';
+            for (var i = 0; i < headers.length; i++) {
+                html += '<th class="' + getColClass(i) + '">' + escapeHtml(String(headers[i])) + '</th>';
+            }
+            html += '</tr></thead><tbody>';
+
+            if (rows.length === 0) {
+                html += '<tr><td colspan="' + headers.length + '" style="text-align:center; padding:20px; color:#888;">データがありません</td></tr>';
+            } else {
+                for (var r = 0; r < rows.length; r++) {
+                    html += '<tr>';
+                    for (var c = 0; c < headers.length; c++) {
+                        var cell = rows[r][c];
+                        var val = (cell !== null && cell !== undefined) ? String(cell) : '';
+                        html += '<td class="' + getColClass(c) + '">' + escapeHtml(val) + '</td>';
+                    }
+                    html += '</tr>';
+                }
+            }
+
+            html += '</tbody></table>';
+            document.getElementById('tableContainer').innerHTML = html;
+        }
+
+        function filterTable() {
+            var query = document.getElementById('searchInput').value.toLowerCase().trim();
+            if (!query) {
+                renderTable(allHeaders, allRows);
+                document.getElementById('dataInfo').textContent = '全 ' + allRows.length + ' 件';
+                return;
+            }
+
+            var filtered = [];
+            for (var r = 0; r < allRows.length; r++) {
+                var match = false;
+                for (var c = 0; c < allRows[r].length; c++) {
+                    var val = allRows[r][c];
+                    if (val !== null && val !== undefined && String(val).toLowerCase().indexOf(query) >= 0) {
+                        match = true;
+                        break;
+                    }
+                }
+                if (match) filtered.push(allRows[r]);
+            }
+
+            renderTable(allHeaders, filtered);
+            document.getElementById('dataInfo').textContent = filtered.length + ' / ' + allRows.length + ' 件';
+        }
+
+        function downloadCSV() {
+            if (allHeaders.length === 0) return;
+
+            var lines = [];
+            // ヘッダー行
+            lines.push(allHeaders.map(csvCell).join(','));
+            // データ行
+            for (var r = 0; r < allRows.length; r++) {
+                var cells = [];
+                for (var c = 0; c < allHeaders.length; c++) {
+                    var val = (c < allRows[r].length) ? allRows[r][c] : '';
+                    cells.push(csvCell(val));
+                }
+                lines.push(cells.join(','));
+            }
+
+            var csvContent = '\uFEFF' + lines.join('\r\n'); // BOM付きUTF-8
+            var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            var now = new Date();
+            var dateStr = now.getFullYear()
+                + ('0' + (now.getMonth() + 1)).slice(-2)
+                + ('0' + now.getDate()).slice(-2);
+            a.download = 'bigdata_export_' + dateStr + '.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function csvCell(val) {
+            if (val === null || val === undefined) return '""';
+            var s = String(val);
+            if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0) {
+                return '"' + s.replace(/"/g, '""') + '"';
+            }
+            return '"' + s + '"';
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        document.getElementById('passwordInput').focus();
+    </script>
+</body>
+</html>

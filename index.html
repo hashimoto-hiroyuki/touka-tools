@@ -508,6 +508,11 @@
                     <span class="item-label">JSON復元</span>
                     <span class="tag tag-web">Web</span>
                 </div>
+                <div class="tree-item" data-detail="bigdata-export" onclick="showDetail('bigdata-export')">
+                    <div class="item-icon ic-green"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg></div>
+                    <span class="item-label">統合データエクスポート</span>
+                    <span class="tag tag-web">Web</span>
+                </div>
                 </div>
             </div>
 
@@ -1350,6 +1355,35 @@
                 <a class="btn-open" href="restore_from_json.html" target="_blank">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
                     JSON復元を開く
+                </a>
+            </div>
+
+            <!-- 統合データエクスポート -->
+            <div class="detail" id="detail-bigdata-export">
+                <div class="detail-header">
+                    <div class="detail-icon ic-green"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg></div>
+                    <div>
+                        <div class="detail-title">統合データエクスポート</div>
+                        <div class="detail-subtitle">3シート統合ビッグデータのCSVダウンロード</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>アンケート回答・検体PpP値・HbA1c追跡の3つのスプレッドシートを、患者No.をキーに1行/患者で横展開した統合データを生成し、CSVでダウンロードできます。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>主な機能</h3>
+                    <ul>
+                        <li>3スプレッドシートの自動統合（1行/患者）</li>
+                        <li>PpP検体値・追跡データを列として横展開</li>
+                        <li>列グループ色分け表示（基本/PpP/追跡）</li>
+                        <li>テーブルプレビューと検索フィルター</li>
+                        <li>BOM付きUTF-8 CSVダウンロード（Excel対応）</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="bigdata_export.html" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    アプリを開く
                 </a>
             </div>
 

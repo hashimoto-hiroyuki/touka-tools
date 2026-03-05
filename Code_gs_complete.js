@@ -203,6 +203,14 @@ function doGet(e) {
       case 'deletePreOcrResult':
         result = { success: true, data: deletePreOcrResult(e.parameter.fileId) };
         break;
+      // ========== 統合データエクスポート ==========
+      case 'generateBigData':
+        if (e.parameter.password === VIEW_PASSWORD) {
+          result = { success: true, data: generateBigData() };
+        } else {
+          result = { success: false, error: 'パスワードが正しくありません' };
+        }
+        break;
       default:
         result = { success: false, error: 'Unknown action' };
     }
@@ -1862,6 +1870,250 @@ function addTrackingColumn(columnName) {
     sheet.getRange(1, newCol).setValue(columnName);
   }
   return { success: true, message: '「' + columnName + '」を追加しました' };
+}
+// ========== 統合データエクスポート ==========
+/**
+ * 3つのスプレッドシート（アンケート回答・検体PpP値・HbA1c追跡）を
+ * 患者No.をキーに1行/患者で横展開した統合データを生成する
+ *
+ * 出力構成:
+ *   基本列 | PpP1_歯の位置, PpP1_PEN, ... PpP2_... | 追跡1_測定日, 追跡1_HbA1c(%), ... 追跡2_...
+ *
+ * @return {Object} { headers: [], rows: [], totalCount: number }
+ */
+function generateBigData() {
+  // --- 1. メインスプレッドシート（アンケート回答）読み込み ---
+  var mainSS = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var mainSheets = mainSS.getSheets();
+  var excludeSheetNames = [HOSPITAL_LIST_SHEET_NAME];
+  var mainHeaders = null;
+  var patientMap = {}; // No. → { base: [], pppList: [], trackList: [] }
+
+  // 除外列名
+  var excludeColNames = [JSON_CREATED_COLUMN_NAME, '元PDFファイル名', 'メールアドレス'];
+
+  for (var s = 0; s < mainSheets.length; s++) {
+    var ms = mainSheets[s];
+    var msName = ms.getName();
+    if (excludeSheetNames.indexOf(msName) >= 0) continue;
+    var msLastRow = ms.getLastRow();
+    var msLastCol = ms.getLastColumn();
+    if (msLastRow < 2 || msLastCol < 1) continue;
+    var msHeaders = ms.getRange(1, 1, 1, msLastCol).getValues()[0];
+    if (msHeaders.indexOf('No.') < 0) continue;
+    var msData = ms.getRange(2, 1, msLastRow - 1, msLastCol).getValues();
+
+    // 除外列インデックス
+    var excludeIdxs = [];
+    for (var ei = 0; ei < excludeColNames.length; ei++) {
+      var idx = msHeaders.indexOf(excludeColNames[ei]);
+      if (idx >= 0) excludeIdxs.push(idx);
+    }
+
+    if (!mainHeaders) {
+      mainHeaders = [];
+      for (var hi = 0; hi < msHeaders.length; hi++) {
+        if (excludeIdxs.indexOf(hi) < 0) {
+          mainHeaders.push(msHeaders[hi]);
+        }
+      }
+    }
+
+    var noIdx = msHeaders.indexOf('No.');
+    for (var r = 0; r < msData.length; r++) {
+      var row = msData[r];
+      var no = row[noIdx];
+      if (no === '' || no === null || no === undefined) continue;
+      var noKey = String(Number(no) || no);
+      if (patientMap[noKey]) continue; // 重複No.は最初のデータを使用
+
+      var baseRow = [];
+      for (var ci = 0; ci < msHeaders.length; ci++) {
+        if (excludeIdxs.indexOf(ci) >= 0) continue;
+        var cell = row[ci];
+        if (cell instanceof Date) {
+          baseRow.push(Utilities.formatDate(cell, Session.getScriptTimeZone(), 'yyyy/MM/dd HH:mm:ss'));
+        } else {
+          baseRow.push(cell);
+        }
+      }
+      patientMap[noKey] = { base: baseRow, pppList: [], trackList: [] };
+    }
+  }
+
+  if (!mainHeaders) {
+    return { headers: [], rows: [], totalCount: 0 };
+  }
+
+  // --- 2. PpPスプレッドシート読み込み ---
+  var pppSS = SpreadsheetApp.openById(SPECIMEN_SPREADSHEET_ID);
+  var pppSheet = pppSS.getSheetByName(SPECIMEN_SHEET_NAME);
+  var pppItemHeaders = []; // PpP項目名（No.以外）
+  var maxPpp = 0;
+
+  if (pppSheet && pppSheet.getLastRow() >= 2) {
+    var pppLastRow = pppSheet.getLastRow();
+    var pppLastCol = pppSheet.getLastColumn();
+    var pppHeaders = pppSheet.getRange(1, 1, 1, pppLastCol).getValues()[0];
+    var pppData = pppSheet.getRange(2, 1, pppLastRow - 1, pppLastCol).getValues();
+    var pppNoIdx = pppHeaders.indexOf('No.');
+
+    // No.以外の項目名を取得
+    for (var pi = 0; pi < pppHeaders.length; pi++) {
+      if (pppHeaders[pi] !== 'No.') {
+        pppItemHeaders.push(pppHeaders[pi]);
+      }
+    }
+
+    // 各患者のPpPデータを収集
+    for (var pr = 0; pr < pppData.length; pr++) {
+      var pNo = pppData[pr][pppNoIdx];
+      if (pNo === '' || pNo === null) continue;
+      var pNoKey = String(Number(pNo) || pNo);
+
+      var pppRow = [];
+      for (var pci = 0; pci < pppHeaders.length; pci++) {
+        if (pppHeaders[pci] === 'No.') continue;
+        var pCell = pppData[pr][pci];
+        if (pCell instanceof Date) {
+          pppRow.push(Utilities.formatDate(pCell, Session.getScriptTimeZone(), 'yyyy/MM/dd'));
+        } else {
+          pppRow.push(pCell);
+        }
+      }
+
+      if (!patientMap[pNoKey]) {
+        // メインにないNo.は基本列を空で作成
+        var emptyBase = [];
+        for (var eb = 0; eb < mainHeaders.length; eb++) {
+          emptyBase.push(mainHeaders[eb] === 'No.' ? pNo : '');
+        }
+        patientMap[pNoKey] = { base: emptyBase, pppList: [], trackList: [] };
+      }
+      patientMap[pNoKey].pppList.push(pppRow);
+      if (patientMap[pNoKey].pppList.length > maxPpp) {
+        maxPpp = patientMap[pNoKey].pppList.length;
+      }
+    }
+  }
+
+  // --- 3. 追跡スプレッドシート読み込み ---
+  var trackSS = SpreadsheetApp.openById(TRACKING_SPREADSHEET_ID);
+  var trackSheet = trackSS.getSheetByName(TRACKING_SHEET_NAME);
+  var trackItemHeaders = []; // 追跡項目名（No.以外）
+  var maxTrack = 0;
+
+  if (trackSheet && trackSheet.getLastRow() >= 2) {
+    var trackLastRow = trackSheet.getLastRow();
+    var trackLastCol = trackSheet.getLastColumn();
+    var trackHeaders = trackSheet.getRange(1, 1, 1, trackLastCol).getValues()[0];
+    var trackData = trackSheet.getRange(2, 1, trackLastRow - 1, trackLastCol).getValues();
+    var trackNoIdx = trackHeaders.indexOf('No.');
+
+    // No.以外の項目名を取得
+    for (var ti = 0; ti < trackHeaders.length; ti++) {
+      if (trackHeaders[ti] !== 'No.') {
+        trackItemHeaders.push(trackHeaders[ti]);
+      }
+    }
+
+    // 各患者の追跡データを収集
+    for (var tr = 0; tr < trackData.length; tr++) {
+      var tNo = trackData[tr][trackNoIdx];
+      if (tNo === '' || tNo === null) continue;
+      var tNoKey = String(Number(tNo) || tNo);
+
+      var trackRow = [];
+      for (var tci = 0; tci < trackHeaders.length; tci++) {
+        if (trackHeaders[tci] === 'No.') continue;
+        var tCell = trackData[tr][tci];
+        if (tCell instanceof Date) {
+          trackRow.push(Utilities.formatDate(tCell, Session.getScriptTimeZone(), 'yyyy/MM/dd'));
+        } else {
+          trackRow.push(tCell);
+        }
+      }
+
+      if (!patientMap[tNoKey]) {
+        var emptyBase2 = [];
+        for (var eb2 = 0; eb2 < mainHeaders.length; eb2++) {
+          emptyBase2.push(mainHeaders[eb2] === 'No.' ? tNo : '');
+        }
+        patientMap[tNoKey] = { base: emptyBase2, pppList: [], trackList: [] };
+      }
+      patientMap[tNoKey].trackList.push(trackRow);
+      if (patientMap[tNoKey].trackList.length > maxTrack) {
+        maxTrack = patientMap[tNoKey].trackList.length;
+      }
+    }
+  }
+
+  // --- 4. 統合ヘッダーを構築 ---
+  var bigHeaders = mainHeaders.slice(); // 基本列コピー
+
+  // PpP列を追加（PpP1_歯の位置, PpP1_PEN, ..., PpP2_歯の位置, ...）
+  for (var pn = 1; pn <= maxPpp; pn++) {
+    for (var ph = 0; ph < pppItemHeaders.length; ph++) {
+      bigHeaders.push('PpP' + pn + '_' + pppItemHeaders[ph]);
+    }
+  }
+
+  // 追跡列を追加（追跡1_測定日, 追跡1_HbA1c(%), ..., 追跡2_測定日, ...）
+  for (var tn = 1; tn <= maxTrack; tn++) {
+    for (var th = 0; th < trackItemHeaders.length; th++) {
+      bigHeaders.push('追跡' + tn + '_' + trackItemHeaders[th]);
+    }
+  }
+
+  // --- 5. 統合行データを構築 ---
+  var bigRows = [];
+  var noKeys = Object.keys(patientMap);
+  // No.で昇順ソート
+  noKeys.sort(function(a, b) { return (Number(a) || 0) - (Number(b) || 0); });
+
+  for (var nk = 0; nk < noKeys.length; nk++) {
+    var patient = patientMap[noKeys[nk]];
+    var bigRow = patient.base.slice(); // 基本列コピー
+
+    // PpPデータ展開
+    for (var pIdx = 0; pIdx < maxPpp; pIdx++) {
+      if (pIdx < patient.pppList.length) {
+        for (var pv = 0; pv < pppItemHeaders.length; pv++) {
+          bigRow.push(patient.pppList[pIdx][pv] !== undefined ? patient.pppList[pIdx][pv] : '');
+        }
+      } else {
+        // データなし → 空セル
+        for (var pe = 0; pe < pppItemHeaders.length; pe++) {
+          bigRow.push('');
+        }
+      }
+    }
+
+    // 追跡データ展開
+    for (var tIdx = 0; tIdx < maxTrack; tIdx++) {
+      if (tIdx < patient.trackList.length) {
+        for (var tv = 0; tv < trackItemHeaders.length; tv++) {
+          bigRow.push(patient.trackList[tIdx][tv] !== undefined ? patient.trackList[tIdx][tv] : '');
+        }
+      } else {
+        for (var te = 0; te < trackItemHeaders.length; te++) {
+          bigRow.push('');
+        }
+      }
+    }
+
+    bigRows.push(bigRow);
+  }
+
+  return {
+    headers: bigHeaders,
+    rows: bigRows,
+    totalCount: bigRows.length,
+    maxPpp: maxPpp,
+    maxTrack: maxTrack,
+    pppItemCount: pppItemHeaders.length,
+    trackItemCount: trackItemHeaders.length
+  };
 }
 // ========== PDF紐づけツール（Google Drive連携） ==========
 /**
