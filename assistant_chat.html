@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIアシスタント - 糖化アンケート管理システム</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%237c4dff'/><circle cx='16' cy='14' r='6' fill='white' opacity='0.9'/><path d='M10 24c0-3.3 2.7-6 6-6s6 2.7 6 6' fill='white' opacity='0.9'/></svg>">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', 'Yu Gothic UI', 'Meiryo', sans-serif; background: #f5f5f5; height: 100vh; display: flex; flex-direction: column; }
+
+        /* ログイン */
+        .login-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #7c4dff 0%, #536dfe 100%);
+            display: flex; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .login-box {
+            background: #fff; border-radius: 16px; padding: 40px; width: 380px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2); text-align: center;
+        }
+        .login-box h1 { font-size: 20px; color: #333; margin-bottom: 6px; }
+        .login-box .subtitle { color: #888; font-size: 13px; margin-bottom: 28px; }
+        .login-box input[type="password"] {
+            width: 100%; padding: 12px 16px; font-size: 16px;
+            border: 2px solid #ddd; border-radius: 8px; outline: none;
+            margin-bottom: 16px; text-align: center;
+        }
+        .login-box input:focus { border-color: #7c4dff; }
+        .btn-login {
+            width: 100%; padding: 12px; font-size: 16px; font-weight: bold;
+            color: #fff; background: linear-gradient(135deg, #7c4dff 0%, #536dfe 100%);
+            border: none; border-radius: 8px; cursor: pointer;
+        }
+        .btn-login:hover { opacity: 0.9; }
+        .btn-login:disabled { opacity: 0.5; cursor: not-allowed; }
+        .login-error { color: #e74c3c; font-size: 13px; margin-top: 12px; }
+
+        /* チャット画面 */
+        .chat-screen { display: none; flex-direction: column; height: 100vh; }
+        .chat-header {
+            background: linear-gradient(135deg, #7c4dff 0%, #536dfe 100%);
+            color: #fff; padding: 14px 20px; flex-shrink: 0;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .chat-header h2 { font-size: 16px; flex: 1; }
+        .chat-header .kb-link { color: rgba(255,255,255,0.8); font-size: 12px; text-decoration: none; }
+        .chat-header .kb-link:hover { color: #fff; }
+
+        /* メッセージエリア */
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 16px 20px;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .msg { max-width: 80%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.7; word-break: break-word; }
+        .msg-ai {
+            align-self: flex-start; background: #fff;
+            border: 1px solid #e0e0e0; border-radius: 12px 12px 12px 2px;
+        }
+        .msg-user {
+            align-self: flex-end; background: #7c4dff; color: #fff;
+            border-radius: 12px 12px 2px 12px;
+        }
+        .msg-ai h3 { font-size: 14px; color: #7c4dff; margin: 8px 0 4px; }
+        .msg-ai h3:first-child { margin-top: 0; }
+        .msg-ai ul, .msg-ai ol { padding-left: 18px; margin: 4px 0; }
+        .msg-ai li { margin-bottom: 2px; }
+        .msg-ai code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-family: monospace; font-size: 13px; }
+        .msg-ai pre { background: #f8f8f8; border-radius: 6px; padding: 10px; overflow-x: auto; font-size: 12px; margin: 6px 0; }
+        .msg-ai strong { color: #333; }
+
+        /* ローディング */
+        .msg-loading { align-self: flex-start; }
+        .typing-dots { display: flex; gap: 4px; padding: 12px 16px; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px 12px 12px 2px; }
+        .typing-dots span {
+            width: 8px; height: 8px; background: #bbb; border-radius: 50%;
+            animation: blink 1.4s infinite;
+        }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
+        /* 質問例 */
+        .suggestions {
+            padding: 8px 20px 4px; display: flex; flex-wrap: wrap; gap: 6px;
+            border-top: 1px solid #eee; background: #fafafa;
+        }
+        .suggestions .label { font-size: 11px; color: #999; width: 100%; margin-bottom: 2px; }
+        .sug-btn {
+            padding: 6px 12px; font-size: 12px; background: #fff;
+            border: 1px solid #ddd; border-radius: 16px; cursor: pointer;
+            color: #555; white-space: nowrap;
+        }
+        .sug-btn:hover { background: #f0e6ff; border-color: #7c4dff; color: #7c4dff; }
+
+        /* 入力欄 */
+        .chat-input {
+            display: flex; gap: 8px; padding: 12px 20px;
+            background: #fff; border-top: 1px solid #eee; flex-shrink: 0;
+        }
+        .chat-input textarea {
+            flex: 1; padding: 10px 14px; border: 2px solid #ddd; border-radius: 10px;
+            font-size: 14px; font-family: inherit; outline: none; resize: none;
+            min-height: 44px; max-height: 120px;
+        }
+        .chat-input textarea:focus { border-color: #7c4dff; }
+        .btn-send {
+            padding: 10px 20px; font-size: 14px; font-weight: bold;
+            color: #fff; background: linear-gradient(135deg, #7c4dff 0%, #536dfe 100%);
+            border: none; border-radius: 10px; cursor: pointer; white-space: nowrap;
+            align-self: flex-end;
+        }
+        .btn-send:hover { opacity: 0.9; }
+        .btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <!-- ログイン -->
+    <div class="login-overlay" id="loginScreen">
+        <div class="login-box">
+            <h1>AIアシスタント</h1>
+            <div class="subtitle">糖化アンケート管理システムについて何でも質問できます</div>
+            <input type="password" id="passwordInput" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter')login()">
+            <button class="btn-login" id="loginBtn" onclick="login()">ログイン</button>
+            <div class="login-error" id="loginError"></div>
+        </div>
+    </div>
+
+    <!-- チャット画面 -->
+    <div class="chat-screen" id="chatScreen">
+        <div class="chat-header">
+            <h2>AIアシスタント</h2>
+            <a class="kb-link" href="knowledge_base.html" target="_blank">ナレッジベースを開く →</a>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="msg msg-ai">
+                こんにちは！糖化アンケート管理システムのAIアシスタントです。<br>
+                ツールの使い方、アルゴリズムの詳細、データ構成など、何でもお気軽にご質問ください。
+            </div>
+        </div>
+
+        <div class="suggestions" id="suggestions">
+            <div class="label">質問例:</div>
+            <button class="sug-btn" onclick="askSuggestion(this)">PDFの紐づけはどうやるの？</button>
+            <button class="sug-btn" onclick="askSuggestion(this)">OCRの傾斜補正のアルゴリズムは？</button>
+            <button class="sug-btn" onclick="askSuggestion(this)">PpP値の計算方法は？</button>
+            <button class="sug-btn" onclick="askSuggestion(this)">データはどこに保存される？</button>
+            <button class="sug-btn" onclick="askSuggestion(this)">新しい医療機関を追加するには？</button>
+            <button class="sug-btn" onclick="askSuggestion(this)">排他ロックの仕組みは？</button>
+            <button class="sug-btn" onclick="askSuggestion(this)">統合データエクスポートの仕組みは？</button>
+            <button class="sug-btn" onclick="askSuggestion(this)">Group AとGroup Bの違いは？</button>
+        </div>
+
+        <div class="chat-input">
+            <textarea id="questionInput" placeholder="質問を入力..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+            <button class="btn-send" id="sendBtn" onclick="sendQuestion()">送信</button>
+        </div>
+    </div>
+
+    <script>
+        var APPS_SCRIPT_API_URL = 'https://script.google.com/macros/s/AKfycbyYnnni3ww8q2KJIPom0ljkVjseQuPMGULQq2lHh21BN63EwLECb_6XsEX9yMpPG_Ri/exec';
+        var savedPassword = '';
+        var isProcessing = false;
+
+        function login() {
+            var password = document.getElementById('passwordInput').value;
+            var loginBtn = document.getElementById('loginBtn');
+            var errorEl = document.getElementById('loginError');
+            if (!password) { errorEl.textContent = 'パスワードを入力してください'; return; }
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = '認証中...';
+            errorEl.textContent = '';
+
+            // パスワード検証のためテスト質問を送信
+            var callbackName = 'authCb_' + Date.now();
+            var url = APPS_SCRIPT_API_URL
+                + '?action=askAssistant'
+                + '&password=' + encodeURIComponent(password)
+                + '&question=' + encodeURIComponent('テスト')
+                + '&callback=' + callbackName;
+
+            window[callbackName] = function(result) {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                clearTimeout(timeoutId);
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'ログイン';
+
+                if (result.success) {
+                    savedPassword = password;
+                    document.getElementById('loginScreen').style.display = 'none';
+                    var chatScreen = document.getElementById('chatScreen');
+                    chatScreen.style.display = 'flex';
+                    document.getElementById('questionInput').focus();
+                } else {
+                    errorEl.textContent = result.error || '認証に失敗しました';
+                }
+            };
+
+            var timeoutId = setTimeout(function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'ログイン';
+                errorEl.textContent = '通信がタイムアウトしました';
+            }, 30000);
+
+            var script = document.createElement('script');
+            script.src = url;
+            script.onerror = function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                clearTimeout(timeoutId);
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'ログイン';
+                errorEl.textContent = '通信エラーが発生しました';
+            };
+            document.head.appendChild(script);
+        }
+
+        function askSuggestion(btn) {
+            document.getElementById('questionInput').value = btn.textContent;
+            sendQuestion();
+        }
+
+        function sendQuestion() {
+            var input = document.getElementById('questionInput');
+            var question = input.value.trim();
+            if (!question || isProcessing) return;
+
+            isProcessing = true;
+            document.getElementById('sendBtn').disabled = true;
+            input.value = '';
+            autoResize(input);
+
+            // 質問例を非表示
+            document.getElementById('suggestions').style.display = 'none';
+
+            // ユーザーメッセージ追加
+            addMessage(question, 'user');
+
+            // ローディング表示
+            var loadingEl = document.createElement('div');
+            loadingEl.className = 'msg-loading';
+            loadingEl.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+            document.getElementById('chatMessages').appendChild(loadingEl);
+            scrollToBottom();
+
+            // GAS呼び出し
+            var callbackName = 'chatCb_' + Date.now();
+            var url = APPS_SCRIPT_API_URL
+                + '?action=askAssistant'
+                + '&password=' + encodeURIComponent(savedPassword)
+                + '&question=' + encodeURIComponent(question)
+                + '&callback=' + callbackName;
+
+            window[callbackName] = function(result) {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                clearTimeout(timeoutId);
+
+                // ローディング削除
+                if (loadingEl.parentNode) loadingEl.parentNode.removeChild(loadingEl);
+
+                if (result.success && result.data && result.data.answer) {
+                    addMessage(result.data.answer, 'ai');
+                } else {
+                    addMessage('エラーが発生しました: ' + (result.error || '不明なエラー'), 'ai');
+                }
+
+                isProcessing = false;
+                document.getElementById('sendBtn').disabled = false;
+                document.getElementById('questionInput').focus();
+            };
+
+            var timeoutId = setTimeout(function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                if (loadingEl.parentNode) loadingEl.parentNode.removeChild(loadingEl);
+                addMessage('回答の取得がタイムアウトしました（60秒）。もう一度お試しください。', 'ai');
+                isProcessing = false;
+                document.getElementById('sendBtn').disabled = false;
+            }, 60000);
+
+            var script = document.createElement('script');
+            script.src = url;
+            script.onerror = function() {
+                delete window[callbackName];
+                if (script.parentNode) document.head.removeChild(script);
+                clearTimeout(timeoutId);
+                if (loadingEl.parentNode) loadingEl.parentNode.removeChild(loadingEl);
+                addMessage('通信エラーが発生しました。', 'ai');
+                isProcessing = false;
+                document.getElementById('sendBtn').disabled = false;
+            };
+            document.head.appendChild(script);
+        }
+
+        function addMessage(text, role) {
+            var el = document.createElement('div');
+            el.className = 'msg msg-' + role;
+            if (role === 'ai') {
+                el.innerHTML = renderMarkdown(text);
+            } else {
+                el.textContent = text;
+            }
+            document.getElementById('chatMessages').appendChild(el);
+            scrollToBottom();
+        }
+
+        function renderMarkdown(text) {
+            // 簡易マークダウン変換
+            var html = escapeHtml(text);
+            // コードブロック
+            html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+            // インラインコード
+            html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+            // 見出し
+            html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^## (.+)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^# (.+)$/gm, '<h3>$1</h3>');
+            // 太字
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            // リスト
+            html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+            html = html.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+            // 番号リスト
+            html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+            // 改行
+            html = html.replace(/\n/g, '<br>');
+            // 連続brを整理
+            html = html.replace(/<br><br>/g, '</p><p>');
+            html = html.replace(/<br>(<h3>)/g, '$1');
+            html = html.replace(/(<\/h3>)<br>/g, '$1');
+            html = html.replace(/<br>(<ul>)/g, '$1');
+            html = html.replace(/(<\/ul>)<br>/g, '$1');
+            html = html.replace(/<br>(<pre>)/g, '$1');
+            html = html.replace(/(<\/pre>)<br>/g, '$1');
+            return html;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function scrollToBottom() {
+            var el = document.getElementById('chatMessages');
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function handleKey(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendQuestion();
+            }
+        }
+
+        function autoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+        }
+
+        document.getElementById('passwordInput').focus();
+    </script>
+</body>
+</html>

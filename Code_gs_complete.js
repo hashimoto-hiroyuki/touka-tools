@@ -211,6 +211,14 @@ function doGet(e) {
           result = { success: false, error: 'パスワードが正しくありません' };
         }
         break;
+      // ========== AIアシスタント ==========
+      case 'askAssistant':
+        if (e.parameter.password === VIEW_PASSWORD) {
+          result = { success: true, data: askAssistant(e.parameter.question || '') };
+        } else {
+          result = { success: false, error: 'パスワードが正しくありません' };
+        }
+        break;
       default:
         result = { success: false, error: 'Unknown action' };
     }
@@ -1870,6 +1878,231 @@ function addTrackingColumn(columnName) {
     sheet.getRange(1, newCol).setValue(columnName);
   }
   return { success: true, message: '「' + columnName + '」を追加しました' };
+}
+// ========== AIアシスタント ==========
+/**
+ * ナレッジベースを元にGemini 3 Flash Previewでユーザーの質問に回答する
+ * @param {string} question - ユーザーの質問
+ * @return {Object} { answer: string }
+ */
+function askAssistant(question) {
+  if (!question || question.trim() === '') {
+    return { answer: '質問を入力してください。' };
+  }
+  if (!GEMINI_API_KEY) {
+    return { answer: 'GEMINI_API_KEYが設定されていません。管理者に連絡してください。' };
+  }
+  var knowledge = getKnowledgeText();
+  var systemPrompt = 'あなたは「糖化アンケート管理システム」の専門アシスタントです。\n' +
+    '以下のナレッジベースに基づいて、利用者やシステムエンジニアの質問に正確に回答してください。\n' +
+    '回答は日本語で、簡潔かつ分かりやすく行ってください。\n' +
+    'ナレッジにない情報については「その情報はナレッジベースにありません」と正直に回答してください。\n' +
+    'マークダウン形式（見出し、箇条書き、太字など）を使って読みやすく回答してください。\n\n' +
+    '=== ナレッジベース ===\n' + knowledge;
+
+  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY;
+  var payload = {
+    system_instruction: { parts: [{ text: systemPrompt }] },
+    contents: [{ parts: [{ text: question }] }],
+    generationConfig: {
+      temperature: 0.3,
+      maxOutputTokens: 4096
+    }
+  };
+  try {
+    var response = UrlFetchApp.fetch(apiUrl, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+    var json = JSON.parse(response.getContentText());
+    if (json.candidates && json.candidates[0] && json.candidates[0].content) {
+      var answer = json.candidates[0].content.parts[0].text;
+      return { answer: answer };
+    } else {
+      return { answer: 'AIからの回答を取得できませんでした。しばらく待ってから再試行してください。' };
+    }
+  } catch (e) {
+    return { answer: 'エラーが発生しました: ' + e.toString() };
+  }
+}
+
+/**
+ * AIアシスタント用のナレッジテキストを返す
+ * 全ツールの概要・アルゴリズム・データ構成をまとめた文字列
+ */
+function getKnowledgeText() {
+  return '' +
+  '# 糖化アンケート管理システム ナレッジベース\n\n' +
+  '## システム全体像\n' +
+  '3つのプロジェクトで構成:\n' +
+  '- touka-survey（Vercel）: アンケート用紙作成・QRコード生成・医療機関管理\n' +
+  '- test-OCR（ローカルPython）: スキャンPDFのOCR処理・照合HTML生成\n' +
+  '- touka-tools（GitHub Pages）: Web管理ダッシュボード（29ツール）\n\n' +
+  '## データストア\n' +
+  '### スプレッドシート（3つ）\n' +
+  '1. メイン（回答データ）ID: 1znspyaI-wj70aBkDfOPPrmYjPSSn3mFELW6VNfOSIbM\n' +
+  '   - シート「フォームの回答 1」: Googleフォーム＋OCR照合からの回答データ\n' +
+  '   - シート「医療機関リスト」: 歯科医院の選択肢リスト\n' +
+  '   - シート「PDFインデックス」: スキャンPDFのGemini OCRインデックス\n' +
+  '2. 検体PpP値シート ID: 1y4z8dZjKuJKOS0HUxmnSSfkkvhRWkQpb--TXGm5amvs\n' +
+  '   - 列: No., 医療機関名, 名前, 生年月日, 歯の位置, PEN, PYD, PpP値, 分析日, 備考\n' +
+  '   - PpP値 = PYD ÷ PEN（自動計算）\n' +
+  '   - 同一患者に対して複数行（歯ごと）\n' +
+  '3. HbA1c追跡シート ID: 1jr25zPPv2qCHkgXNA6oHV5eoSq0RcxpXEirWq0V5YA8\n' +
+  '   - 固定列: No., 測定日, 備考\n' +
+  '   - 動的列: HbA1c(%), 体重(kg), 血糖値(mg/dL)など（列追加可能）\n' +
+  '   - 同一患者に対して複数行（時系列）\n\n' +
+  '### Google Driveフォルダ\n' +
+  '- 元PDFフォルダ（ローカルではScan Dataフォルダ）: スキャン済みPDF\n' +
+  '- 入力済みPDFフォルダ: 照合完了後のPDF\n' +
+  '- JSONフォルダ: OCR結果JSON\n\n' +
+  '### Googleフォーム\n' +
+  '- 患者がQRコードからアクセスして回答するオンラインフォーム\n' +
+  '- 医療機関名がプレフィル（事前選択）された状態で開く\n\n' +
+  '## データフロー（2グループ体制）\n' +
+  '### Group A: QRコード組\n' +
+  '- 患者がQRコードからGoogleフォームに回答 → スプレッドシートに自動保存\n' +
+  '- 紙のアンケート＋検体サンプルは別途回収\n' +
+  '- PDF紐づけツールでフォーム回答とスキャンPDFを紐づけ\n' +
+  '### Group B: 紙回答組\n' +
+  '- 紙のアンケートをスキャン → OCR処理 → 照合 → スプレッドシートに送信\n' +
+  '- または手動でGoogleフォームに入力\n\n' +
+  '## アンケート構成（2ページ）\n' +
+  '### ページ1（患者記入）\n' +
+  '- 医療機関名（印刷）、患者ID（手書き）\n' +
+  '- Q1: 名前（カタカナ）、Q2: 生年月日＋QRコード回答チェック\n' +
+  '- Q3: 性別、Q4: 血液型、Q5: 身長・体重\n' +
+  '- Q6: 糖尿病歴、Q7: 脂質異常症、Q8: 兄弟の糖尿病歴、Q9: 両親の糖尿病歴\n' +
+  '- Q10: 運動習慣、Q11: 飲み物、Q12: お菓子頻度、Q13: 飲酒習慣\n' +
+  '### ページ2（医師記入）\n' +
+  '- Q13の飲酒選択肢一覧（参照テーブル）\n' +
+  '- Q14: 抜歯位置×3行（右/左＋上/下＋番号）\n' +
+  '- Q15: その他（特記事項）\n\n' +
+  '## ツール一覧\n\n' +
+  '### カテゴリ1: アンケート作成・開発\n\n' +
+  '#### アンケート作成ツール（touka-survey.vercel.app）\n' +
+  '- React+Viteで構築、Vercelにデプロイ\n' +
+  '- 医療機関を選択→GoogleフォームのプレフィルURLを自動生成\n' +
+  '- QRコードに変換しA4印刷用レイアウトに埋め込み\n' +
+  '- GAS API（getFormInfo）でフォームの公開URLとentry IDを取得\n\n' +
+  '#### 白紙アンケート（blank_survey.html）\n' +
+  '- 医療機関名なしの汎用白紙アンケートPDFをダウンロード\n\n' +
+  '#### スキャンPDF分割（split_scan_pdf.html）\n' +
+  '- 複数ページPDFをドラッグ&ドロップで2ページずつ分割\n' +
+  '- カスタムプレフィックス・連番設定\n\n' +
+  '### カテゴリ2: OCR読み取り・照合\n\n' +
+  '#### OCR読み取り＋照合（verify_survey.py、ローカル）\n' +
+  '- メインのPython処理パイプライン（約3,300行）\n' +
+  '- 処理フロー: PDF選択→画像変換（PyMuPDF 200-300DPI）→傾斜補正→基準点検出→領域切り出し→OCR→照合HTML生成\n' +
+  '- 傾斜補正アルゴリズム:\n' +
+  '  1. テンプレートマッチング方式（デフォルト）: 「質問」文字列のテンプレートを検出、2点（質問1＋質問13[新]/質問15[旧]）の座標からatan2で回転角算出\n' +
+  '  2. Hough変換方式（フォールバック）: Canny→HoughLinesP→近水平線の中央値\n' +
+  '- 2点参照方式: 質問1と質問13（新フォーマット）/質問15（旧フォーマット）を基準点とし、用紙の位置ずれ・傾きに対応\n' +
+  '- 相対座標システム: 0.0〜1.0の正規化座標で領域定義（A4 300DPI基準: 2480×3509px）\n' +
+  '- OCRモデル選択: Claude API（推奨）/ Gemini API / スキップの3択\n' +
+  '- Claude OCR: claude-sonnet-4-20250514、temperature=0、max_tokens=4096\n' +
+  '- フルページ一括OCR＋個別フィールド再OCRの2段階方式\n\n' +
+  '#### Web OCR照合（web_ocr_verify.html）\n' +
+  '- Pythonなしでブラウザ上で完結するOCR照合ツール\n' +
+  '- Google DriveのPDFをPDF.jsでcanvas描画（失敗時はBlob URL + embedにフォールバック）\n' +
+  '- 左右パネル同期スクロール: PDF上の質問矩形と回答欄が同じ高さに並ぶよう両パネル同時スクロール\n' +
+  '  - getBoundingClientRectで画面上の実ピクセル位置を取得\n' +
+  '  - スクロール限界・パネル高さの違いを考慮した計算\n' +
+  '- 質問位置の矩形データ: マウスドラッグで定義→GAS ScriptPropertiesに永続保存、localStorageをキャッシュ併用\n' +
+  '- Gemini 2.0 Flash APIで17質問分を一括OCR\n' +
+  '- キーボード: Tab/Shift+Tab（次/前の質問）、Ctrl+Z（戻る）、Esc（矩形定義キャンセル）\n\n' +
+  '#### 全PDF_to_OCR（pre_ocr.html）\n' +
+  '- Google DriveのScan Data内全PDFを一括Gemini OCR\n' +
+  '- 進捗バー表示、個別再実行可能\n' +
+  '- OCR結果はGAS ScriptPropertiesにJSON保存\n\n' +
+  '#### OCR照合共有版（verify_ocr.html）\n' +
+  '- 複数人が同時に照合作業できる共有版\n' +
+  '- 排他ロック機構: ファイルのDescription（JSON）にロック状態を保存\n' +
+  '  - status: unverified→in_progress→verified\n' +
+  '  - 30分タイムアウトで自動解除\n' +
+  '- Shift+OKで残り質問を一括確定\n\n' +
+  '#### PDF先読み照合（prefetch_verify.html）\n' +
+  '- 次のファイルをバックグラウンドで先読みし、待ち時間なく照合\n' +
+  '- 排他ロック＋Shift+OK一括確定\n\n' +
+  '#### 紙回答自動OCR+照合（paper_ocr_verify.html）\n' +
+  '- PDFアップロードまたはDriveインポート→Gemini AI自動OCR→結果編集→スプレッドシート直接送信\n\n' +
+  '#### QRコード(紙回答）OCR→目視チェック（pre_ocr_verify.html）\n' +
+  '- 事前OCR結果を自動ロード（待ち時間ゼロ）\n' +
+  '- PDFプレビューと並べて質問ごとに確認・編集\n\n' +
+  '#### QRコード（フォーム回答）回答データ→PDF紐づけ（link_pdf.html）\n' +
+  '- フォーム回答とスキャンPDFのマッチング\n' +
+  '- スコアベースマッチング: 名前（Levenshtein距離）＋生年月日＋医療機関名＋IDの複合スコア\n' +
+  '- 各フィールド0-30点、合計スコア70%以上で候補として提示\n' +
+  '- Q14抜歯位置の手入力（3行: 右/左＋上/下＋番号）\n' +
+  '- 紐づけ後PDFは入力済みフォルダへ自動移動\n\n' +
+  '#### バッチOCR照合（batch_verify_ocr.html）\n' +
+  '- LabelMe風ファイルリストUIで一括照合\n\n' +
+  '#### PDF処理状況チェック（check_pdf_status.html）\n' +
+  '- Scan Dataと入力済みPDFフォルダの比較\n\n' +
+  '### カテゴリ3: データ管理\n\n' +
+  '#### データ閲覧（view_data.html）\n' +
+  '- パスワード保護、全回答データのテーブル表示\n' +
+  '- No./ID/名前/医療機関名で検索・フィルタリング\n' +
+  '- 重複No.のハイライト警告\n\n' +
+  '#### PDFインデックス構築（index_pdfs.html）\n' +
+  '- Google DriveのScan DataフォルダのPDFをGemini 3 Flash Previewで自動読み取り\n' +
+  '- 医療機関名・患者ID・名前・生年月日・QRチェック有無を抽出\n' +
+  '- 結果はスプレッドシート「PDFインデックス」シートに保存\n\n' +
+  '#### 検体番号検索（search_sample.html）\n' +
+  '- カタカナ名前の部分一致検索（Levenshtein距離）\n' +
+  '- 生年月日でも絞り込み可能\n' +
+  '- 検索結果のNo.をクリックでクリップボードにコピー\n\n' +
+  '#### 統合データエクスポート（bigdata_export.html）\n' +
+  '- 3つのスプレッドシートを患者No.で1行/患者に統合\n' +
+  '- PpP検体値・追跡データを列として横展開（PpP1_歯の位置, PpP1_PEN, ... 追跡1_測定日, ...）\n' +
+  '- 列グループ色分け: 基本=白、PpP=水色、追跡=薄紫\n' +
+  '- BOM付きUTF-8 CSVダウンロード（Excel対応）\n\n' +
+  '#### PDF到着状況（pdf_arrival_status.html）\n' +
+  '- Scan Dataフォルダの到着PDFと入力済みPDFの比較\n\n' +
+  '#### テストデータ削除（delete_test_data.html）\n' +
+  '- 患者No.指定でテストデータを削除（パスワード保護）\n\n' +
+  '#### JSON復元（restore_from_json.html）\n' +
+  '- 保存済みJSONから回答データをスプレッドシートへ再送信\n\n' +
+  '### カテゴリ4: 検査値入力\n\n' +
+  '#### 追跡データ入力・閲覧・編集（HbA1c_tracking_input.html）\n' +
+  '- 患者No.選択→測定日・HbA1c・体重・血糖値等を入力\n' +
+  '- 動的列追加: 「列を追加」ボタンで新しい検査項目を追加可能\n' +
+  '- 編集モード: 既存データの上書き更新\n' +
+  '- スピナーアイコンでローディング表示\n' +
+  '- URL入力対応: テキスト欄にURLを入力するとリンクとして表示\n' +
+  '- 縦型テーブル表示: 項目名を縦に並べて見やすく表示\n\n' +
+  '#### 検体PpP値 入力・閲覧（PpP_input.html）\n' +
+  '- 患者No.で検索→医療機関名・名前・生年月日を自動取得\n' +
+  '- 歯の位置（右/左＋上/下＋番号）を入力\n' +
+  '- PEN・PYD値を入力→PpP値（= PYD ÷ PEN）を自動計算\n' +
+  '- patientConfirmed: 検索済みでないと登録不可（検索忘れ防止）\n' +
+  '- 生年月日は4列（年号・年・月・日）から組み立て: 例「昭和49年11月4日」\n\n' +
+  '### カテゴリ5: データフロー\n\n' +
+  '#### 全体データフロー（data_flow_chart.html）\n' +
+  '- 3プロジェクトのデータの流れを図示\n' +
+  '- Group A（QRコード組）とGroup B（紙回答組）の分岐\n\n' +
+  '#### 作業フロー図（workflow_chart.html）\n' +
+  '- 協力者の作業手順をフローチャートで表示\n\n' +
+  '#### 元PDF閲覧ビューア（view_pdf.html）\n' +
+  '- Google DriveのScan Dataフォルダ内PDFを直接プレビュー\n\n' +
+  '## GAS API（Code_gs_complete.js）\n' +
+  '- Google Apps Script Web App、JSONP形式で通信\n' +
+  '- doGet関数のactionパラメータでルーティング（39+アクション）\n' +
+  '- 主要アクション: getHospitalList, addHospital, addSurveyResponse, viewData, getNoList,\n' +
+  '  addSpecimen, getSpecimenList, addTracking, getTrackingList, updateTracking,\n' +
+  '  addTrackingColumn, generateBigData, getDrivePdfList, linkPdfFromDrive,\n' +
+  '  indexPdfWithGemini, lockOcrResult, saveVerifiedOcrResult, askAssistant\n' +
+  '- 認証: パスワード保護（VIEW_PASSWORD）\n' +
+  '- 外部API: Gemini 3 Flash Preview（OCR・インデックス構築・AIアシスタント）\n\n' +
+  '## 技術スタック\n' +
+  '- Python: PyMuPDF, OpenCV, Pillow, NumPy, anthropic, google-generativeai\n' +
+  '- フロントエンド: HTML/CSS/JavaScript（GitHub Pages）\n' +
+  '- バックエンド: Google Apps Script（Web App）\n' +
+  '- OCR: Claude API（claude-sonnet-4-20250514）/ Gemini API（gemini-3-flash-preview）\n' +
+  '- デプロイ: Vercel（touka-survey）、GitHub Pages（touka-tools）、GAS Web App\n' +
+  '- データ: Google Spreadsheet + Google Drive\n';
 }
 // ========== 統合データエクスポート ==========
 /**

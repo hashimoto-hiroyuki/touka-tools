@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ナレッジベース - 糖化アンケート管理システム</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231565c0'/><path d='M9 8h14v4H9zM9 14h14v4H9zM9 20h10v4H9z' fill='white' opacity='0.9' rx='1'/></svg>">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', 'Yu Gothic UI', 'Meiryo', sans-serif; background: #f5f5f5; color: #333; }
+        .header { background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%); color: #fff; padding: 20px 24px; position: sticky; top: 0; z-index: 100; }
+        .header h1 { font-size: 20px; margin-bottom: 4px; }
+        .header .sub { font-size: 12px; opacity: 0.8; margin-bottom: 12px; }
+        .search-box { display: flex; gap: 8px; }
+        .search-box input { flex: 1; padding: 10px 14px; border: none; border-radius: 8px; font-size: 14px; outline: none; }
+        .search-box input::placeholder { color: #999; }
+        .search-box .count { color: rgba(255,255,255,0.7); font-size: 12px; align-self: center; white-space: nowrap; }
+        .container { max-width: 960px; margin: 0 auto; padding: 20px 16px; }
+
+        /* システム概要 */
+        .system-overview { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; border-left: 4px solid #1565c0; }
+        .system-overview h2 { font-size: 16px; color: #1565c0; margin-bottom: 12px; }
+        .system-overview p { font-size: 13px; line-height: 1.8; margin-bottom: 8px; }
+        .arch-diagram { background: #f8f9fa; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 12px; white-space: pre; overflow-x: auto; margin: 10px 0; line-height: 1.6; }
+
+        /* カテゴリ */
+        .category { margin-bottom: 16px; }
+        .cat-header { background: #fff; border-radius: 10px 10px 0 0; padding: 14px 18px; cursor: pointer; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee; user-select: none; }
+        .cat-header:hover { background: #fafafa; }
+        .cat-header .cat-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; flex-shrink: 0; }
+        .cat-header h2 { font-size: 15px; flex: 1; }
+        .cat-header .cat-count { font-size: 12px; color: #888; background: #f0f0f0; padding: 2px 8px; border-radius: 10px; }
+        .cat-header .arrow { transition: transform 0.2s; font-size: 12px; color: #999; }
+        .cat-header.open .arrow { transform: rotate(90deg); }
+        .cat-body { display: none; }
+        .cat-body.open { display: block; }
+
+        .bg-green { background: #43a047; } .bg-blue { background: #1976d2; }
+        .bg-orange { background: #ef6c00; } .bg-purple { background: #7b1fa2; }
+        .bg-teal { background: #00897b; }
+
+        /* ツールカード */
+        .tool-card { background: #fff; padding: 16px 18px; border-bottom: 1px solid #f0f0f0; }
+        .tool-card:last-child { border-radius: 0 0 10px 10px; border-bottom: none; }
+        .tool-name { font-size: 14px; font-weight: bold; color: #333; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .tool-name:hover { color: #1565c0; }
+        .tool-name .tag { font-size: 10px; padding: 1px 6px; border-radius: 4px; font-weight: normal; }
+        .tag-web { background: #e3f2fd; color: #1565c0; }
+        .tag-local { background: #fff3e0; color: #e65100; }
+        .tag-vercel { background: #e8f5e9; color: #2e7d32; }
+        .tag-sheets { background: #f3e5f5; color: #7b1fa2; }
+        .tool-name .arrow2 { font-size: 11px; color: #ccc; transition: transform 0.2s; margin-left: auto; }
+        .tool-name.open .arrow2 { transform: rotate(90deg); }
+        .tool-detail { display: none; margin-top: 12px; }
+        .tool-detail.open { display: block; }
+        .tool-detail h4 { font-size: 12px; color: #1565c0; margin: 10px 0 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .tool-detail h4:first-child { margin-top: 0; }
+        .tool-detail p, .tool-detail li { font-size: 13px; line-height: 1.7; }
+        .tool-detail ul { padding-left: 18px; }
+        .tool-detail li { margin-bottom: 2px; }
+        .tool-detail .algo { background: #f8f9fa; border-radius: 6px; padding: 10px 12px; font-size: 12px; line-height: 1.6; margin: 6px 0; border-left: 3px solid #90caf9; }
+        .tool-detail .algo code { background: #e3f2fd; padding: 1px 4px; border-radius: 3px; font-family: monospace; }
+        .tool-link { display: inline-block; margin-top: 8px; font-size: 12px; color: #1565c0; text-decoration: none; }
+        .tool-link:hover { text-decoration: underline; }
+
+        /* highlight */
+        mark { background: #fff176; padding: 0 2px; border-radius: 2px; }
+        .hidden { display: none !important; }
+
+        /* データ構成テーブル */
+        .data-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 8px 0; }
+        .data-table th, .data-table td { border: 1px solid #ddd; padding: 4px 8px; text-align: left; }
+        .data-table th { background: #e3f2fd; font-weight: bold; }
+
+        .footer { text-align: center; padding: 20px; font-size: 11px; color: #999; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>ナレッジベース</h1>
+        <div class="sub">糖化アンケート管理システム — 全ツール概要・アルゴリズム・データ構成</div>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="キーワード検索（例: OCR, 傾斜補正, PpP, 紐づけ ...）" oninput="filterAll()">
+            <div class="count" id="matchCount"></div>
+        </div>
+    </div>
+
+    <div class="container" id="content">
+
+        <!-- システム概要 -->
+        <div class="system-overview" data-searchable>
+            <h2>システム全体像</h2>
+            <p>糖化アンケートOCR照合システムは、歯科医院で実施する糖化関連アンケートの回収・OCR読み取り・照合・データ管理を行うシステムです。3つのプロジェクトで構成されています。</p>
+            <div class="arch-diagram">touka-survey (Vercel)       → アンケート用紙作成・QRコード生成
+       ↓ QRコード付きPDFを印刷・配布
+test-OCR (ローカルPython)    → スキャンPDFのOCR処理・照合
+       ↓ 照合済みデータをGASへ送信
+touka-tools (GitHub Pages)  → Web管理ダッシュボード（29ツール）
+       ↓
+Google Spreadsheet + Drive  → 共通データストア</div>
+            <h4>データフロー（2グループ体制）</h4>
+            <p><strong>Group A（QRコード組）:</strong> 患者がQRコードからGoogleフォームに回答→スプレッドシートに自動保存。PDF紐づけツールでスキャンPDFと紐づけ。</p>
+            <p><strong>Group B（紙回答組）:</strong> 紙アンケートをスキャン→OCR処理→照合→スプレッドシートに送信。</p>
+            <h4>データストア</h4>
+            <table class="data-table">
+                <tr><th>スプレッドシート</th><th>内容</th><th>特徴</th></tr>
+                <tr><td>メイン（回答データ）</td><td>Googleフォーム＋OCRからの回答</td><td>患者1人=1行、No.で連番管理</td></tr>
+                <tr><td>検体PpP値シート</td><td>PEN/PYD/PpP値データ</td><td>同一患者に複数行（歯ごと）</td></tr>
+                <tr><td>HbA1c追跡シート</td><td>HbA1c・体重等の時系列データ</td><td>同一患者に複数行（測定日ごと）、動的列追加可</td></tr>
+            </table>
+            <h4>技術スタック</h4>
+            <p>Python（PyMuPDF, OpenCV, Pillow）/ HTML+JS（GitHub Pages）/ Google Apps Script / Claude API / Gemini API / Google Spreadsheet + Drive</p>
+        </div>
+
+        <!-- カテゴリ1: アンケート作成 -->
+        <div class="category" id="cat-create">
+            <div class="cat-header open" onclick="toggleCat(this)">
+                <div class="cat-icon bg-green">&#9998;</div>
+                <h2>アンケート作成・開発</h2>
+                <span class="cat-count">5ツール</span>
+                <span class="arrow">&#9654;</span>
+            </div>
+            <div class="cat-body open">
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">アンケート作成ツール <span class="tag tag-vercel">Vercel</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>React+Viteで構築されたWebアプリ。医療機関を選択するとGoogleフォームのプレフィルURLが自動生成され、QRコードに変換してA4印刷用レイアウトに埋め込みます。</p>
+                        <h4>アルゴリズム</h4>
+                        <div class="algo">
+                            1. GAS API（<code>getFormInfo</code>）でフォームの公開URLとentry IDを取得<br>
+                            2. 医療機関名をentry IDに埋め込んだプレフィルURLを生成<br>
+                            3. URLをQRコードライブラリで変換<br>
+                            4. A4レイアウトにQRコード＋アンケート内容を配置
+                        </div>
+                        <a class="tool-link" href="https://touka-survey.vercel.app/" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">白紙アンケート <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>医療機関名なしの汎用白紙アンケートPDFをダウンロードできるツールです。</p>
+                        <a class="tool-link" href="blank_survey.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">スキャンPDF分割 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>複数ページのスキャンPDFをドラッグ&ドロップで2ページずつに分割します。カスタムプレフィックスや連番設定が可能です。</p>
+                        <a class="tool-link" href="split_scan_pdf.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">アンケートフォーム <span class="tag tag-sheets">Google</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>患者がQRコードからアクセスするGoogleフォーム。医療機関名が事前選択された状態で開きます。回答はスプレッドシートに自動保存されます。</p>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">touka-survey (GitHub) <span class="tag tag-vercel">GitHub</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>アンケート作成ツールのソースコードリポジトリ。React+Vite構成でVercelにデプロイされています。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- カテゴリ2: OCR -->
+        <div class="category" id="cat-ocr">
+            <div class="cat-header open" onclick="toggleCat(this)">
+                <div class="cat-icon bg-blue">&#128196;</div>
+                <h2>OCR読み取り・照合</h2>
+                <span class="cat-count">13ツール</span>
+                <span class="arrow">&#9654;</span>
+            </div>
+            <div class="cat-body open">
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">OCR読み取り＋照合（メイン） <span class="tag tag-local">ローカル</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>メインのPython処理パイプライン（verify_survey.py、約3,300行）。スキャンPDFを画像化し、傾斜補正→基準点検出→質問領域切り出し→AI OCR→照合HTML生成を行います。</p>
+                        <h4>処理フロー</h4>
+                        <ul>
+                            <li>PDF選択 → PyMuPDFで画像変換（200-300 DPI）</li>
+                            <li>傾斜補正（2方式: テンプレートマッチング / Hough変換）</li>
+                            <li>基準点検出（2点参照方式）→ 相対座標で領域切り出し</li>
+                            <li>Claude API / Gemini APIでOCR読み取り</li>
+                            <li>照合用HTML生成 → ブラウザで確認・編集</li>
+                            <li>JSON保存 → PDF移動</li>
+                        </ul>
+                        <h4>傾斜補正アルゴリズム</h4>
+                        <div class="algo">
+                            <strong>方式1: テンプレートマッチング（デフォルト）</strong><br>
+                            1. 二値化（Otsu法）→ 左マージン（幅の15%）で水平射影<br>
+                            2. テキスト行を検出し「質問」文字列のテンプレートを抽出<br>
+                            3. <code>cv2.matchTemplate()</code> で画像全体からマッチング（閾値0.7）<br>
+                            4. 2点（質問1＋質問13[新]/質問15[旧]）の座標で角度算出: <code>atan2((x2-x1)/(y2-y1))</code><br>
+                            5. <code>cv2.getRotationMatrix2D()</code> で回転補正<br><br>
+                            <strong>方式2: Hough変換（フォールバック）</strong><br>
+                            1. Canny エッジ検出 → HoughLinesP で直線検出<br>
+                            2. 近水平線（|角度| < 15°）をフィルタ → 中央値を傾き角度とする
+                        </div>
+                        <h4>2点参照方式</h4>
+                        <div class="algo">
+                            - 旧フォーマット（1ページ）: 質問1 + 質問15 を基準点<br>
+                            - 新フォーマット（2ページ）: 質問1 + 質問13 を基準点<br>
+                            - 相対座標（0.0〜1.0）で全質問の領域を定義（A4 300DPI基準: 2480×3509px）<br>
+                            - 用紙の位置ずれ・傾きに依存しない安定した切り出し
+                        </div>
+                        <h4>OCRモデル</h4>
+                        <div class="algo">
+                            - Claude API: <code>claude-sonnet-4-20250514</code>, temperature=0, max_tokens=4096<br>
+                            - Gemini API: <code>gemini-3-flash-preview</code>（フォールバック）<br>
+                            - 2段階方式: フルページ一括OCR → 個別フィールド再OCR（ID・生年月日等）<br>
+                            - 信頼度スコア（high/medium/low）＋候補値の出力
+                        </div>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">Web OCR照合 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>Pythonなしでブラウザ上で完結するOCR照合ツール。Google DriveのPDFをPDF.jsで表示し、Gemini APIでOCR処理します。</p>
+                        <h4>左右パネル同期スクロール</h4>
+                        <div class="algo">
+                            1. PDF矩形の画面Y座標を <code>getBoundingClientRect()</code> で取得<br>
+                            2. 左パネル: 矩形をパネル上端に移動するスクロール量を算出（限界クランプ）<br>
+                            3. スクロール後のPDF矩形の予測画面Y座標を計算<br>
+                            4. 右パネル: 回答ブロックを予測Y座標に合わせるスクロール量を算出<br>
+                            5. 右パネルも限界到達 → 不足分だけ左パネルのスクロールを戻す<br>
+                            6. 両パネルを同時に <code>scrollTo({ behavior: 'smooth' })</code>
+                        </div>
+                        <h4>矩形データ管理</h4>
+                        <p>質問位置はマウスドラッグで定義→GAS ScriptPropertiesに永続保存。localStorageをキャッシュとして併用。</p>
+                        <h4>PDF表示</h4>
+                        <p>PDF.js canvas描画を基本とし、失敗時はBlob URL + embed方式にフォールバック（CSP制限対策）。</p>
+                        <a class="tool-link" href="web_ocr_verify.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">全PDF_to_OCR <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>Google DriveのScan Dataフォルダ内の全PDFを一括でGemini OCR処理。進捗バー表示、個別再実行可能。結果はGAS ScriptPropertiesにJSON保存。</p>
+                        <a class="tool-link" href="pre_ocr.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">OCR照合共有版 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>複数人が同時に照合作業できる共有版。排他ロック機構で衝突を防ぎます。</p>
+                        <h4>排他ロック機構</h4>
+                        <div class="algo">
+                            - ファイルのDescription（JSON）にロック状態を保存<br>
+                            - ステータス: <code>unverified</code> → <code>in_progress</code> → <code>verified</code><br>
+                            - ロック取得時にlockedBy（ユーザー名）とlockedAt（タイムスタンプ）を記録<br>
+                            - 30分タイムアウトで自動解除（他のユーザーが取得可能に）<br>
+                            - Shift+OKで残り質問を一括確定
+                        </div>
+                        <a class="tool-link" href="verify_ocr.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">PDF先読み照合 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>次のファイルをバックグラウンドで先読みし、待ち時間なく照合作業を進められるツール。排他ロック＋Shift+OK一括確定に対応。</p>
+                        <a class="tool-link" href="prefetch_verify.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">紙回答自動OCR+照合 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>PDFアップロードまたはDriveインポート→Gemini AI自動OCR→結果編集→スプレッドシート直接送信。</p>
+                        <a class="tool-link" href="paper_ocr_verify.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">QRコード(紙回答) OCR→目視チェック <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>事前OCR結果を自動ロード（待ち時間ゼロ）。PDFプレビューと並べて質問ごとに確認・編集し、スプレッドシートに保存。</p>
+                        <a class="tool-link" href="pre_ocr_verify.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">QRコード（フォーム回答）回答データ→PDF紐づけ <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>Googleフォームの回答データとスキャンPDFを紐づけるツール。スコアベースマッチングで候補を自動提示します。</p>
+                        <h4>マッチングアルゴリズム</h4>
+                        <div class="algo">
+                            各フィールドにスコアを割り当て、複合スコアで候補を判定:<br>
+                            - ID番号: 0-30点（完全一致=30点、部分一致=Levenshtein類似度×30）<br>
+                            - 名前: 0-30点（Levenshtein距離による類似度）<br>
+                            - 生年月日: 0-20点（完全一致のみ）<br>
+                            - 医療機関名: 0-20点（完全一致=20点）<br>
+                            - 合計スコア70%以上で候補として提示<br><br>
+                            <code>Levenshtein類似度 = (maxLen - distance) / maxLen</code>
+                        </div>
+                        <h4>Q14抜歯位置入力</h4>
+                        <p>紐づけ時にQ14（抜歯位置×3行: 右/左＋上/下＋番号）を手入力。紐づけ完了後、PDFは入力済みフォルダへ自動移動。</p>
+                        <a class="tool-link" href="link_pdf.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">バッチOCR照合 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>LabelMe風のファイルリストUIで、複数のOCR結果を一括照合するツール。</p>
+                        <a class="tool-link" href="batch_verify_ocr.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">PDF処理状況チェック <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>Scan Dataフォルダと入力済みPDFフォルダを比較し、未処理・処理済みファイル数を確認するツール。</p>
+                        <a class="tool-link" href="check_pdf_status.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- カテゴリ3: データ管理 -->
+        <div class="category" id="cat-data">
+            <div class="cat-header open" onclick="toggleCat(this)">
+                <div class="cat-icon bg-orange">&#128451;</div>
+                <h2>データ管理</h2>
+                <span class="cat-count">8ツール</span>
+                <span class="arrow">&#9654;</span>
+            </div>
+            <div class="cat-body open">
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">データ閲覧 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>パスワード保護された全回答データのテーブルビューア。No./ID/名前/医療機関名で検索・フィルタリング可能。重複No.をハイライト表示。</p>
+                        <a class="tool-link" href="view_data.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">PDFインデックス構築 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>Google DriveのPDFをGemini 3 Flash Previewで自動読み取りし、医療機関名・患者ID・名前・生年月日・QRチェック有無を抽出してインデックス化。</p>
+                        <h4>アルゴリズム</h4>
+                        <div class="algo">
+                            1. Google DriveのScan Dataフォルダ内PDFを一覧取得<br>
+                            2. 各PDFをBase64エンコード → Gemini 3 Flash Preview APIに送信<br>
+                            3. OCRプロンプトで5フィールド（hospital, patientId, patientName, birthdate, qrCheckbox）を抽出<br>
+                            4. 結果をスプレッドシート「PDFインデックス」シートに保存
+                        </div>
+                        <a class="tool-link" href="index_pdfs.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">検体番号検索 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>検体サンプルの氏名（カタカナ）や生年月日から、スプレッドシートの通し番号（No.）を検索するツール。</p>
+                        <h4>あいまい検索アルゴリズム</h4>
+                        <div class="algo">
+                            - カタカナ名前の部分一致（Levenshtein距離で類似度60%以上）<br>
+                            - 生年月日でも絞り込み可能<br>
+                            - 検索結果をLevenshtein距離昇順でソート<br>
+                            - No.クリックでクリップボードにコピー
+                        </div>
+                        <a class="tool-link" href="search_sample.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">統合データエクスポート <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>3つのスプレッドシートを患者No.で1行/患者に統合し、CSVダウンロードするツール。</p>
+                        <h4>統合アルゴリズム</h4>
+                        <div class="algo">
+                            <strong>GAS側（generateBigData関数）:</strong><br>
+                            1. メインシートを読み込み、No.をキーにpatientMapを構築<br>
+                            2. PpPシートを読み込み、各患者のPpPデータリストを収集 → maxPpp算出<br>
+                            3. 追跡シートを読み込み、各患者の追跡データリストを収集 → maxTrack算出<br>
+                            4. 統合ヘッダー = 基本列 + PpP1_〜PpPn_列 + 追跡1_〜追跡n_列<br>
+                            5. 各患者を1行に展開、No.昇順ソート<br><br>
+                            <strong>HTML側:</strong> 列グループ色分け（基本=白、PpP=水色、追跡=薄紫）、BOM付きUTF-8 CSV
+                        </div>
+                        <a class="tool-link" href="bigdata_export.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">PDF到着状況 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>Scan Dataフォルダの到着PDFと入力済みPDFの比較。到着数・処理済数・未処理数を表示。</p>
+                        <a class="tool-link" href="pdf_arrival_status.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">テストデータ削除 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>開発・テスト時に登録したテストデータを、患者No.指定で削除するツール。パスワード保護。削除は取り消し不可。</p>
+                        <a class="tool-link" href="delete_test_data.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">JSON復元 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>保存済みJSONファイルを読み込み、Googleスプレッドシートへデータを復元・再送信するツール。</p>
+                        <a class="tool-link" href="restore_from_json.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- カテゴリ4: 検査値入力 -->
+        <div class="category" id="cat-lab">
+            <div class="cat-header open" onclick="toggleCat(this)">
+                <div class="cat-icon bg-purple">&#9874;</div>
+                <h2>検査値入力</h2>
+                <span class="cat-count">4ツール</span>
+                <span class="arrow">&#9654;</span>
+            </div>
+            <div class="cat-body open">
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">追跡データ入力・閲覧・編集 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>HbA1c・体重・血糖値等の追跡データを入力・閲覧・編集するWebツール。動的に列（検査項目）を追加可能。</p>
+                        <h4>主な機能</h4>
+                        <ul>
+                            <li>患者No.で検索→過去データ一覧表示</li>
+                            <li>動的列追加: 「列を追加」ボタンで新しい検査項目を追加</li>
+                            <li>編集モード: 既存データの上書き更新（GAS updateTracking）</li>
+                            <li>URL入力対応: リンクとして表示</li>
+                            <li>縦型テーブル: 項目名を縦に並べて表示</li>
+                        </ul>
+                        <a class="tool-link" href="HbA1c_tracking_input.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">追跡データ（スプレッドシート直接） <span class="tag tag-sheets">Sheets</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>HbA1c追跡スプレッドシートを直接開くリンク。Googleスプレッドシートで直接データを確認・編集できます。</p>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">検体PpP値 入力・閲覧 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>検体のPEN・PYD値を入力し、PpP値を自動計算して記録するツール。</p>
+                        <h4>PpP値計算</h4>
+                        <div class="algo">
+                            <code>PpP値 = PYD ÷ PEN</code>（小数点以下4桁）<br><br>
+                            入力フロー:<br>
+                            1. 患者No.で検索 → 医療機関名・名前・生年月日を自動取得<br>
+                            2. 歯の位置（右/左＋上/下＋番号）を入力<br>
+                            3. PEN・PYD値を入力 → PpP値が自動計算<br>
+                            4. 登録ボタンで保存（検索済みでないと登録不可）
+                        </div>
+                        <h4>バリデーション</h4>
+                        <p><code>patientConfirmed</code>フラグ: 検索ボタンを押して患者情報が確認されていないと登録できない仕組み。検索忘れによる空データ登録を防止。</p>
+                        <a class="tool-link" href="PpP_input.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">PpP値データ（スプレッドシート直接） <span class="tag tag-sheets">Sheets</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>検体PpP値スプレッドシートを直接開くリンク。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- カテゴリ5: データフロー -->
+        <div class="category" id="cat-flow">
+            <div class="cat-header open" onclick="toggleCat(this)">
+                <div class="cat-icon bg-teal">&#8644;</div>
+                <h2>データフロー</h2>
+                <span class="cat-count">3ツール</span>
+                <span class="arrow">&#9654;</span>
+            </div>
+            <div class="cat-body open">
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">全体データフロー <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>3プロジェクト間のデータの流れを図示。Group A（QRコード組）とGroup B（紙回答組）の分岐を可視化。</p>
+                        <a class="tool-link" href="data_flow_chart.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">作業フロー図 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>協力者の作業手順をフローチャートで表示。紙回答→フォーム入力→PDF紐づけ→抜歯位置入力→検体番号検索→PpP値入力の流れ。</p>
+                        <a class="tool-link" href="workflow_chart.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">元PDF閲覧ビューア <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>Google DriveのScan Dataフォルダ内PDFを直接プレビューするビューア。ファイル名・日時でソート可能。</p>
+                        <a class="tool-link" href="view_pdf.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAS API -->
+        <div class="system-overview" data-searchable>
+            <h2>GAS API リファレンス</h2>
+            <p>Google Apps Script Web App（Code_gs_complete.js）はJSONP形式で通信し、<code>action</code>パラメータでルーティングします。</p>
+            <h4>主要アクション一覧</h4>
+            <table class="data-table">
+                <tr><th>アクション</th><th>機能</th><th>認証</th></tr>
+                <tr><td>getHospitalList</td><td>医療機関リスト取得</td><td>なし</td></tr>
+                <tr><td>addHospital</td><td>医療機関追加</td><td>なし</td></tr>
+                <tr><td>addSurveyResponse</td><td>アンケート回答追加（No.自動採番）</td><td>なし</td></tr>
+                <tr><td>viewData</td><td>全回答データ取得</td><td>パスワード</td></tr>
+                <tr><td>getNoList</td><td>患者No.一覧取得</td><td>なし</td></tr>
+                <tr><td>addSpecimen</td><td>PpP検体データ追加（10列）</td><td>なし</td></tr>
+                <tr><td>getSpecimenList</td><td>PpP検体データ取得</td><td>なし</td></tr>
+                <tr><td>addTracking</td><td>追跡データ追加</td><td>なし</td></tr>
+                <tr><td>getTrackingList</td><td>追跡データ取得</td><td>なし</td></tr>
+                <tr><td>updateTracking</td><td>追跡データ更新</td><td>なし</td></tr>
+                <tr><td>addTrackingColumn</td><td>追跡シートに列追加</td><td>なし</td></tr>
+                <tr><td>generateBigData</td><td>3シート統合データ生成</td><td>パスワード</td></tr>
+                <tr><td>getDrivePdfList</td><td>Drive PDFファイル一覧</td><td>なし</td></tr>
+                <tr><td>indexPdfWithGemini</td><td>PDFをGemini OCRでインデックス化</td><td>なし</td></tr>
+                <tr><td>lockOcrResult / unlockOcrResult</td><td>OCR結果の排他ロック</td><td>なし</td></tr>
+                <tr><td>askAssistant</td><td>AIアシスタント（Gemini）</td><td>パスワード</td></tr>
+            </table>
+        </div>
+
+    </div>
+
+    <div class="footer">糖化アンケート管理システム ナレッジベース &copy; 2026</div>
+
+    <script>
+        function toggleCat(el) {
+            el.classList.toggle('open');
+            var body = el.nextElementSibling;
+            body.classList.toggle('open');
+        }
+        function toggleTool(el) {
+            el.classList.toggle('open');
+            var detail = el.nextElementSibling;
+            detail.classList.toggle('open');
+        }
+
+        function filterAll() {
+            var query = document.getElementById('searchInput').value.toLowerCase().trim();
+            var cards = document.querySelectorAll('[data-searchable]');
+            var visible = 0;
+            if (!query) {
+                cards.forEach(function(c) { c.classList.remove('hidden'); removeMark(c); });
+                document.getElementById('matchCount').textContent = '';
+                return;
+            }
+            cards.forEach(function(c) {
+                var text = c.textContent.toLowerCase();
+                if (text.indexOf(query) >= 0) {
+                    c.classList.remove('hidden');
+                    // 親カテゴリも開く
+                    var cat = c.closest('.category');
+                    if (cat) {
+                        cat.querySelector('.cat-header').classList.add('open');
+                        cat.querySelector('.cat-body').classList.add('open');
+                    }
+                    // ツール詳細も開く
+                    var toolName = c.querySelector('.tool-name');
+                    var toolDetail = c.querySelector('.tool-detail');
+                    if (toolName && toolDetail) {
+                        toolName.classList.add('open');
+                        toolDetail.classList.add('open');
+                    }
+                    visible++;
+                } else {
+                    c.classList.add('hidden');
+                }
+            });
+            document.getElementById('matchCount').textContent = visible + ' 件ヒット';
+        }
+        function removeMark(el) {
+            el.querySelectorAll('mark').forEach(function(m) {
+                m.outerHTML = m.textContent;
+            });
+        }
+    </script>
+</body>
+</html>
