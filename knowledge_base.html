@@ -245,7 +245,7 @@ Google Spreadsheet + Drive  → 共通データストア</div>
                     <div class="tool-name" onclick="toggleTool(this)">全PDF_to_OCR <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
                     <div class="tool-detail">
                         <h4>概要</h4>
-                        <p>Google DriveのScan Dataフォルダ内の全PDFを一括でGemini OCR処理。進捗バー表示、個別再実行可能。結果はGAS ScriptPropertiesにJSON保存。</p>
+                        <p>Google Driveの元PDF（ScanData）フォルダ内の全PDFを一括でGemini OCR処理。進捗バー表示、個別再実行可能。結果はGAS ScriptPropertiesにJSON保存。</p>
                         <a class="tool-link" href="pre_ocr.html" target="_blank">→ アプリを開く</a>
                     </div>
                 </div>
@@ -321,7 +321,7 @@ Google Spreadsheet + Drive  → 共通データストア</div>
                     <div class="tool-name" onclick="toggleTool(this)">PDF処理状況チェック <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
                     <div class="tool-detail">
                         <h4>概要</h4>
-                        <p>Scan Dataフォルダと入力済みPDFフォルダを比較し、未処理・処理済みファイル数を確認するツール。</p>
+                        <p>元PDF（ScanData）フォルダと入力済みPDFフォルダを比較し、未処理・処理済みファイル数を確認するツール。</p>
                         <a class="tool-link" href="check_pdf_status.html" target="_blank">→ アプリを開く</a>
                     </div>
                 </div>
@@ -352,7 +352,7 @@ Google Spreadsheet + Drive  → 共通データストア</div>
                         <p>Google DriveのPDFをGemini 3 Flash Previewで自動読み取りし、医療機関名・患者ID・名前・生年月日・QRチェック有無を抽出してインデックス化。</p>
                         <h4>アルゴリズム</h4>
                         <div class="algo">
-                            1. Google DriveのScan Dataフォルダ内PDFを一覧取得<br>
+                            1. Google Driveの元PDF（ScanData）フォルダ内PDFを一覧取得<br>
                             2. 各PDFをBase64エンコード → Gemini 3 Flash Preview APIに送信<br>
                             3. OCRプロンプトで5フィールド（hospital, patientId, patientName, birthdate, qrCheckbox）を抽出<br>
                             4. 結果をスプレッドシート「PDFインデックス」シートに保存
@@ -397,7 +397,7 @@ Google Spreadsheet + Drive  → 共通データストア</div>
                     <div class="tool-name" onclick="toggleTool(this)">PDF到着状況 <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
                     <div class="tool-detail">
                         <h4>概要</h4>
-                        <p>Scan Dataフォルダの到着PDFと入力済みPDFの比較。到着数・処理済数・未処理数を表示。</p>
+                        <p>元PDF（ScanData）フォルダの到着PDFと入力済みPDFの比較。到着数・処理済数・未処理数を表示。</p>
                         <a class="tool-link" href="pdf_arrival_status.html" target="_blank">→ アプリを開く</a>
                     </div>
                 </div>
@@ -510,7 +510,7 @@ Google Spreadsheet + Drive  → 共通データストア</div>
                     <div class="tool-name" onclick="toggleTool(this)">元PDF閲覧ビューア <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
                     <div class="tool-detail">
                         <h4>概要</h4>
-                        <p>Google DriveのScan Dataフォルダ内PDFを直接プレビューするビューア。ファイル名・日時でソート可能。</p>
+                        <p>Google Driveの元PDF（ScanData）フォルダ内PDFを直接プレビューするビューア。ファイル名・日時でソート可能。</p>
                         <a class="tool-link" href="view_pdf.html" target="_blank">→ アプリを開く</a>
                     </div>
                 </div>

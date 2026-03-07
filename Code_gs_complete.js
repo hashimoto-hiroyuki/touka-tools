@@ -1955,7 +1955,7 @@ function getKnowledgeText() {
   '   - 動的列: HbA1c(%), 体重(kg), 血糖値(mg/dL)など（列追加可能）\n' +
   '   - 同一患者に対して複数行（時系列）\n\n' +
   '### Google Driveフォルダ\n' +
-  '- 元PDFフォルダ（ローカルではScan Dataフォルダ）: スキャン済みPDF\n' +
+  '- 元PDFフォルダ（ローカルでは元PDF（ScanData）フォルダ）: スキャン済みPDF\n' +
   '- 入力済みPDFフォルダ: 照合完了後のPDF\n' +
   '- JSONフォルダ: OCR結果JSON\n\n' +
   '### Googleフォーム\n' +
@@ -2014,7 +2014,7 @@ function getKnowledgeText() {
   '- Gemini 2.0 Flash APIで17質問分を一括OCR\n' +
   '- キーボード: Tab/Shift+Tab（次/前の質問）、Ctrl+Z（戻る）、Esc（矩形定義キャンセル）\n\n' +
   '#### 全PDF_to_OCR（pre_ocr.html）\n' +
-  '- Google DriveのScan Data内全PDFを一括Gemini OCR\n' +
+  '- Google Driveの元PDF（ScanData）フォルダ内全PDFを一括Gemini OCR\n' +
   '- 進捗バー表示、個別再実行可能\n' +
   '- OCR結果はGAS ScriptPropertiesにJSON保存\n\n' +
   '#### OCR照合共有版（verify_ocr.html）\n' +
@@ -2040,14 +2040,14 @@ function getKnowledgeText() {
   '#### バッチOCR照合（batch_verify_ocr.html）\n' +
   '- LabelMe風ファイルリストUIで一括照合\n\n' +
   '#### PDF処理状況チェック（check_pdf_status.html）\n' +
-  '- Scan Dataと入力済みPDFフォルダの比較\n\n' +
+  '- 元PDF（ScanData）と入力済みPDFフォルダの比較\n\n' +
   '### カテゴリ3: データ管理\n\n' +
   '#### データ閲覧（view_data.html）\n' +
   '- パスワード保護、全回答データのテーブル表示\n' +
   '- No./ID/名前/医療機関名で検索・フィルタリング\n' +
   '- 重複No.のハイライト警告\n\n' +
   '#### PDFインデックス構築（index_pdfs.html）\n' +
-  '- Google DriveのScan DataフォルダのPDFをGemini 3 Flash Previewで自動読み取り\n' +
+  '- Google Driveの元PDF（ScanData）フォルダのPDFをGemini 3 Flash Previewで自動読み取り\n' +
   '- 医療機関名・患者ID・名前・生年月日・QRチェック有無を抽出\n' +
   '- 結果はスプレッドシート「PDFインデックス」シートに保存\n\n' +
   '#### 検体番号検索（search_sample.html）\n' +
@@ -2060,7 +2060,7 @@ function getKnowledgeText() {
   '- 列グループ色分け: 基本=白、PpP=水色、追跡=薄紫\n' +
   '- BOM付きUTF-8 CSVダウンロード（Excel対応）\n\n' +
   '#### PDF到着状況（pdf_arrival_status.html）\n' +
-  '- Scan Dataフォルダの到着PDFと入力済みPDFの比較\n\n' +
+  '- 元PDF（ScanData）フォルダの到着PDFと入力済みPDFの比較\n\n' +
   '#### テストデータ削除（delete_test_data.html）\n' +
   '- 患者No.指定でテストデータを削除（パスワード保護）\n\n' +
   '#### JSON復元（restore_from_json.html）\n' +
@@ -2086,7 +2086,7 @@ function getKnowledgeText() {
   '#### 作業フロー図（workflow_chart.html）\n' +
   '- 協力者の作業手順をフローチャートで表示\n\n' +
   '#### 元PDF閲覧ビューア（view_pdf.html）\n' +
-  '- Google DriveのScan Dataフォルダ内PDFを直接プレビュー\n\n' +
+  '- Google Driveの元PDF（ScanData）フォルダ内PDFを直接プレビュー\n\n' +
   '## GAS API（Code_gs_complete.js）\n' +
   '- Google Apps Script Web App、JSONP形式で通信\n' +
   '- doGet関数のactionパラメータでルーティング（39+アクション）\n' +
