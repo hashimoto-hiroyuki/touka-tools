@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF結合（表裏統合）ツール</title>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', 'Hiragino Sans', sans-serif; background: #f5f5f5; color: #333; padding: 20px; }
+        .container { max-width: 960px; margin: 0 auto; }
+        h1 { color: #1565c0; margin-bottom: 4px; font-size: 22px; }
+        .subtitle { color: #888; font-size: 13px; margin-bottom: 20px; }
+        .back-link { font-size: 13px; margin-bottom: 12px; }
+        .back-link a { color: #1976d2; text-decoration: none; }
+        .back-link a:hover { text-decoration: underline; }
+
+        .section { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .section-title { font-size: 16px; font-weight: bold; color: #1565c0; margin-bottom: 12px; border-bottom: 2px solid #90caf9; padding-bottom: 6px; }
+
+        /* モード切替 */
+        .mode-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+        .mode-tab { padding: 8px 20px; border: 2px solid #1565c0; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; background: #fff; color: #1565c0; transition: all 0.2s; }
+        .mode-tab.active { background: #1565c0; color: #fff; }
+        .mode-tab:hover:not(.active) { background: #e3f2fd; }
+
+        /* ドロップゾーン */
+        .drop-pair { display: flex; gap: 16px; margin-bottom: 16px; }
+        .drop-zone { flex: 1; border: 2px dashed #ccc; border-radius: 8px; padding: 30px 16px; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafafa; min-height: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: #1565c0; background: #e3f2fd; }
+        .drop-zone.has-file { border-color: #43a047; background: #e8f5e9; border-style: solid; }
+        .drop-zone p { color: #888; margin: 4px 0; font-size: 13px; }
+        .drop-zone .icon { font-size: 36px; margin-bottom: 6px; }
+        .drop-zone .label { font-weight: 700; font-size: 14px; color: #1565c0; margin-bottom: 8px; }
+        .drop-zone .file-name { font-size: 13px; color: #2e7d32; font-weight: 600; word-break: break-all; }
+        .drop-zone .file-pages { font-size: 12px; color: #666; margin-top: 4px; }
+        .drop-zone input[type="file"] { display: none; }
+        .btn-select { display: inline-block; margin-top: 6px; padding: 6px 16px; background: #1565c0; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-size: 13px; }
+        .btn-select:hover { background: #0d47a1; }
+        .btn-clear { font-size: 11px; color: #c62828; cursor: pointer; margin-top: 6px; text-decoration: underline; }
+
+        /* バッチモード */
+        .batch-zone { border: 2px dashed #ccc; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafafa; margin-bottom: 12px; }
+        .batch-zone:hover, .batch-zone.dragover { border-color: #1565c0; background: #e3f2fd; }
+        .batch-zone .icon { font-size: 36px; }
+        .batch-zone p { color: #888; font-size: 13px; margin: 4px 0; }
+        .batch-zone input[type="file"] { display: none; }
+        .pair-list { max-height: 300px; overflow-y: auto; }
+        .pair-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+        .pair-item:last-child { border-bottom: none; }
+        .pair-item .pair-num { font-weight: 700; color: #1565c0; width: 30px; text-align: center; }
+        .pair-item .pair-front { flex: 1; color: #333; }
+        .pair-item .pair-arrow { color: #ccc; font-size: 16px; }
+        .pair-item .pair-back { flex: 1; color: #333; }
+        .pair-item .pair-out { flex: 1; color: #2e7d32; font-weight: 600; }
+        .pair-header { display: flex; gap: 12px; padding: 6px 12px; font-size: 11px; color: #888; font-weight: 700; border-bottom: 2px solid #e0e0e0; }
+        .pair-header span:first-child { width: 30px; text-align: center; }
+        .pair-header span { flex: 1; }
+
+        /* 設定 */
+        .setting-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .setting-row label { width: 140px; font-size: 14px; color: #555; flex-shrink: 0; }
+        .setting-row input { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; width: 240px; }
+
+        /* ボタン */
+        .btn-exec { padding: 12px 28px; font-size: 15px; font-weight: 700; color: #fff; border: none; border-radius: 8px; cursor: pointer; margin-right: 8px; transition: opacity 0.2s; }
+        .btn-exec:hover { opacity: 0.85; }
+        .btn-exec:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-upload { background: #1565c0; }
+        .btn-download { background: #43a047; }
+
+        /* 進捗 */
+        .progress-area { display: none; margin-top: 16px; }
+        .progress-area.visible { display: block; }
+        .progress-bar { height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+        .progress-bar-fill { height: 100%; background: #1565c0; transition: width 0.3s; width: 0%; }
+        .progress-text { font-size: 12px; color: #888; margin-bottom: 6px; }
+        .log-area { max-height: 160px; overflow-y: auto; font-size: 12px; font-family: monospace; background: #fafafa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 8px; }
+        .log-ok { color: #2e7d32; }
+        .log-err { color: #c62828; }
+
+        /* 結果 */
+        .result-area { display: none; margin-top: 16px; padding: 16px; border-radius: 8px; }
+        .result-area.visible { display: block; }
+        .result-area.success { background: #e8f5e9; border: 1px solid #a5d6a7; }
+        .result-area.error { background: #ffebee; border: 1px solid #ef9a9a; }
+        .result-area h3 { font-size: 16px; margin-bottom: 6px; }
+        .result-area.success h3 { color: #2e7d32; }
+        .result-area.error h3 { color: #c62828; }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="back-link"><a href="index.html">&larr; ダッシュボードに戻る</a></div>
+        <h1>PDF結合（表裏統合）ツール</h1>
+        <p class="subtitle">表面と裏面が別々のPDFファイルを、1つの2ページPDFに結合します</p>
+
+        <!-- モード切替 -->
+        <div class="mode-tabs">
+            <div class="mode-tab active" onclick="switchMode('single')">1組ずつ結合</div>
+            <div class="mode-tab" onclick="switchMode('batch')">まとめて結合</div>
+        </div>
+
+        <!-- ===== 1組モード ===== -->
+        <div id="singleMode">
+            <div class="section">
+                <div class="section-title">① 表面・裏面のPDFを選択</div>
+                <div class="drop-pair">
+                    <div class="drop-zone" id="dropFront" ondragover="dOver(event,'dropFront')" ondragleave="dLeave('dropFront')" ondrop="dDrop(event,'front')">
+                        <div class="icon">📄</div>
+                        <div class="label">表面（ページ1）</div>
+                        <p>ドラッグ＆ドロップ</p>
+                        <button class="btn-select" onclick="document.getElementById('fileFront').click()">ファイルを選択</button>
+                        <input type="file" id="fileFront" accept=".pdf" onchange="onFileSelect('front', this)">
+                        <div class="file-name" id="frontName"></div>
+                        <div class="file-pages" id="frontPages"></div>
+                        <div class="btn-clear hidden" id="frontClear" onclick="clearFile('front')">クリア</div>
+                    </div>
+                    <div class="drop-zone" id="dropBack" ondragover="dOver(event,'dropBack')" ondragleave="dLeave('dropBack')" ondrop="dDrop(event,'back')">
+                        <div class="icon">📄</div>
+                        <div class="label">裏面（ページ2）</div>
+                        <p>ドラッグ＆ドロップ</p>
+                        <button class="btn-select" onclick="document.getElementById('fileBack').click()">ファイルを選択</button>
+                        <input type="file" id="fileBack" accept=".pdf" onchange="onFileSelect('back', this)">
+                        <div class="file-name" id="backName"></div>
+                        <div class="file-pages" id="backPages"></div>
+                        <div class="btn-clear hidden" id="backClear" onclick="clearFile('back')">クリア</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section hidden" id="singleSettings">
+                <div class="section-title">② 結合設定</div>
+                <div class="setting-row">
+                    <label>出力ファイル名</label>
+                    <input type="text" id="outputName" placeholder="自動生成されます">
+                    <span style="font-size:13px;color:#888;">.pdf</span>
+                </div>
+            </div>
+
+            <div class="section hidden" id="singleExec">
+                <div class="section-title">③ 結合実行</div>
+                <button class="btn-exec btn-upload" onclick="mergeSingle('upload')">結合して Google Drive にアップロード</button>
+                <button class="btn-exec btn-download" onclick="mergeSingle('download')">結合してダウンロード</button>
+            </div>
+        </div>
+
+        <!-- ===== バッチモード ===== -->
+        <div id="batchMode" class="hidden">
+            <div class="section">
+                <div class="section-title">① 複数のPDFファイルをまとめて選択</div>
+                <p style="font-size:13px;color:#666;margin-bottom:12px;">偶数枚のPDFを選択してください。ファイル名順に並べて、奇数番目=表面、偶数番目=裏面としてペアリングします。</p>
+                <div class="batch-zone" id="batchDrop" ondragover="dOver(event,'batchDrop')" ondragleave="dLeave('batchDrop')" ondrop="batchDropHandler(event)">
+                    <div class="icon">📁</div>
+                    <p>複数のPDFをドラッグ＆ドロップ</p>
+                    <button class="btn-select" onclick="document.getElementById('batchInput').click()">ファイルを選択</button>
+                    <input type="file" id="batchInput" accept=".pdf" multiple onchange="batchFileSelect(this)">
+                </div>
+                <div id="batchInfo" class="hidden" style="margin-top:8px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                        <span style="font-size:14px;font-weight:700;color:#1565c0;" id="batchCount"></span>
+                        <span class="btn-clear" onclick="clearBatch()">全てクリア</span>
+                    </div>
+                    <div class="pair-header">
+                        <span>#</span>
+                        <span>表面（ページ1）</span>
+                        <span></span>
+                        <span>裏面（ページ2）</span>
+                        <span>出力ファイル名</span>
+                    </div>
+                    <div class="pair-list" id="pairList"></div>
+                </div>
+            </div>
+
+            <div class="section hidden" id="batchExec">
+                <div class="section-title">② 一括結合実行</div>
+                <button class="btn-exec btn-upload" onclick="mergeBatch('upload')">全て結合して Google Drive にアップロード</button>
+                <button class="btn-exec btn-download" onclick="mergeBatch('download')">全て結合してダウンロード</button>
+            </div>
+        </div>
+
+        <!-- 進捗・結果（共通） -->
+        <div class="progress-area" id="progressArea">
+            <div class="progress-text" id="progressText"></div>
+            <div class="progress-bar"><div class="progress-bar-fill" id="progressFill"></div></div>
+            <div class="log-area" id="logArea"></div>
+        </div>
+        <div class="result-area" id="resultArea"></div>
+    </div>
+
+<script>
+    var APPS_SCRIPT_API_URL = 'https://script.google.com/macros/s/AKfycbyYnnni3ww8q2KJIPom0ljkVjseQuPMGULQq2lHh21BN63EwLECb_6XsEX9yMpPG_Ri/exec';
+
+    // ===== 状態管理 =====
+    var frontFile = null, backFile = null;
+    var frontBytes = null, backBytes = null;
+    var batchFiles = [];
+    var isProcessing = false;
+
+    // ===== モード切替 =====
+    function switchMode(mode) {
+        document.querySelectorAll('.mode-tab').forEach(function(t) { t.classList.remove('active'); });
+        if (mode === 'single') {
+            document.querySelectorAll('.mode-tab')[0].classList.add('active');
+            document.getElementById('singleMode').classList.remove('hidden');
+            document.getElementById('batchMode').classList.add('hidden');
+        } else {
+            document.querySelectorAll('.mode-tab')[1].classList.add('active');
+            document.getElementById('singleMode').classList.add('hidden');
+            document.getElementById('batchMode').classList.remove('hidden');
+        }
+        hideResult();
+    }
+
+    // ===== ドラッグ&ドロップ =====
+    function dOver(e, id) { e.preventDefault(); document.getElementById(id).classList.add('dragover'); }
+    function dLeave(id) { document.getElementById(id).classList.remove('dragover'); }
+    function dDrop(e, side) {
+        e.preventDefault();
+        var dropId = side === 'front' ? 'dropFront' : 'dropBack';
+        document.getElementById(dropId).classList.remove('dragover');
+        var files = e.dataTransfer.files;
+        if (files.length > 0 && files[0].type === 'application/pdf') {
+            loadFile(side, files[0]);
+        }
+    }
+    function onFileSelect(side, input) {
+        if (input.files.length > 0) {
+            loadFile(side, input.files[0]);
+        }
+    }
+
+    // ===== 1組モード: ファイル読み込み =====
+    async function loadFile(side, file) {
+        var ab = await file.arrayBuffer();
+        var bytes = new Uint8Array(ab);
+        var pageCount = 0;
+        try {
+            var doc = await PDFLib.PDFDocument.load(bytes);
+            pageCount = doc.getPageCount();
+        } catch (err) {
+            alert('PDFの読み込みに失敗しました: ' + err.message);
+            return;
+        }
+
+        if (side === 'front') {
+            frontFile = file; frontBytes = bytes;
+            document.getElementById('frontName').textContent = file.name;
+            document.getElementById('frontPages').textContent = pageCount + 'ページ';
+            document.getElementById('frontClear').classList.remove('hidden');
+            document.getElementById('dropFront').classList.add('has-file');
+        } else {
+            backFile = file; backBytes = bytes;
+            document.getElementById('backName').textContent = file.name;
+            document.getElementById('backPages').textContent = pageCount + 'ページ';
+            document.getElementById('backClear').classList.remove('hidden');
+            document.getElementById('dropBack').classList.add('has-file');
+        }
+
+        if (frontFile && backFile) {
+            document.getElementById('singleSettings').classList.remove('hidden');
+            document.getElementById('singleExec').classList.remove('hidden');
+            // 自動ファイル名
+            var stem = frontFile.name.replace(/\.[^.]+$/, '').replace(/[-_]?(front|omote|表|表面)\s*$/i, '');
+            document.getElementById('outputName').value = stem + '_merged';
+        }
+    }
+
+    function clearFile(side) {
+        if (side === 'front') {
+            frontFile = null; frontBytes = null;
+            document.getElementById('frontName').textContent = '';
+            document.getElementById('frontPages').textContent = '';
+            document.getElementById('frontClear').classList.add('hidden');
+            document.getElementById('dropFront').classList.remove('has-file');
+            document.getElementById('fileFront').value = '';
+        } else {
+            backFile = null; backBytes = null;
+            document.getElementById('backName').textContent = '';
+            document.getElementById('backPages').textContent = '';
+            document.getElementById('backClear').classList.add('hidden');
+            document.getElementById('dropBack').classList.remove('has-file');
+            document.getElementById('fileBack').value = '';
+        }
+        document.getElementById('singleSettings').classList.add('hidden');
+        document.getElementById('singleExec').classList.add('hidden');
+    }
+
+    // ===== PDF結合コア =====
+    async function mergeTwoPdfs(bytes1, bytes2) {
+        var doc1 = await PDFLib.PDFDocument.load(bytes1);
+        var doc2 = await PDFLib.PDFDocument.load(bytes2);
+        var merged = await PDFLib.PDFDocument.create();
+
+        var pages1 = await merged.copyPages(doc1, doc1.getPageIndices());
+        pages1.forEach(function(p) { merged.addPage(p); });
+
+        var pages2 = await merged.copyPages(doc2, doc2.getPageIndices());
+        pages2.forEach(function(p) { merged.addPage(p); });
+
+        return await merged.save();
+    }
+
+    // ===== 1組モード: 結合実行 =====
+    async function mergeSingle(mode) {
+        if (isProcessing || !frontBytes || !backBytes) return;
+        isProcessing = true;
+        hideResult();
+        showProgress();
+        setProgress(0, '結合中...');
+
+        try {
+            var mergedBytes = await mergeTwoPdfs(frontBytes, backBytes);
+            var fileName = (document.getElementById('outputName').value || 'merged') + '.pdf';
+            setProgress(50, '結合完了。' + (mode === 'upload' ? 'アップロード中...' : 'ダウンロード中...'));
+            addLog('✅ 結合完了: ' + fileName + ' (' + formatSize(mergedBytes.length) + ')', 'ok');
+
+            if (mode === 'upload') {
+                var base64 = uint8ArrayToBase64(mergedBytes);
+                addLog('📤 Google Drive にアップロード中...', 'ok');
+                var res = await gasPost({ action: 'uploadSplitPdf', pdfBase64: base64, fileName: fileName });
+                setProgress(100, '完了');
+                addLog('✅ アップロード完了', 'ok');
+                showResult('success', '結合＆アップロード完了', fileName + ' を元PDFフォルダにアップロードしました。');
+            } else {
+                downloadBlob(mergedBytes, fileName);
+                setProgress(100, '完了');
+                addLog('✅ ダウンロード完了', 'ok');
+                showResult('success', '結合＆ダウンロード完了', fileName + ' をダウンロードしました。');
+            }
+        } catch (err) {
+            addLog('❌ エラー: ' + err.message, 'err');
+            showResult('error', 'エラーが発生しました', err.message);
+        }
+        isProcessing = false;
+    }
+
+    // ===== バッチモード =====
+    function batchDropHandler(e) {
+        e.preventDefault();
+        document.getElementById('batchDrop').classList.remove('dragover');
+        var files = Array.from(e.dataTransfer.files).filter(function(f) { return f.type === 'application/pdf'; });
+        if (files.length > 0) processBatchFiles(files);
+    }
+    function batchFileSelect(input) {
+        var files = Array.from(input.files).filter(function(f) { return f.type === 'application/pdf'; });
+        if (files.length > 0) processBatchFiles(files);
+    }
+
+    function processBatchFiles(files) {
+        files.sort(function(a, b) { return a.name.localeCompare(b.name, 'ja'); });
+        batchFiles = files;
+
+        if (files.length % 2 !== 0) {
+            alert('ファイル数が奇数（' + files.length + '件）です。\n偶数枚のPDFを選択してください。\n（奇数番目=表面、偶数番目=裏面としてペアリングします）');
+        }
+
+        var pairCount = Math.floor(files.length / 2);
+        document.getElementById('batchCount').textContent = files.length + 'ファイル → ' + pairCount + '組にペアリング';
+        document.getElementById('batchInfo').classList.remove('hidden');
+
+        var html = '';
+        for (var i = 0; i < pairCount; i++) {
+            var f = files[i * 2];
+            var b = files[i * 2 + 1];
+            var outName = f.name.replace(/\.[^.]+$/, '') + '_merged.pdf';
+            html += '<div class="pair-item">'
+                + '<div class="pair-num">' + (i + 1) + '</div>'
+                + '<div class="pair-front">' + f.name + '</div>'
+                + '<div class="pair-arrow">+</div>'
+                + '<div class="pair-back">' + b.name + '</div>'
+                + '<div class="pair-out">' + outName + '</div>'
+                + '</div>';
+        }
+        if (files.length % 2 !== 0) {
+            html += '<div class="pair-item" style="background:#fff3e0;">'
+                + '<div class="pair-num">-</div>'
+                + '<div class="pair-front" style="color:#e65100;">⚠️ ' + files[files.length - 1].name + '（ペアなし）</div>'
+                + '<div class="pair-arrow"></div><div class="pair-back"></div><div class="pair-out"></div>'
+                + '</div>';
+        }
+        document.getElementById('pairList').innerHTML = html;
+
+        if (pairCount > 0) {
+            document.getElementById('batchExec').classList.remove('hidden');
+        }
+    }
+
+    function clearBatch() {
+        batchFiles = [];
+        document.getElementById('batchInfo').classList.add('hidden');
+        document.getElementById('batchExec').classList.add('hidden');
+        document.getElementById('batchInput').value = '';
+    }
+
+    async function mergeBatch(mode) {
+        if (isProcessing || batchFiles.length < 2) return;
+        isProcessing = true;
+        hideResult();
+        showProgress();
+
+        var pairCount = Math.floor(batchFiles.length / 2);
+        var successCount = 0;
+        var errorCount = 0;
+
+        for (var i = 0; i < pairCount; i++) {
+            var fFile = batchFiles[i * 2];
+            var bFile = batchFiles[i * 2 + 1];
+            var outName = fFile.name.replace(/\.[^.]+$/, '') + '_merged.pdf';
+            var pct = Math.round((i / pairCount) * 100);
+            setProgress(pct, '結合中... (' + (i + 1) + '/' + pairCount + ')');
+
+            try {
+                var fAb = await fFile.arrayBuffer();
+                var bAb = await bFile.arrayBuffer();
+                var mergedBytes = await mergeTwoPdfs(new Uint8Array(fAb), new Uint8Array(bAb));
+
+                if (mode === 'upload') {
+                    var base64 = uint8ArrayToBase64(mergedBytes);
+                    await gasPost({ action: 'uploadSplitPdf', pdfBase64: base64, fileName: outName });
+                    addLog('✅ ' + outName + ' → アップロード完了', 'ok');
+                } else {
+                    downloadBlob(mergedBytes, outName);
+                    addLog('✅ ' + outName + ' → ダウンロード完了', 'ok');
+                }
+                successCount++;
+            } catch (err) {
+                addLog('❌ ' + outName + ' → エラー: ' + err.message, 'err');
+                errorCount++;
+            }
+
+            if (mode === 'upload') await sleep(500);
+        }
+
+        setProgress(100, '完了');
+        if (errorCount === 0) {
+            showResult('success', '一括結合完了', successCount + '組の結合が完了しました。');
+        } else {
+            showResult('error', '一部エラーあり', '成功: ' + successCount + '組、エラー: ' + errorCount + '組');
+        }
+        isProcessing = false;
+    }
+
+    // ===== GAS通信（iframe + form POST） =====
+    function gasPost(payload) {
+        return new Promise(function(resolve, reject) {
+            var iframeName = 'postFrame_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+            var iframe = document.createElement('iframe');
+            iframe.name = iframeName;
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+
+            var form = document.createElement('form');
+            form.method = 'POST';
+            form.action = APPS_SCRIPT_API_URL;
+            form.target = iframeName;
+
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'payload';
+            input.value = JSON.stringify(payload);
+            form.appendChild(input);
+            document.body.appendChild(form);
+
+            var done = false;
+            function cleanup() {
+                if (done) return;
+                done = true;
+                try { document.body.removeChild(iframe); } catch(e) {}
+                try { document.body.removeChild(form); } catch(e) {}
+            }
+
+            var timeoutId = setTimeout(function() {
+                cleanup();
+                resolve({ success: true, data: { message: '送信完了（タイムアウト方式）' } });
+            }, 90000);
+
+            iframe.onload = function() {
+                clearTimeout(timeoutId);
+                try {
+                    var responseText = iframe.contentDocument.body.textContent;
+                    var parsed = JSON.parse(responseText);
+                    cleanup();
+                    resolve(parsed);
+                    return;
+                } catch(e) {}
+                cleanup();
+                resolve({ success: true });
+            };
+
+            form.submit();
+        });
+    }
+
+    // ===== ユーティリティ =====
+    function uint8ArrayToBase64(bytes) {
+        var binary = '';
+        var CHUNK = 8192;
+        for (var i = 0; i < bytes.length; i += CHUNK) {
+            var slice = bytes.subarray(i, Math.min(i + CHUNK, bytes.length));
+            binary += String.fromCharCode.apply(null, slice);
+        }
+        return btoa(binary);
+    }
+
+    function downloadBlob(bytes, fileName) {
+        var blob = new Blob([bytes], { type: 'application/pdf' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
+    function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+    // ===== UI =====
+    function showProgress() {
+        document.getElementById('progressArea').classList.add('visible');
+        document.getElementById('logArea').innerHTML = '';
+    }
+    function setProgress(pct, text) {
+        document.getElementById('progressFill').style.width = pct + '%';
+        document.getElementById('progressText').textContent = text;
+    }
+    function addLog(msg, type) {
+        var el = document.getElementById('logArea');
+        var cls = type === 'err' ? 'log-err' : 'log-ok';
+        el.innerHTML += '<div class="' + cls + '">' + msg + '</div>';
+        el.scrollTop = el.scrollHeight;
+    }
+    function showResult(type, title, msg) {
+        var el = document.getElementById('resultArea');
+        el.className = 'result-area visible ' + (type === 'success' ? 'success' : 'error');
+        el.innerHTML = '<h3>' + title + '</h3><p>' + msg + '</p>';
+    }
+    function hideResult() {
+        document.getElementById('resultArea').className = 'result-area';
+        document.getElementById('resultArea').innerHTML = '';
+        document.getElementById('progressArea').classList.remove('visible');
+    }
+</script>
+</body>
+</html>

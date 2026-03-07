@@ -71,8 +71,8 @@
 |------|------|-----------|
 | スキャン | 複合機でアンケート用紙をまとめてスキャン | 複合機 |
 | PDF分割 | まとめスキャンPDFを **2ページずつ** に一括分割 | **スキャンPDF分割** |
-| 結合（必要時） | 表・裏が別々のPDFファイルの場合、1つに結合 | 手動 or ツール |
-| 確認 | 元PDFフォルダに表裏セットのPDFが保存されていることを確認 | **元PDF閲覧ビューア** |
+| 結合（必要時） | 表・裏が別々のPDFファイルの場合、1つに結合 | **PDF結合（表裏統合）** |
+| 確認 | 元PDFフォルダに表裏セットのPDFが保存されていることを確認 | **PDFページ数チェック** |
 
 > 📁 元PDFフォルダ（Google Drive）には、表と裏がセットになった1つのPDFファイルが保存されている状態にしてください。
 
@@ -179,6 +179,8 @@ HbA1cなど、医師が特に記録すべき追跡情報があれば追加入力
 | [アンケート作成ツール](https://touka-survey.vercel.app) | Vercel | 医療機関を選択し、QRコード付きA4アンケート用紙を作成・印刷 |
 | [アンケート白紙](https://hashimoto-hiroyuki.github.io/touka-tools/白紙.pdf) | Web | 医療機関名・QRコードなしの白紙アンケート用紙PDF |
 | [スキャンPDF分割](https://hashimoto-hiroyuki.github.io/touka-tools/split_scan_pdf.html) | Web | まとめスキャンPDFを2ページずつに一括分割 |
+| [PDF結合（表裏統合）](https://hashimoto-hiroyuki.github.io/touka-tools/merge_pdf.html) | Web | 表裏別々のPDFを1つの2ページPDFに結合 |
+| [PDFページ数チェック](https://hashimoto-hiroyuki.github.io/touka-tools/check_pdf_pages.html) | Web | 元PDFフォルダの全PDFが2ページセットか確認 |
 | [アンケートフォーム](https://docs.google.com/forms/d/e/1FAIpQLSfK29rSSrvSjt7onYIO5gDCLDhtj776z-EhKfTxf2gUlGPBlQ/viewform) | Google | Googleフォーム（QRコードからの回答先） |
 
 ### 🔍 OCR読み取り・照合

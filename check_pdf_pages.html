@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDFページ数チェック</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', 'Hiragino Sans', sans-serif; background: #f5f5f5; color: #333; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { color: #e65100; margin-bottom: 4px; font-size: 22px; }
+        .subtitle { color: #888; font-size: 13px; margin-bottom: 20px; }
+        .back-link { font-size: 13px; margin-bottom: 12px; }
+        .back-link a { color: #1976d2; text-decoration: none; }
+        .back-link a:hover { text-decoration: underline; }
+
+        .section { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .section-title { font-size: 16px; font-weight: bold; color: #e65100; margin-bottom: 12px; border-bottom: 2px solid #ffcc80; padding-bottom: 6px; }
+
+        /* ログイン */
+        .login-area { text-align: center; padding: 40px 0; }
+        .login-area input { padding: 10px 16px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 15px; width: 240px; margin-right: 8px; }
+        .login-area input:focus { border-color: #e65100; outline: none; }
+        .btn { padding: 10px 24px; font-size: 15px; font-weight: 700; color: #fff; border: none; border-radius: 6px; cursor: pointer; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.85; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-primary { background: #e65100; }
+        .btn-check { background: #1565c0; }
+
+        /* サマリー */
+        .summary { display: flex; gap: 16px; margin-bottom: 16px; }
+        .summary-card { flex: 1; padding: 16px; border-radius: 8px; text-align: center; }
+        .summary-card .num { font-size: 32px; font-weight: 700; }
+        .summary-card .label { font-size: 12px; color: #666; margin-top: 4px; }
+        .card-total { background: #e3f2fd; }
+        .card-total .num { color: #1565c0; }
+        .card-ok { background: #e8f5e9; }
+        .card-ok .num { color: #2e7d32; }
+        .card-warn { background: #fff3e0; }
+        .card-warn .num { color: #e65100; }
+        .card-err { background: #ffebee; }
+        .card-err .num { color: #c62828; }
+
+        /* テーブル */
+        .result-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .result-table th { background: #f5f5f5; padding: 8px 12px; text-align: left; font-weight: 700; color: #555; border-bottom: 2px solid #e0e0e0; }
+        .result-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+        .result-table tr:hover { background: #fafafa; }
+        .result-table tr.row-ok td:nth-child(3) { color: #2e7d32; font-weight: 700; }
+        .result-table tr.row-warn { background: #fff8e1; }
+        .result-table tr.row-warn td { color: #e65100; }
+        .result-table tr.row-err { background: #ffebee; }
+        .result-table tr.row-err td { color: #c62828; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+        .badge-ok { background: #e8f5e9; color: #2e7d32; }
+        .badge-warn { background: #fff3e0; color: #e65100; }
+        .badge-err { background: #ffebee; color: #c62828; }
+        .link-btn { font-size: 12px; color: #1565c0; text-decoration: none; margin-left: 8px; }
+        .link-btn:hover { text-decoration: underline; }
+
+        /* フィルタ */
+        .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+        .filter-btn { padding: 4px 14px; border: 1px solid #ccc; border-radius: 20px; font-size: 12px; cursor: pointer; background: #fff; transition: all 0.2s; }
+        .filter-btn.active { background: #1565c0; color: #fff; border-color: #1565c0; }
+        .filter-btn:hover:not(.active) { background: #e3f2fd; }
+
+        /* 進捗 */
+        .progress-bar { height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden; margin: 12px 0; }
+        .progress-fill { height: 100%; background: #e65100; transition: width 0.3s; width: 0%; }
+        .progress-text { font-size: 12px; color: #888; }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="back-link"><a href="index.html">&larr; ダッシュボードに戻る</a></div>
+        <h1>PDFページ数チェック</h1>
+        <p class="subtitle">元PDFフォルダ内の全PDFファイルが2ページセット（表裏）になっているか確認します</p>
+
+        <!-- ログイン -->
+        <div class="section" id="loginSection">
+            <div class="login-area">
+                <input type="password" id="passwordInput" placeholder="パスワードを入力" onkeypress="if(event.key==='Enter')startCheck()">
+                <button class="btn btn-primary" onclick="startCheck()">チェック開始</button>
+            </div>
+        </div>
+
+        <!-- 進捗 -->
+        <div class="section hidden" id="progressSection">
+            <div class="section-title">チェック中...</div>
+            <div class="progress-text" id="progressText">PDFファイル一覧を取得中...</div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        </div>
+
+        <!-- 結果 -->
+        <div id="resultSection" class="hidden">
+            <!-- サマリー -->
+            <div class="summary" id="summaryArea"></div>
+
+            <!-- フィルタ & テーブル -->
+            <div class="section">
+                <div class="section-title">ファイル一覧</div>
+                <div class="filter-bar">
+                    <span style="font-size:12px;color:#888;">表示：</span>
+                    <div class="filter-btn active" onclick="filterRows('all')">全て</div>
+                    <div class="filter-btn" onclick="filterRows('ok')">✅ 正常のみ</div>
+                    <div class="filter-btn" onclick="filterRows('ng')">⚠️ 異常のみ</div>
+                </div>
+                <div style="max-height:500px;overflow-y:auto;">
+                    <table class="result-table" id="resultTable">
+                        <thead>
+                            <tr>
+                                <th style="width:40px">#</th>
+                                <th>ファイル名</th>
+                                <th style="width:100px">ページ数</th>
+                                <th style="width:80px">状態</th>
+                                <th style="width:120px">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 再チェック -->
+            <div style="text-align:center;margin-top:16px;">
+                <button class="btn btn-check" onclick="recheck()">再チェック</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    var GAS_URL = 'https://script.google.com/macros/s/AKfycbyYnnni3ww8q2KJIPom0ljkVjseQuPMGULQq2lHh21BN63EwLECb_6XsEX9yMpPG_Ri/exec';
+    var password = '';
+    var fileResults = [];
+
+    // ===== チェック開始 =====
+    async function startCheck() {
+        password = document.getElementById('passwordInput').value;
+        if (!password) { alert('パスワードを入力してください'); return; }
+
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('progressSection').classList.remove('hidden');
+        document.getElementById('resultSection').classList.add('hidden');
+
+        try {
+            // Step 1: ファイル一覧取得
+            setProgress(5, 'PDFファイル一覧を取得中...');
+            var pdfList = await jsonpGet('getDrivePdfList');
+            if (!pdfList || !pdfList.data) {
+                throw new Error('ファイル一覧の取得に失敗しました。パスワードを確認してください。');
+            }
+            var files = pdfList.data;
+            setProgress(10, files.length + '件のPDFファイルを検出。ページ数を確認中...');
+
+            // Step 2: ページ数を3件ずつ並列で取得
+            fileResults = [];
+            var batchSize = 3;
+            for (var i = 0; i < files.length; i += batchSize) {
+                var batch = files.slice(i, Math.min(i + batchSize, files.length));
+                var promises = batch.map(function(f) {
+                    return jsonpGet('getPdfPageCount', '&fileId=' + encodeURIComponent(f.fileId))
+                        .then(function(res) {
+                            return {
+                                fileId: f.fileId,
+                                fileName: f.fileName,
+                                fileSize: f.fileSize,
+                                pageCount: (res && res.data) ? res.data.pageCount : -1
+                            };
+                        })
+                        .catch(function() {
+                            return {
+                                fileId: f.fileId,
+                                fileName: f.fileName,
+                                fileSize: f.fileSize,
+                                pageCount: -1
+                            };
+                        });
+                });
+                var results = await Promise.all(promises);
+                fileResults = fileResults.concat(results);
+
+                var pct = 10 + Math.round((fileResults.length / files.length) * 85);
+                setProgress(pct, 'ページ数確認中... (' + fileResults.length + '/' + files.length + ')');
+            }
+
+            setProgress(100, '完了');
+            showResults();
+
+        } catch (err) {
+            alert('エラー: ' + err.message);
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('progressSection').classList.add('hidden');
+        }
+    }
+
+    function recheck() {
+        document.getElementById('resultSection').classList.add('hidden');
+        document.getElementById('progressSection').classList.remove('hidden');
+        startCheck();
+    }
+
+    // ===== 結果表示 =====
+    function showResults() {
+        document.getElementById('progressSection').classList.add('hidden');
+        document.getElementById('resultSection').classList.remove('hidden');
+
+        var total = fileResults.length;
+        var okCount = 0, warnCount = 0, errCount = 0;
+        fileResults.forEach(function(f) {
+            if (f.pageCount === 2) okCount++;
+            else if (f.pageCount === -1) errCount++;
+            else warnCount++;
+        });
+
+        // サマリーカード
+        var summaryHtml = '<div class="summary-card card-total"><div class="num">' + total + '</div><div class="label">合計ファイル数</div></div>'
+            + '<div class="summary-card card-ok"><div class="num">' + okCount + '</div><div class="label">✅ 正常（2ページ）</div></div>'
+            + '<div class="summary-card card-warn"><div class="num">' + warnCount + '</div><div class="label">⚠️ ページ数異常</div></div>';
+        if (errCount > 0) {
+            summaryHtml += '<div class="summary-card card-err"><div class="num">' + errCount + '</div><div class="label">❌ 取得失敗</div></div>';
+        }
+        document.getElementById('summaryArea').innerHTML = summaryHtml;
+
+        // テーブル
+        // 異常を先に、正常を後に表示
+        fileResults.sort(function(a, b) {
+            var aPri = a.pageCount === 2 ? 1 : 0;
+            var bPri = b.pageCount === 2 ? 1 : 0;
+            if (aPri !== bPri) return aPri - bPri;
+            return a.fileName.localeCompare(b.fileName, 'ja');
+        });
+
+        var tbody = '';
+        fileResults.forEach(function(f, idx) {
+            var rowClass = '';
+            var badge = '';
+            if (f.pageCount === 2) {
+                rowClass = 'row-ok';
+                badge = '<span class="badge badge-ok">✅ OK</span>';
+            } else if (f.pageCount === -1) {
+                rowClass = 'row-err';
+                badge = '<span class="badge badge-err">❌ 不明</span>';
+            } else {
+                rowClass = 'row-warn';
+                badge = '<span class="badge badge-warn">⚠️ ' + f.pageCount + 'ページ</span>';
+            }
+
+            var actions = '<a class="link-btn" href="view_pdf.html?fileId=' + f.fileId + '" target="_blank">PDFを開く</a>';
+            if (f.pageCount === 1) {
+                actions += '<a class="link-btn" href="merge_pdf.html" target="_blank">結合ツール</a>';
+            }
+
+            tbody += '<tr class="' + rowClass + '" data-status="' + (f.pageCount === 2 ? 'ok' : 'ng') + '">'
+                + '<td>' + (idx + 1) + '</td>'
+                + '<td>' + escHtml(f.fileName) + '</td>'
+                + '<td>' + (f.pageCount === -1 ? '取得失敗' : f.pageCount + 'ページ') + '</td>'
+                + '<td>' + badge + '</td>'
+                + '<td>' + actions + '</td>'
+                + '</tr>';
+        });
+        document.getElementById('tableBody').innerHTML = tbody;
+    }
+
+    // ===== フィルタ =====
+    function filterRows(mode) {
+        document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+        event.target.classList.add('active');
+
+        var rows = document.querySelectorAll('#tableBody tr');
+        rows.forEach(function(row) {
+            if (mode === 'all') {
+                row.style.display = '';
+            } else if (mode === 'ok') {
+                row.style.display = row.getAttribute('data-status') === 'ok' ? '' : 'none';
+            } else {
+                row.style.display = row.getAttribute('data-status') === 'ng' ? '' : 'none';
+            }
+        });
+    }
+
+    // ===== JSONP通信 =====
+    function jsonpGet(action, extra) {
+        return new Promise(function(resolve, reject) {
+            var callbackName = 'cb_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+            var timeout = setTimeout(function() {
+                delete window[callbackName];
+                reject(new Error('タイムアウト'));
+            }, 60000);
+
+            window[callbackName] = function(data) {
+                clearTimeout(timeout);
+                delete window[callbackName];
+                resolve(data);
+            };
+
+            var url = GAS_URL + '?action=' + action + '&password=' + encodeURIComponent(password)
+                + '&callback=' + callbackName + (extra || '');
+            var script = document.createElement('script');
+            script.src = url;
+            script.onerror = function() {
+                clearTimeout(timeout);
+                delete window[callbackName];
+                reject(new Error('通信エラー'));
+            };
+            document.head.appendChild(script);
+        });
+    }
+
+    // ===== ユーティリティ =====
+    function setProgress(pct, text) {
+        document.getElementById('progressFill').style.width = pct + '%';
+        document.getElementById('progressText').textContent = text;
+    }
+    function escHtml(s) {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+</script>
+</body>
+</html>
