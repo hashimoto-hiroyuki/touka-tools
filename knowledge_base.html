@@ -153,6 +153,39 @@ Google Spreadsheet + Drive  → 共通データストア</div>
                     </div>
                 </div>
                 <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">PDF結合（表裏統合） <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>表面と裏面が別々にスキャンされたPDFファイルを、1つの2ページPDFに結合するツールです。</p>
+                        <h4>アルゴリズム</h4>
+                        <ul>
+                            <li><strong>pdf-lib</strong>でブラウザ上でPDFを結合（サーバー不要）</li>
+                            <li>PDFDocument.load()で2つのPDFを読み込み → PDFDocument.create() → copyPages()で表裏を結合 → save()</li>
+                            <li><strong>1組モード</strong>：表面・裏面を個別にドロップして結合</li>
+                            <li><strong>バッチモード</strong>：複数PDFをまとめて選択 → ファイル名順でペアリング（奇数番目=表面、偶数番目=裏面）→ 一括結合</li>
+                            <li>Google Driveへ直接アップロード（GAS uploadSplitPdfアクション）またはローカルダウンロード</li>
+                        </ul>
+                        <a class="tool-link" href="merge_pdf.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
+                    <div class="tool-name" onclick="toggleTool(this)">PDFページ数チェック <span class="tag tag-web">Web</span><span class="arrow2">&#9654;</span></div>
+                    <div class="tool-detail">
+                        <h4>概要</h4>
+                        <p>元PDFフォルダ（Google Drive）内の全PDFファイルのページ数を一括チェックし、2ページ（表裏セット）以外のファイルを検出・警告します。</p>
+                        <h4>アルゴリズム</h4>
+                        <ul>
+                            <li>GAS getDrivePdfListアクションで元PDFフォルダの全ファイルリストを取得</li>
+                            <li>各ファイルにGAS getPdfPageCountアクションを3件ずつ並列で呼び出し</li>
+                            <li>ページ数 === 2 → ✅ 正常、それ以外 → ⚠️ 異常として判定</li>
+                            <li>サマリーカード（合計/正常/異常/取得失敗）で結果を可視化</li>
+                            <li>異常ファイルを先頭にソートし、PDFビューアや結合ツールへのリンクを表示</li>
+                            <li>フィルタ機能（全て/正常のみ/異常のみ）</li>
+                        </ul>
+                        <a class="tool-link" href="check_pdf_pages.html" target="_blank">→ アプリを開く</a>
+                    </div>
+                </div>
+                <div class="tool-card" data-searchable>
                     <div class="tool-name" onclick="toggleTool(this)">アンケートフォーム <span class="tag tag-sheets">Google</span><span class="arrow2">&#9654;</span></div>
                     <div class="tool-detail">
                         <h4>概要</h4>
