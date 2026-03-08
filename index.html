@@ -588,12 +588,12 @@
                 <div class="tree-item" data-detail="ai-assistant" onclick="showDetail('ai-assistant')">
                     <div class="item-icon ic-purple"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"/></svg></div>
                     <span class="item-label">AIアシスタント</span>
-                    <span class="tag tag-ext">NotebookLM</span>
+                    <span class="tag tag-ext">Gemini</span>
                 </div>
-                <div class="tree-item" data-detail="ai-chat" onclick="showDetail('ai-chat')">
-                    <div class="item-icon ic-purple"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/></svg></div>
-                    <span class="item-label">AIチャット</span>
-                    <span class="tag tag-web">Web</span>
+                <div class="tree-item" data-detail="notebook-lm" onclick="showDetail('notebook-lm')">
+                    <div class="item-icon ic-blue"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg></div>
+                    <span class="item-label">ノートブック</span>
+                    <span class="tag tag-ext">NotebookLM</span>
                 </div>
                 </div>
             </div>
@@ -1303,59 +1303,57 @@
                 </a>
             </div>
 
-            <!-- AIアシスタント（NotebookLM） -->
+            <!-- AIアシスタント（Gemini） -->
             <div class="detail" id="detail-ai-assistant">
                 <div class="detail-header">
                     <div class="detail-icon ic-purple"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"/></svg></div>
                     <div>
                         <div class="detail-title">AIアシスタント</div>
-                        <div class="detail-subtitle">Google NotebookLM による質問回答AI</div>
+                        <div class="detail-subtitle">Gemini + NotebookLM による質問回答AI</div>
                     </div>
                 </div>
                 <div class="detail-section">
                     <h3>概要</h3>
-                    <p>Google NotebookLMに糖化アンケート管理システムのナレッジベースとREADMEを登録したAIアシスタントです。ツールの使い方からアルゴリズムの詳細まで、出典付きで質問に回答します。</p>
+                    <p>Google Gemini にNotebookLMツールを接続して利用するAIアシスタントです。糖化アンケート管理システムのナレッジベースとREADMEが登録されたNotebookLMノートブックを参照しながら、ツールの使い方からアルゴリズムの詳細まで回答します。</p>
                 </div>
                 <div class="detail-section">
-                    <h3>主な機能</h3>
+                    <h3>使い方</h3>
                     <ul>
+                        <li>Geminiを開き、「+」ボタンからNotebookLMツールを追加</li>
+                        <li>糖化アンケートのノートブックを選択して接続</li>
                         <li>ナレッジベースを元にした出典付きQ&A</li>
                         <li>利用者向け質問（使い方）とエンジニア向け質問（アルゴリズム）の両方に対応</li>
-                        <li>Googleアカウントでログインして利用</li>
+                    </ul>
+                </div>
+                <a class="btn-open" href="https://gemini.google.com" target="_blank">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                    Geminiを開く
+                </a>
+            </div>
+
+            <!-- ノートブック（NotebookLM） -->
+            <div class="detail" id="detail-notebook-lm">
+                <div class="detail-header">
+                    <div class="detail-icon ic-blue"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg></div>
+                    <div>
+                        <div class="detail-title">ノートブック</div>
+                        <div class="detail-subtitle">Google NotebookLM ナレッジノートブック</div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <h3>概要</h3>
+                    <p>糖化アンケート管理システムのナレッジベースとREADMEが登録されたGoogle NotebookLMノートブックです。直接開いてノートブック上でAIに質問したり、Geminiから接続して利用できます。</p>
+                </div>
+                <div class="detail-section">
+                    <h3>登録ソース</h3>
+                    <ul>
+                        <li>ナレッジベース（knowledge_base.html）- 全ツールの詳細説明</li>
+                        <li>README.md - プロジェクト概要とワークフロー</li>
                     </ul>
                 </div>
                 <a class="btn-open" href="https://notebooklm.google.com/notebook/edca0d61-d50e-4793-af54-8e8b6fba4770" target="_blank">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
                     NotebookLMを開く
-                </a>
-            </div>
-
-            <!-- AIチャット（Gemini API） -->
-            <div class="detail" id="detail-ai-chat">
-                <div class="detail-header">
-                    <div class="detail-icon ic-purple"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"/></svg></div>
-                    <div>
-                        <div class="detail-title">AIチャット</div>
-                        <div class="detail-subtitle">Gemini AIによる質問回答チャット</div>
-                    </div>
-                </div>
-                <div class="detail-section">
-                    <h3>概要</h3>
-                    <p>糖化アンケート管理システムのナレッジベースを元に、Gemini AIがユーザーの質問に自然言語で回答するチャットボットです。アプリ内で完結し、パスワード保護付きで即座に回答が得られます。</p>
-                </div>
-                <div class="detail-section">
-                    <h3>主な機能</h3>
-                    <ul>
-                        <li>チャット形式でのQ&A（Gemini 2.0 Flash）</li>
-                        <li>利用者向け質問（使い方）とエンジニア向け質問（アルゴリズム）の両方に対応</li>
-                        <li>質問例ボタンでワンクリック質問</li>
-                        <li>マークダウン形式の見やすい回答表示</li>
-                        <li>パスワード保護付き</li>
-                    </ul>
-                </div>
-                <a class="btn-open" href="assistant_chat.html" target="_blank">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
-                    アプリを開く
                 </a>
             </div>
 
