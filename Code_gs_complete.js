@@ -2921,7 +2921,7 @@ function preOcrSinglePdf(fileId) {
     '【質問10の選択肢】ほぼ毎日 / 週2〜3回 / 週1回以下 / しない\n' +
     '【質問11の選択肢】有糖飲料 / 無糖飲料\n' +
     '【質問12の選択肢】ほぼ毎日 / 週2〜3回 / 週1回以下 / 食べない';
-  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=' + GEMINI_API_KEY;
+  var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=' + GEMINI_API_KEY;
   var payload = {
     contents: [{
       parts: [
