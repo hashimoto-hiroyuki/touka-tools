@@ -18,8 +18,63 @@ const TRACKING_SPREADSHEET_ID = '1jr25zPPv2qCHkgXNA6oHV5eoSq0RcxpXEirWq0V5YA8'; 
 const TRACKING_SHEET_NAME = 'シート1';
 const FORM_ID = '1d0DTtvnVtkW4rBEOMUkUx41bRA2asIYd50jtV-JEBWw';  // Googleフォーム編集用ID
 const GEMINI_API_KEY = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY') || '';
+
+// ========== アクセス制御（メンバー限定allowlist） ==========
+// このリストに含まれるGoogleアカウントでログインしていないとWeb App経由の全APIは拒否される。
+// メンバー変更時はこの配列を更新して再デプロイするだけでよい。
+const ALLOWED_USERS = [
+  'tomonori.yorita@devine.co.jp',  // 依田知則
+  'naoto.okubo@devine.co.jp',      // 大久保直登
+  'sonoko.mihara@devine.co.jp',     // 三原園子
+  'hiroyuki.hashimoto@devine.co.jp'   // 橋本裕之
+];
+
+/**
+ * アクセス許可チェック。
+ * - Googleログイン必須（未ログインは getEffectiveUser/getActiveUser が空を返す）
+ * - ALLOWED_USERS に含まれているメールアドレスのみ許可
+ * 返り値: { ok: boolean, email: string, error?: string }
+ *
+ * 注意: Googleフォーム経由の onFormSubmit はこの関数を通らないので患者の回答フローには影響しない。
+ */
+function checkAccess() {
+  let email = '';
+  try {
+    email = (Session.getActiveUser().getEmail() || '').toLowerCase();
+  } catch (err) {
+    email = '';
+  }
+  if (!email) {
+    return { ok: false, email: '', error: 'Googleアカウントでのログインが必要です（アクセス権限がないか、ログインしていません）' };
+  }
+  const allowed = ALLOWED_USERS.some(function(a) { return a.toLowerCase() === email; });
+  if (!allowed) {
+    return { ok: false, email: email, error: 'アクセス権限がありません（このアカウントは許可リストに登録されていません）: ' + email };
+  }
+  return { ok: true, email: email };
+}
+
+/**
+ * JSONP対応のエラーレスポンス生成。doGetで未認証時に使用。
+ */
+function buildUnauthorizedResponse(e, errorMessage) {
+  const payload = JSON.stringify({ success: false, error: errorMessage, unauthorized: true });
+  const callback = e && e.parameter && e.parameter.callback;
+  if (callback) {
+    return ContentService.createTextOutput(callback + '(' + payload + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(payload)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 // ========== Web App エンドポイント（JSONP対応） ==========
 function doGet(e) {
+  // ★ アクセス制御: 許可メンバー以外は即エラー返却
+  const gate = checkAccess();
+  if (!gate.ok) {
+    return buildUnauthorizedResponse(e, gate.error);
+  }
   const action = e.parameter.action;
   let result;
   try {
@@ -545,6 +600,12 @@ function testGetHospitalList() {
 }
 // ========== POSTエンドポイント（OCR変換データ受信用） ==========
 function doPost(e) {
+  // ★ アクセス制御: 許可メンバー以外は即エラー返却
+  const gate = checkAccess();
+  if (!gate.ok) {
+    return ContentService.createTextOutput(JSON.stringify({ success: false, error: gate.error, unauthorized: true }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   let result;
   try {
     let body;
@@ -3898,75 +3959,4 @@ function getPdfPageCount(fileId) {
     // Method 2: /Count が /Type /Pages より先に来るパターン（逆順の辞書構造）
     if (pageCount === 0) {
       var re2 = /\/Count\s+(\d+)[\s\S]{0,500}?\/Type\s*\/Pages\b/g;
-      while ((match = re2.exec(content)) !== null) {
-        var c = parseInt(match[1], 10);
-        if (c > pageCount) pageCount = c;
-      }
-    }
-
-    // Method 3: フォールバック - /Type /Page（/Pagesではない）の出現回数をカウント
-    if (pageCount === 0) {
-      var pageMatches = content.match(/\/Type\s*\/Page\b(?!s)/g);
-      pageCount = pageMatches ? pageMatches.length : 0;
-    }
-
-    return { fileId: fileId, fileName: file.getName(), pageCount: pageCount };
-  } catch (err) {
-    return { fileId: fileId, fileName: '', pageCount: -1, error: err.message };
-  }
-}
-
-/**
- * 分割されたPDFをGoogle Driveの元PDFフォルダにアップロード
- * @param {Object} body - { pdfBase64: string, fileName: string }
- * @returns {Object} { success: true, fileId, fileName }
- */
-function uploadSplitPdf(body) {
-  if (!body.pdfBase64 || !body.fileName) {
-    return { success: false, message: 'pdfBase64とfileNameが必要です' };
-  }
-  try {
-    var folder = DriveApp.getFolderById(SCAN_PDF_FOLDER_ID);
-    var bytes = Utilities.base64Decode(body.pdfBase64);
-    var blob = Utilities.newBlob(bytes, MimeType.PDF, body.fileName);
-    var file = folder.createFile(blob);
-    return { success: true, fileId: file.getId(), fileName: file.getName(), fileSize: file.getSize() };
-  } catch (err) {
-    return { success: false, message: 'アップロードエラー: ' + err.message };
-  }
-}
-
-/**
- * PDFファイルのバイナリをbase64エンコードして返す（JSONP経由でCORS回避）
- * @param {string} fileId - Google DriveのファイルID
- * @returns {Object} { fileId, fileName, base64 }
- */
-function getPdfBase64(fileId) {
-  if (!fileId) return { fileId: '', fileName: '', base64: '', error: 'fileIdが必要です' };
-  try {
-    var file = DriveApp.getFileById(fileId);
-    var blob = file.getBlob();
-    var bytes = blob.getBytes();
-    var base64 = Utilities.base64Encode(bytes);
-    return { fileId: fileId, fileName: file.getName(), base64: base64 };
-  } catch (err) {
-    return { fileId: fileId, fileName: '', base64: '', error: err.message };
-  }
-}
-
-/**
- * Google Driveのファイルをゴミ箱に移動（復元可能）
- * @param {string} fileId - Google DriveのファイルID
- * @returns {Object} { success: true, message }
- */
-function trashDriveFile(fileId) {
-  if (!fileId) return { success: false, message: 'fileIdが必要です' };
-  try {
-    var file = DriveApp.getFileById(fileId);
-    var fileName = file.getName();
-    file.setTrashed(true);
-    return { success: true, message: fileName + ' をゴミ箱に移動しました' };
-  } catch (err) {
-    return { success: false, message: 'ゴミ箱移動エラー: ' + err.message };
-  }
-}
+      while ((match = re2.exec(content)) !== null)
